@@ -24,9 +24,9 @@ program
     const format = options.format
 
     try {
-      await resizeImage(fullImagePath, fullOutputPath, size)
+      await resizeImage(fullImagePath, fullOutputPath, {size: size, format: format})
     } catch (error) {
-      console.log(`Error processing image`)
+      console.log(`Error processing image`, error)
     }
   })
 
