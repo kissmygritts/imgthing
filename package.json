@@ -1,0 +1,19 @@
+{
+  "name": "img-resizer",
+  "version": "0.0.1",
+  "module": "src/index.ts",
+  "type": "module",
+  "bin": {
+    "img-resizer": "./src/cli.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "commander": "^13.1.0",
+    "sharp": "^0.33.5"
+  }
+}
