@@ -41,11 +41,12 @@ program
   .action(async (inDirectory: string, outDirectory: string, options) => {
     const sourceDirectory = path.resolve(inDirectory)
     const destDirectory = path.resolve(outDirectory)
+    const size: number = options.size.map((size: string) => parseInt(size, 10))
 
     console.log("cli params")
     console.log({ sourceDirectory, destDirectory, options })
 
-    await batchProcessImages(sourceDirectory, destDirectory, options)
+    await batchProcessImages(sourceDirectory, destDirectory, { ...options, size })
   })
 
 program.parse(process.argv)

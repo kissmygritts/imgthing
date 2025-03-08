@@ -49,3 +49,23 @@ export async function resizeImage(
     console.log("Error resizing images", error)
   }
 }
+
+export async function processOneImage(
+  inputImagePath: string,
+  outputImagePath: string,
+  options: ResizeOptions = {}
+) {
+  const { width, height, size, format, quality } = { ...DEFAULT_OPTIONS, ...options }
+
+  try {
+    let image = sharp(inputImagePath).rotate()
+    if (size) {
+      image = image.resize({ width: size, height: size, fit: "inside" })
+    } else {
+      image = image.resize({ width, height, fit: "inside" })
+    }
+    await image.toFormat(format, { quality }).toFile(outputImagePath)
+  } catch (error) {
+    throw error
+  }
+}

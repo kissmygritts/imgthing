@@ -1,10 +1,24 @@
 import { readdir } from "node:fs/promises"
 import path from "node:path"
 
+import { makeDirectory } from "./utils"
+import { processOneImage } from "./resize"
+
 export type ProcessImageOptions = {
   size?: number[]
   format?: ("jpg" | "webp" | "avif")[]
   quality?: number
+}
+
+type ProcessImageDetail = {
+  srcImagePath: string;
+  baseImgDir: string;
+  outputImagePath: string;
+  options: {
+      size: number;
+      format: string;
+      quality: number;
+  };
 }
 
 const DEFAULT_OPTIONS: Required<ProcessImageOptions> = {
@@ -20,12 +34,30 @@ export async function batchProcessImages(
 ) {
   const { size, format, quality } = { ...DEFAULT_OPTIONS, ...options }
 
+  await makeDirectory(sourceDirectory)
   const allFiles = await readdir(sourceDirectory)
-  const images = allFiles
+  
+  const imageProcessingDetails = allFiles
     .filter(file => /\.(jpe?g)$/i.test(file))
-    .map(image => makeImageOutputMap(image, sourceDirectory, destDirectory, size, format))
+    .reduce((acc, image) => {
+      const imgSettings = makeImageOutputMap(image, sourceDirectory, destDirectory, size, format, quality)
+      return [...acc, ...imgSettings]
+    }, [] as ProcessImageDetail[])
 
-  console.log(images)
+  const imageBaseDirectories = imageProcessingDetails
+    .map(detail => detail.baseImgDir)
+  const uniqueBaseDirectories = new Set(imageBaseDirectories)
+  uniqueBaseDirectories.forEach(async directory => await makeDirectory(directory))
+    
+
+  console.log(imageProcessingDetails)
+
+  imageProcessingDetails
+  .forEach(detail => processOneImage(
+    detail.srcImagePath, 
+    detail.outputImagePath, 
+    detail.options
+  ))
 }
 
 function makeImageOutputMap(
@@ -33,7 +65,8 @@ function makeImageOutputMap(
   sourceDirectory: string,
   destDirectory: string,
   size: number[],
-  format: string[]
+  format: string[],
+  quality: number
 ) {
   const fullImagePath = path.join(sourceDirectory, image)
   const imageExtension = path.extname(image)
@@ -47,8 +80,14 @@ function makeImageOutputMap(
   const outputImages = Object
     .entries(imgBaseDirectories)
     .flatMap(([format, baseDir]) =>
-      size.map(size => path.join(baseDir, `${size}.${format}`))
+      size.map(size => ({
+        srcImagePath: fullImagePath,
+        baseImgDir: baseDir,
+        outputImagePath: path.join(baseDir, `${size}.${format}`),
+        options: { size, format, quality }
+      }))
     )
 
-  return { fullImagePath, imgBaseDirectories, outputImages }
+  // return { fullImagePath, imgBaseDirectories, outputImages }
+  return outputImages
 }
