@@ -24,12 +24,12 @@ export async function resizeImage(
   options: ResizeOptions = {}
 ) {
   const { width, height, size, format, quality } = { ...DEFAULT_OPTIONS, ...options }
-  
+
   const inputImageName = path.basename(inputImagePath).split(".")[0]
   const outputFilename = `${size || width || height}.${format}`
   const outputBaseDir = path.join(outputDir, inputImageName)
   const outputImagePath = path.join(outputBaseDir, outputFilename)
-  
+
   const baseDirExists = await exists(outputBaseDir)
   if (!baseDirExists) {
     await mkdir(outputBaseDir)
@@ -38,7 +38,7 @@ export async function resizeImage(
   try {
     let image = sharp(inputImagePath).rotate()
     if (size) {
-      image = image.resize({width: size, height: size, fit: "inside"})
+      image = image.resize({ width: size, height: size, fit: "inside" })
     } else {
       image = image.resize({ width, height, fit: "inside" })
     }

@@ -2,6 +2,7 @@
 
 import { Command } from "commander"
 import { resizeImage } from "./resize.js"
+import { batchProcessImages } from "./batch.js";
 import path from "path"
 
 const program = new Command();
@@ -24,10 +25,27 @@ program
     const format = options.format
 
     try {
-      await resizeImage(fullImagePath, fullOutputPath, {size: size, format: format})
+      await resizeImage(fullImagePath, fullOutputPath, { size: size, format: format })
     } catch (error) {
       console.log(`Error processing image`, error)
     }
+  })
+
+program
+  .command("batch")
+  .description("Batch process a directory of images")
+  .argument("<inDirectory>", "Input directory of images")
+  .argument("<outDirectory>", "Output directory location for processed images")
+  .option("-s --size <number...>", "Resize the images so that their longest edge is the given size. Multiple sizes are allowed. Each size in the list will be generated", ["1024"])
+  .option("-f --format <string...>", "The output image format. If multiple formats are provided an image for each format will be created.", ["jpg"])
+  .action(async (inDirectory: string, outDirectory: string, options) => {
+    const sourceDirectory = path.resolve(inDirectory)
+    const destDirectory = path.resolve(outDirectory)
+
+    console.log("cli params")
+    console.log({ sourceDirectory, destDirectory, options })
+
+    await batchProcessImages(sourceDirectory, destDirectory, options)
   })
 
 program.parse(process.argv)
