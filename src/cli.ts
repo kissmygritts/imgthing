@@ -38,15 +38,15 @@ program
   .argument("<outDirectory>", "Output directory location for processed images")
   .option("-s --size <number...>", "Resize the images so that their longest edge is the given size. Multiple sizes are allowed. Each size in the list will be generated", ["1024"])
   .option("-f --format <string...>", "The output image format. If multiple formats are provided an image for each format will be created.", ["jpg"])
+  .option("-q --quality <number>", "The output image quality.", "80")
   .action(async (inDirectory: string, outDirectory: string, options) => {
-    const sourceDirectory = path.resolve(inDirectory)
-    const destDirectory = path.resolve(outDirectory)
-    const size: number = options.size.map((size: string) => parseInt(size, 10))
+    const sourceDirectory: string = path.resolve(inDirectory)
+    const destDirectory: string = path.resolve(outDirectory)
+    const size: number[] = options.size.map((size: string) => parseInt(size, 10))
+    const quality: number = parseInt(options.quality, 10)
+    const parsedOptions = { size, format: options.format, quality }
 
-    console.log("cli params")
-    console.log({ sourceDirectory, destDirectory, options })
-
-    await batchProcessImages(sourceDirectory, destDirectory, { ...options, size })
+    await batchProcessImages(sourceDirectory, destDirectory, { ...parsedOptions, size })
   })
 
 program.parse(process.argv)
