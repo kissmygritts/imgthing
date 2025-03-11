@@ -36,7 +36,10 @@ export async function resizeImage(
   }
 
   try {
-    let image = sharp(inputImagePath).rotate()
+    let image = sharp(inputImagePath)
+      .sharpen({ sigma: 0.5 })
+      .rotate()
+
     if (size) {
       image = image.resize({ width: size, height: size, fit: "inside" })
     } else {
@@ -58,12 +61,16 @@ export async function processOneImage(
   const { width, height, size, format, quality } = { ...DEFAULT_OPTIONS, ...options }
 
   try {
-    let image = sharp(inputImagePath).rotate()
+    let image = sharp(inputImagePath)
+      .sharpen({ sigma: 0.5 })
+      .rotate()
+
     if (size) {
       image = image.resize({ width: size, height: size, fit: "inside" })
     } else {
       image = image.resize({ width, height, fit: "inside" })
     }
+
     await image.toFormat(format, { quality }).toFile(outputImagePath)
   } catch (error) {
     throw error
