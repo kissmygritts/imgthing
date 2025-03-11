@@ -6,8 +6,28 @@
   "bin": {
     "img-resizer": "./src/cli.ts"
   },
+  "scripts": {
+    "lint": "bun x eslint .",
+    "lint:fix": "bun x eslint . --ext .ts,.tsx --fix",
+    "format": "bun x prettier --write .",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "bun x eslint --fix",
+      "bun x prettier --write"
+    ]
+  },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@typescript-eslint/eslint-plugin": "^8.26.1",
+    "@typescript-eslint/parser": "^8.26.1",
+    "eslint": "^9.22.0",
+    "eslint-config-prettier": "^10.1.1",
+    "eslint-plugin-prettier": "^5.2.3",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.4.3",
+    "prettier": "^3.5.3"
   },
   "peerDependencies": {
     "typescript": "^5"

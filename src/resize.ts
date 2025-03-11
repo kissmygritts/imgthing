@@ -8,13 +8,13 @@ const DEFAULT_OPTIONS: Required<ResizeOptions> = {
   format: "jpeg",
   quality: 80,
   width: 0,
-  height: 0
+  height: 0,
 }
 
 export async function resizeImage(
   inputImagePath: string,
   outputDir: string,
-  options: ResizeOptions = {}
+  options: ResizeOptions = {},
 ) {
   const { width, height, size, format, quality } = { ...DEFAULT_OPTIONS, ...options }
 
@@ -29,9 +29,7 @@ export async function resizeImage(
   }
 
   try {
-    let image = sharp(inputImagePath)
-      .sharpen({ sigma: 0.5 })
-      .rotate()
+    let image = sharp(inputImagePath).sharpen({ sigma: 0.5 }).rotate()
 
     if (size) {
       image = image.resize({ width: size, height: size, fit: "inside" })
@@ -49,14 +47,12 @@ export async function resizeImage(
 export async function processOneImage(
   inputImagePath: string,
   outputImagePath: string,
-  options: ResizeOptions = {}
+  options: ResizeOptions = {},
 ) {
   const { width, height, size, format, quality } = { ...DEFAULT_OPTIONS, ...options }
 
   try {
-    let image = sharp(inputImagePath)
-      .sharpen({ sigma: 0.5 })
-      .rotate()
+    let image = sharp(inputImagePath).sharpen({ sigma: 0.5 }).rotate()
 
     if (size) {
       image = image.resize({ width: size, height: size, fit: "inside" })

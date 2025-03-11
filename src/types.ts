@@ -30,4 +30,4 @@ export type InputImageDetails = {
   imageExtension: string
   imageName: string
   imageStem: string
-} 
+}
