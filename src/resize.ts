@@ -1,14 +1,7 @@
 import { mkdir, exists } from "node:fs/promises"
 import path from "path"
 import sharp from "sharp"
-
-export type ResizeOptions = {
-  width?: number
-  height?: number
-  size?: number
-  format?: "jpeg" | "webp" | "avif"
-  quality?: number
-}
+import type { ResizeOptions } from "./types"
 
 const DEFAULT_OPTIONS: Required<ResizeOptions> = {
   size: 1024,

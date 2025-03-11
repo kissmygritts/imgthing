@@ -1,36 +1,13 @@
 import { readdir, copyFile } from "node:fs/promises"
 import path from "node:path"
+import type { ProcessImageOptions, ProcessImageDetail, InputImageDetails, ImageFormat } from "./types"
 
 import { makeDirectory } from "./utils"
 import { processOneImage } from "./resize"
 
-export type ProcessImageOptions = {
-  size?: number[]
-  format?: ("jpg" | "webp" | "avif")[]
-  quality?: number
-}
-
-type ProcessImageDetail = {
-  srcImagePath: string;
-  baseImgDir: string;
-  outputImagePath: string;
-  options: {
-      size: number;
-      format: string;
-      quality: number;
-  };
-}
-
-type InputImageDetails = {
-  fullImagePath: string;
-  imageExtension: string;
-  imageName: string;
-  imageStem: string;
-}
-
 const DEFAULT_OPTIONS: Required<ProcessImageOptions> = {
   size: [1024],
-  format: ["jpg"],
+  format: ["jpeg"],
   quality: 80
 }
 
@@ -44,25 +21,24 @@ export async function batchProcessImages(
   await makeDirectory(sourceDirectory)
   const allFiles = await readdir(sourceDirectory)
   const allImageFiles = allFiles.filter(file => /\.(jpe?g)$/i.test(file))
-  const imageProcessingDetails = allImageFiles
-    .reduce((acc, image) => {
-      const imgSettings = makeImageOutputMap(image, sourceDirectory, destDirectory, size, format, quality)
-      return [...acc, ...imgSettings]
-    }, [] as ProcessImageDetail[])
+  const imageProcessingDetails = allImageFiles.reduce<ProcessImageDetail[]>((acc, image) => {
+    const imgSettings = makeImageOutputMap(image, sourceDirectory, destDirectory, size, format, quality)
+    return [...acc, ...imgSettings]
+  }, [])
 
-  const imageBaseDirectories = imageProcessingDetails
-    .map(detail => detail.baseImgDir)
+  const imageBaseDirectories = imageProcessingDetails.map(detail => detail.baseImgDir)
   const uniqueBaseDirectories = new Set(imageBaseDirectories)
   uniqueBaseDirectories.forEach(async directory => await makeDirectory(directory))
     
-  await imageProcessingDetails
-  .forEach(detail => processOneImage(
-    detail.srcImagePath, 
-    detail.outputImagePath, 
-    detail.options
+  await Promise.all(imageProcessingDetails.map(detail => 
+    processOneImage(
+      detail.srcImagePath, 
+      detail.outputImagePath, 
+      detail.options
+    )
   ))
 
-  await allImageFiles.map(image => copyInputImage(image, sourceDirectory, destDirectory))
+  await Promise.all(allImageFiles.map(image => copyInputImage(image, sourceDirectory, destDirectory)))
 }
 
 function parseInputImageDetails(image: string, sourceDirectory: string): InputImageDetails {
@@ -83,15 +59,15 @@ function makeImageOutputMap(
   sourceDirectory: string,
   destDirectory: string,
   size: number[],
-  format: string[],
+  format: ImageFormat[],
   quality: number
-) {
+): ProcessImageDetail[] {
   const inputImageDetails = parseInputImageDetails(image, sourceDirectory)
 
-  const imgBaseDirectories = format.reduce((acc, format) => {
+  const imgBaseDirectories = format.reduce<Record<ImageFormat, string>>((acc, format) => {
     acc[format] = path.join(destDirectory, inputImageDetails.imageName, format);
     return acc;
-  }, {} as Record<string, string>)
+  }, {} as Record<ImageFormat, string>)
 
   const outputImages = Object
     .entries(imgBaseDirectories)
@@ -100,11 +76,10 @@ function makeImageOutputMap(
         srcImagePath: inputImageDetails.fullImagePath,
         baseImgDir: baseDir,
         outputImagePath: path.join(baseDir, `${size}.${format}`),
-        options: { size, format, quality }
+        options: { size, format: format as ImageFormat, quality }
       }))
     )
 
-  // return { fullImagePath, imgBaseDirectories, outputImages }
   return outputImages
 }
 
