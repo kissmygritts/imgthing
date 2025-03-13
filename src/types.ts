@@ -31,3 +31,23 @@ export type InputImageDetails = {
   imageName: string
   imageStem: string
 }
+
+export type ExifData = {
+  make?: string
+  model?: string
+  dateTimeOriginal?: string
+  iso?: number
+  focalLength?: number
+  fNumber?: number
+  exposureTime?: string
+  gps?: {
+    latitude?: number
+    longitude?: number
+    altitude?: number
+  }
+  orientation?: number
+  software?: string
+  copyright?: string
+  artist?: string
+  description?: string
+}

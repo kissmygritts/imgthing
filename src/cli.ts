@@ -3,6 +3,7 @@
 import { Command } from "commander"
 import { resizeImage } from "./resize.js"
 import { batchProcessImages } from "./batch.js"
+import { readExifData } from "./exif.js"
 import path from "path"
 
 const program = new Command()
@@ -59,6 +60,20 @@ program
     const parsedOptions = { size, format: options.format, quality }
 
     await batchProcessImages(sourceDirectory, destDirectory, { ...parsedOptions, size })
+  })
+
+program
+  .command("exif")
+  .description("Extract EXIF data from an image")
+  .argument("<input>", "Path to the input image")
+  .option("--pretty", "Pretty print the EXIF JSON output")
+  .action(async (input: string, options) => {
+    const prettyPrint = Boolean(options.pretty)
+    const fullImagePath = path.resolve(input)
+    const exifData = await readExifData(fullImagePath)
+    const exifJson = prettyPrint ? JSON.stringify(exifData, null, 2) : JSON.stringify(exifData)
+
+    process.stdout.write(exifJson)
   })
 
 program.parse(process.argv)
