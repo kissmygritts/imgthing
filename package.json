@@ -1,10 +1,10 @@
 {
-  "name": "img-resizer",
+  "name": "imgthing",
   "version": "0.0.1",
   "module": "src/index.ts",
   "type": "module",
   "bin": {
-    "img-resizer": "./src/cli.ts"
+    "imgthing": "./src/cli.ts"
   },
   "scripts": {
     "lint": "bun x eslint .",

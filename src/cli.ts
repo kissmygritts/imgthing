@@ -7,10 +7,7 @@ import { readExifData } from "./exif.js"
 import path from "path"
 
 const program = new Command()
-program
-  .name("img-resize")
-  .description("A simple CLI for image resizing and compression")
-  .version("0.0.1")
+program.name("imgthing").description("A simple CLI of image utilities").version("0.0.1")
 
 program
   .command("resize")
