@@ -2,7 +2,8 @@
 
 import { Command } from "commander"
 import { resizeImage } from "./resize.js"
-import { batchProcessImages } from "./batch.js"
+// import { batchProcessImages } from "./batch.js"
+import { batchProcessImages } from "./batch-v2.js"
 import { readExifData } from "./exif.js"
 import path from "path"
 
@@ -56,7 +57,11 @@ program
     const quality: number = parseInt(options.quality, 10)
     const parsedOptions = { size, format: options.format, quality }
 
-    await batchProcessImages(sourceDirectory, destDirectory, { ...parsedOptions, size })
+    const output = await batchProcessImages(sourceDirectory, destDirectory, {
+      ...parsedOptions,
+      size,
+    })
+    // console.log(JSON.stringify(output, null, 2))
   })
 
 program
