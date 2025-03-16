@@ -7,13 +7,22 @@ const IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".tiff", ".gif"]
 
 // Define the interface for image variants
 interface ImageVariant {
-  imagePath: string // Full path to the original image
-  imageStem: string // Filename with extension
-  imageName: string // Filename without extension
-  outputDir: string // Base output directory for this image
-  formats: string[] // Array of formats to convert to
-  sizes: number[] // Array of sizes to resize to
-  quality: number // Output quality
+  imagePath: string
+  imageStem: string
+  imageName: string
+  outputDir: string
+  formats: string[]
+  sizes: number[]
+  quality: number
+}
+
+interface SourceImageDetails {
+  fullPath: string
+  destinationBasePath: string
+  destinationImagePath: string
+  stem: string
+  name: string
+  extension: string
 }
 
 export async function batchProcessImages(
@@ -26,36 +35,7 @@ export async function batchProcessImages(
   const allFiles = await readdir(sourceDirectory)
   const allImageFiles = await allFiles
     .filter((file) => IMAGE_EXTENSIONS.includes(path.extname(file).toLowerCase()))
-    .map(async (imageFile) => {
-      const fullPath = path.join(sourceDirectory, imageFile)
-      const extension = path.extname(imageFile)
-      const name = path.basename(imageFile, extension)
-      const destinationBasePath = path.join(destDirectory, name)
-      const destinationImagePath = path.join(destinationBasePath, imageFile)
-
-      const sourceImageDetails = {
-        fullPath,
-        destinationBasePath,
-        destinationImagePath,
-        stem: imageFile,
-        name,
-        extension,
-      }
-      const imageVariants = makeImageVariantDetails(sourceImageDetails, options)
-      const exif = await readExifData(fullPath)
-
-      return {
-        fullPath,
-        destinationBasePath,
-        destinationImagePath,
-        stem: imageFile,
-        name,
-        extension,
-        exif,
-        imageVariants,
-      }
-    })
-
+    .map(async (imageFile) => makeImageDetails(imageFile, sourceDirectory, destDirectory, options))
   const outputDetails = await Promise.all(allImageFiles)
 
   const outputDirectories = outputDetails.flatMap((images) =>
@@ -64,10 +44,49 @@ export async function batchProcessImages(
   const uniqueOutputDirectories = new Set(outputDirectories)
   await makeDirectories([destDirectory, ...outputDirectories])
 
-  console.log(uniqueOutputDirectories)
+  console.log(outputDetails)
+  return outputDetails
 }
 
-function makeImageVariantDetails(sourceImageDetails, { size: sizes, format: formats, quality }) {
+async function makeImageDetails(
+  imageFile: string,
+  sourceDirectory: string,
+  destDirectory: string,
+  options,
+) {
+  const fullPath = path.join(sourceDirectory, imageFile)
+  const extension = path.extname(imageFile)
+  const name = path.basename(imageFile, extension)
+  const destinationBasePath = path.join(destDirectory, name)
+  const destinationImagePath = path.join(destinationBasePath, imageFile)
+
+  const sourceImageDetails = {
+    fullPath,
+    destinationBasePath,
+    destinationImagePath,
+    stem: imageFile,
+    name,
+    extension,
+  }
+  const imageVariants = makeImageVariantDetails(sourceImageDetails, options)
+  const exif = await readExifData(fullPath)
+
+  return {
+    fullPath,
+    destinationBasePath,
+    destinationImagePath,
+    stem: imageFile,
+    name,
+    extension,
+    exif,
+    imageVariants,
+  }
+}
+
+function makeImageVariantDetails(
+  sourceImageDetails: SourceImageDetails,
+  { size: sizes, format: formats, quality },
+) {
   return formats.flatMap((format) => {
     return sizes.map((size) => {
       const outputImageName = `${sourceImageDetails.name}__${size}.${format}`
