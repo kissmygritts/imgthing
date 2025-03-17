@@ -61,7 +61,7 @@ program
       ...parsedOptions,
       size,
     })
-    // console.log(JSON.stringify(output, null, 2))
+    console.log(JSON.stringify(output, null, 2))
   })
 
 program

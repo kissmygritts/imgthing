@@ -1,6 +1,7 @@
 import { readdir, copyFile } from "node:fs/promises"
 import { makeDirectory } from "./utils"
 import { readExifData } from "./exif"
+import { calculateResizedDimensions } from "./img"
 import path from "node:path"
 
 const IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".tiff", ".gif"]
@@ -16,22 +17,20 @@ interface ImageVariant {
   quality: number
 }
 
-interface SourceImageDetails {
-  fullPath: string
-  destinationBasePath: string
-  destinationImagePath: string
-  stem: string
-  name: string
-  extension: string
-}
+// interface SourceImageDetails {
+//   fullPath: string
+//   destinationBasePath: string
+//   destinationImagePath: string
+//   stem: string
+//   name: string
+//   extension: string
+// }
 
 export async function batchProcessImages(
   sourceDirectory: string,
   destDirectory: string,
   options = {},
 ) {
-  console.log(options)
-
   const allFiles = await readdir(sourceDirectory)
   const allImageFiles = await allFiles
     .filter((file) => IMAGE_EXTENSIONS.includes(path.extname(file).toLowerCase()))
@@ -42,9 +41,8 @@ export async function batchProcessImages(
     images.imageVariants.map((variant) => variant.outputBaseDirectory),
   )
   const uniqueOutputDirectories = new Set(outputDirectories)
-  await makeDirectories([destDirectory, ...outputDirectories])
+  await makeDirectories([destDirectory, ...uniqueOutputDirectories])
 
-  console.log(outputDetails)
   return outputDetails
 }
 
@@ -60,7 +58,7 @@ async function makeImageDetails(
   const destinationBasePath = path.join(destDirectory, name)
   const destinationImagePath = path.join(destinationBasePath, imageFile)
 
-  const sourceImageDetails = {
+  let sourceImageDetails = {
     fullPath,
     destinationBasePath,
     destinationImagePath,
@@ -68,35 +66,35 @@ async function makeImageDetails(
     name,
     extension,
   }
-  const imageVariants = makeImageVariantDetails(sourceImageDetails, options)
   const exif = await readExifData(fullPath)
+  sourceImageDetails = { ...sourceImageDetails, exif }
+  const imageVariants = makeImageVariantDetails(sourceImageDetails, options)
 
   return {
-    fullPath,
-    destinationBasePath,
-    destinationImagePath,
-    stem: imageFile,
-    name,
-    extension,
-    exif,
+    ...sourceImageDetails,
     imageVariants,
   }
 }
 
-function makeImageVariantDetails(
-  sourceImageDetails: SourceImageDetails,
-  { size: sizes, format: formats, quality },
-) {
+function makeImageVariantDetails(sourceImageDetails, { size: sizes, format: formats, quality }) {
   return formats.flatMap((format) => {
     return sizes.map((size) => {
       const outputImageName = `${sourceImageDetails.name}__${size}.${format}`
       const outputBaseDirectory = path.join(sourceImageDetails.destinationBasePath, format)
       const outputPath = path.join(outputBaseDirectory, outputImageName)
 
+      const { width, height } = calculateResizedDimensions(
+        sourceImageDetails?.exif?.width,
+        sourceImageDetails?.exif?.height,
+        size,
+      )
+      const variantExif = { ...sourceImageDetails?.exif, width, height }
+
       return {
         outputPath,
         outputBaseDirectory,
         outputImageName,
+        exif: variantExif,
         options: {
           size,
           format,
