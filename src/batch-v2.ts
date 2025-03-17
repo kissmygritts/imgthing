@@ -2,6 +2,7 @@ import { readdir, copyFile } from "node:fs/promises"
 import { makeDirectory } from "./utils"
 import { readExifData } from "./exif"
 import { calculateResizedDimensions } from "./img"
+import { processOneImage } from "./resize"
 import path from "node:path"
 
 const IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".tiff", ".gif"]
@@ -31,17 +32,27 @@ export async function batchProcessImages(
   destDirectory: string,
   options = {},
 ) {
+  // generate output image details
   const allFiles = await readdir(sourceDirectory)
   const allImageFiles = await allFiles
     .filter((file) => IMAGE_EXTENSIONS.includes(path.extname(file).toLowerCase()))
     .map(async (imageFile) => makeImageDetails(imageFile, sourceDirectory, destDirectory, options))
   const outputDetails = await Promise.all(allImageFiles)
 
+  // prep output directories
   const outputDirectories = outputDetails.flatMap((images) =>
     images.imageVariants.map((variant) => variant.outputBaseDirectory),
   )
   const uniqueOutputDirectories = new Set(outputDirectories)
   await makeDirectories([destDirectory, ...uniqueOutputDirectories])
+
+  // generate resized images
+  const resizedImages = outputDetails.flatMap((images) =>
+    images.imageVariants.map((variant) =>
+      processOneImage(images.fullPath, variant.outputPath, variant.options),
+    ),
+  )
+  await Promise.all(resizedImages)
 
   return outputDetails
 }
