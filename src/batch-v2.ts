@@ -4,6 +4,7 @@ import { readExifData } from "./exif"
 import { calculateResizedDimensions } from "./img"
 import { processOneImage } from "./resize"
 import path from "node:path"
+import { write } from "bun"
 
 const IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".tiff", ".gif"]
 
@@ -48,7 +49,10 @@ export async function batchProcessImages(
 
   // generate resized images
   const resizedImages = outputDetails.flatMap(async (image) => {
+    const json = JSON.stringify(image, null, 2)
+    await write(image.metadataPath, json)
     await copyFile(image.fullPath, image.destinationImagePath)
+
     return image.imageVariants.map((variant) =>
       processOneImage(image.fullPath, variant.outputPath, variant.options),
     )
@@ -69,6 +73,7 @@ async function makeImageDetails(
   const name = path.basename(imageFile, extension)
   const destinationBasePath = path.join(destDirectory, name)
   const destinationImagePath = path.join(destinationBasePath, imageFile)
+  const metadataPath = path.join(destinationBasePath, `${name}.metadata.json`)
 
   let sourceImageDetails = {
     fullPath,
@@ -77,6 +82,7 @@ async function makeImageDetails(
     stem: imageFile,
     name,
     extension,
+    metadataPath,
   }
   const exif = await readExifData(fullPath)
   sourceImageDetails = { ...sourceImageDetails, exif }
