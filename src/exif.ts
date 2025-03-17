@@ -1,75 +1,99 @@
 import ExifReader from "exifreader"
-import { camelize } from "./utils"
 
-const RAW_EXIF_KEYS = {
-  ApertureValue: {
-    commonName: "aperture",
-    valueFormatFn: (s: string) => s,
-  },
+interface ExifTagValue {
+  id?: number
+  value: number | number[] | string | string[]
+  description: string
+}
+
+interface ExifTags {
+  [tagName: string]: ExifTagValue
+}
+
+interface ExifKeyMapping {
+  commonName: string
+  valueFormatFn: (exifValue: ExifTagValue) => number | string
+}
+
+interface RawExifKeys {
+  [exifKey: string]: ExifKeyMapping
+}
+
+const RAW_EXIF_KEYS: RawExifKeys = {
   DateTimeOriginal: {
     commonName: "createdAt",
-    valueFormatFn: (s: string) => s,
+    valueFormatFn: (exifValue: ExifTagValue) => exifValue.description,
   },
   ExposureTime: {
     commonName: "shutterSpeed",
-    valueFormatFn: (s: string) => s,
+    valueFormatFn: (exifValue: ExifTagValue) => exifValue.description,
   },
-  FNumber: {
-    commonName: "fStop",
-    valueFormatFn: (s: string) => s,
+  ApertureValue: {
+    commonName: "aperture",
+    valueFormatFn: (exifValue: ExifTagValue) => parseFloat(exifValue.description),
   },
   FocalLength: {
     commonName: "focalLength",
-    valueFormatFn: (s: string) => s,
+    valueFormatFn: (exifValue: ExifTagValue) =>
+      parseFloat(exifValue.description.replace(" mm", "")),
   },
   FocalLengthIn35mmFilm: {
     commonName: "focalLength35mm",
-    valueFormatFn: (s: string) => s,
+    valueFormatFn: (exifValue: ExifTagValue) => exifValue.description,
   },
   "Image Height": {
     commonName: "height",
-    valueFormatFn: (s: string) => s,
+    valueFormatFn: (exifValue: ExifTagValue) => parseFloat(exifValue.description.replace("px", "")),
   },
   "Image Width": {
     commonName: "width",
-    valueFormatFn: (s: string) => s,
+    valueFormatFn: (exifValue: ExifTagValue) => parseFloat(exifValue.description.replace("px", "")),
   },
   ISOSpeedRatings: {
     commonName: "iso",
-    valueFormatFn: (s: string) => s,
+    valueFormatFn: (exifValue: ExifTagValue) => exifValue.description,
   },
   Lens: {
     commonName: "lensModel",
-    valueFormatFn: (s: string) => s,
+    valueFormatFn: (exifValue: ExifTagValue) => exifValue.description,
+  },
+  Make: {
+    commonName: "cameraMake",
+    valueFormatFn: (exifValue: ExifTagValue) => exifValue.description,
   },
   Model: {
     commonName: "cameraModel",
-    valueFormatFn: (s: string) => s,
-  },
-  ShutterSpeedValue: {
-    commonName: "shutterSpeed2",
-    valueFormatFn: (s: string) => s,
+    valueFormatFn: (exifValue: ExifTagValue) => exifValue.description,
   },
 }
 
-export async function readExifData(imagePath: string): Promise<Record<string, string>> {
-  const tags = await ExifReader.load(imagePath)
+export async function readExifData(imagePath: string) {
+  const tags: ExifTags = await ExifReader.load(imagePath)
   const imageProps = pickExifTags(tags, RAW_EXIF_KEYS)
 
-  return imageProps
+  return {
+    ...imageProps,
+    orientation: detectOrientation(imageProps.height as number, imageProps.width as number),
+  }
 }
 
-/**
- * Picks specified keys from an object
- * @param obj The source object
- * @param keys Array of keys to pick from the object
- * @returns A new object with only the description of the picked keys
- */
-function pickExifTags<T extends Record<string, { description: string }>, K extends keyof T>(
-  obj: T,
-  keys: K[],
-): Record<string, string> {
+function pickExifTags(exifData: ExifTags, keyGetter: RawExifKeys) {
+  const keys = Object.keys(keyGetter)
   return Object.fromEntries(
-    keys.map((key) => [RAW_EXIF_KEYS[key].commonName, obj[key].description]),
-  ) as Record<string, string>
+    keys.map((key) => [keyGetter[key].commonName, keyGetter[key].valueFormatFn(exifData[key])]),
+  )
+}
+
+function detectOrientation(height: number, width: number): string {
+  const remainder = height / width
+  switch (true) {
+    case remainder == 1:
+      return "square"
+    case remainder > 1:
+      return "portrait"
+    case remainder < 1:
+      return "landscape"
+    default:
+      return "nil"
+  }
 }
