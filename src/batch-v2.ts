@@ -47,11 +47,12 @@ export async function batchProcessImages(
   await makeDirectories([destDirectory, ...uniqueOutputDirectories])
 
   // generate resized images
-  const resizedImages = outputDetails.flatMap((images) =>
-    images.imageVariants.map((variant) =>
-      processOneImage(images.fullPath, variant.outputPath, variant.options),
-    ),
-  )
+  const resizedImages = outputDetails.flatMap(async (image) => {
+    await copyFile(image.fullPath, image.destinationImagePath)
+    return image.imageVariants.map((variant) =>
+      processOneImage(image.fullPath, variant.outputPath, variant.options),
+    )
+  })
   await Promise.all(resizedImages)
 
   return outputDetails
