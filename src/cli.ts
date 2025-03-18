@@ -1,11 +1,12 @@
 #!/usr/bin/env bun
-
-import { Command } from "commander"
-import { resizeImage } from "./resize.js"
-// import { batchProcessImages } from "./batch.js"
-import { batchProcessImages } from "./batch-v2.js"
-import { readExifData } from "./exif.js"
 import path from "path"
+import { Command } from "commander"
+import { resizeImage } from "./resize"
+// import { batchProcessImages } from "./batch"
+import { batchProcessImages } from "./batch-v2"
+import { readExifData } from "./exif"
+import { listBuckets, listObjects } from "./lib/cloudflare"
+import { listen } from "bun"
 
 const program = new Command()
 program.name("imgthing").description("A simple CLI of image utilities").version("0.0.1")
@@ -76,6 +77,23 @@ program
     const exifJson = prettyPrint ? JSON.stringify(exifData, null, 2) : JSON.stringify(exifData)
 
     process.stdout.write(exifJson)
+  })
+
+program
+  .command("r2-list-buckets")
+  .description("List objects in the provided bucket")
+  .action(async () => {
+    const objects = await listBuckets()
+    console.log(objects)
+  })
+
+program
+  .command("r2-list-objects")
+  .description("List objects in the provided bucket")
+  .argument("<bucket>", "R2 Bucket")
+  .action(async (bucket: string) => {
+    const objects = await listObjects(bucket)
+    console.log(objects)
   })
 
 program.parse(process.argv)
