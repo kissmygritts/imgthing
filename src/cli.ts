@@ -5,7 +5,7 @@ import { resizeImage } from "./resize"
 // import { batchProcessImages } from "./batch"
 import { batchProcessImages } from "./batch-v2"
 import { readExifData } from "./exif"
-import { listBuckets, listObjects } from "./lib/cloudflare"
+import { listBuckets, listObjects, uploadDirectory } from "./lib/cloudflare"
 import { listen } from "bun"
 
 const program = new Command()
@@ -96,6 +96,17 @@ program
 
     console.log(JSON.stringify(objects))
     return objects
+  })
+
+program
+  .command("r2-upload-all")
+  .description("Upload all images in a directory to the specified location")
+  .argument("<localDirectory>", "Local path containing images to upload")
+  .argument("<cloudPath>", "Location in the cloud to upload images")
+  .action(async (localDirectory: string, cloudPath: string) => {
+    const response = await uploadDirectory(localDirectory, cloudPath)
+
+    return response
   })
 
 await program.parseAsync(process.argv)
