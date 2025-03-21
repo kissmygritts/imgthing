@@ -93,7 +93,9 @@ program
   .argument("<bucket>", "R2 Bucket")
   .action(async (bucket: string) => {
     const objects = await listObjects(bucket)
-    console.log(objects)
+
+    console.log(JSON.stringify(objects))
+    return objects
   })
 
-program.parse(process.argv)
+await program.parseAsync(process.argv)

@@ -35,6 +35,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.758.0",
+    "@aws-sdk/node-http-handler": "^3.374.0",
     "commander": "^13.1.0",
     "exifreader": "^4.26.2",
     "sharp": "^0.33.5"
