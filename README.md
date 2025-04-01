@@ -80,4 +80,16 @@ The resulting directory structure looks something like:
 │     └── photo-2__2560.webp
 ```
 
-The name of each photo is used as the name of a parent directory, then the format as the second level, then the resized photos, with the size appended at the end of the name. 
+The name of each photo is used as the name of a parent directory, then the format as the second level, then the resized photos, with the size appended at the end of the name. A metadata photo is included that contains all the metadata I care about for each photo. 
+
+I like this heirarchy because it is easy to traverse, and portable to any cloud environment. Each photo path can be programatically generated.
+
+Then I'll upload them to R2 with the following:
+
+```shell
+imgthing r2-upload-all \
+  $OUTPUT_DIRECTORY \
+  $R2_PATH
+```
+
+This will sync the directory with the directory in the R2. It uses the AWS CLI to upload the images. Configure the CLI as you would for the AWS CLI, pointing to the R2 encpoint. 
