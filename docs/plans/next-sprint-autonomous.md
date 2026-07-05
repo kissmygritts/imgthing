@@ -94,7 +94,7 @@ Statuses: `todo` · `in_progress` · `done` · `blocked`. Edit in place as the l
 | S3 | Camera & lens filters                  | done   | 1d27aeb — /api/cameras + /api/lenses facets, camera/lens buildFilter (AND), sidebar groups; tests. NOTE: SidebarEntry renders empty 3-dot menu on facet rows — suppress in S6 |
 | S4 | Upload limits                          | done   | 981cf9b — 25MB/file, 50 files, 200MB batch caps; content-length early 413; partial-batch rejected[] reporting; tests |
 | S5 | Integration-test coverage audit        | done   | 469301c — audit done, no bugs; +5 tests (cameras/lenses/trash 401, folder 404s); 63 integration tests green |
-| S6 | Mobile / responsive pass               | in_progress |             |
+| S6 | Mobile / responsive pass               | done   | 44dab60 — icon-only action bar on mobile, phone-friendly viewer drawer, offcanvas closes on nav, SidebarEntry menu gated to #menu slot (fixes S3 nit) |
 
 **Why this order (dependencies):** **S1 is the backbone** — it adds `photos.deleted_at`, converts
 the delete endpoint from hard-delete to a tombstone, and adds `deleted_at IS NULL` to the shared
