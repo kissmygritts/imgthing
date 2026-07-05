@@ -106,7 +106,7 @@ function openViewer(i: number) {
 				class="group relative aspect-square overflow-hidden rounded-[20px] shadow-[0_1px_2px_rgba(51,43,73,0.06),0_14px_30px_-16px_rgba(51,43,73,0.35)] transition-transform duration-300 hover:-translate-y-1"
 			>
 				<img
-					:src="`/api/photos/${photo.id}/raw`"
+					:src="`/api/photos/${photo.id}/variant?size=thumb`"
 					:alt="photo.original_filename"
 					loading="lazy"
 					class="absolute inset-0 size-full cursor-pointer object-cover"

@@ -82,4 +82,39 @@ describe("photos", () => {
 		});
 		expect(res.status).toBe(404);
 	});
+
+	it("serves a resized webp variant for a known size", async () => {
+		const cookie = await login();
+		const { uploaded } = await upload(cookie, "variant.png");
+		const id = uploaded[0].id;
+
+		const res = await SELF.fetch(url(`/api/photos/${id}/variant?size=thumb`), {
+			headers: { cookie },
+		});
+		expect(res.status).toBe(200);
+		expect(res.headers.get("content-type")).toBe("image/webp");
+		expect(res.headers.get("cache-control")).toContain("max-age=31536000");
+		const bytes = new Uint8Array(await res.arrayBuffer());
+		expect(bytes.byteLength).toBeGreaterThan(0);
+	});
+
+	it("rejects an unknown variant size with 400", async () => {
+		const cookie = await login();
+		const { uploaded } = await upload(cookie, "badsize.png");
+		const id = uploaded[0].id;
+
+		const res = await SELF.fetch(url(`/api/photos/${id}/variant?size=huge`), {
+			headers: { cookie },
+		});
+		expect(res.status).toBe(400);
+	});
+
+	it("returns 404 for a variant of an unknown photo id", async () => {
+		const cookie = await login();
+		const res = await SELF.fetch(
+			url("/api/photos/does-not-exist/variant?size=md"),
+			{ headers: { cookie } },
+		);
+		expect(res.status).toBe(404);
+	});
 });

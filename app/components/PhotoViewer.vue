@@ -213,7 +213,7 @@ watch(
 			>
 				<img
 					:key="photo.id"
-					:src="`/api/photos/${photo.id}/raw`"
+					:src="`/api/photos/${photo.id}/variant?size=lg`"
 					:alt="photo.original_filename"
 					class="pointer-events-none max-h-full max-w-full object-contain drop-shadow-[0_30px_60px_rgba(60,45,90,0.45)]"
 				/>
