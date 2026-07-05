@@ -33,17 +33,27 @@ export function useLibrary() {
 	const expanded = useState<Set<string>>("library:expanded", () => new Set());
 	const search = useState("library:search", () => "");
 
+	// The sidebar filters drive the gallery, which only lives on "/". When a filter
+	// is picked from another route (e.g. /map or /upload), route back to the gallery
+	// so the selection is actually visible. No-op when already on "/".
+	const route = useRoute();
+	function goToGallery() {
+		if (route.path !== "/") navigateTo("/");
+	}
+
 	// Pick a folder view (All / Uncategorized / a folder id) and leave the other
 	// exclusive views (Favorites / Tag).
 	function selectFolder(id: string | null) {
 		favoritesOnly.value = false;
 		selectedTagId.value = null;
 		selectedFolderId.value = id;
+		goToGallery();
 	}
 
 	function selectFavorites() {
 		selectedTagId.value = null;
 		favoritesOnly.value = true;
+		goToGallery();
 	}
 
 	// Filter the gallery by a tag. Clears the folder / favorites views.
@@ -51,6 +61,7 @@ export function useLibrary() {
 		favoritesOnly.value = false;
 		selectedFolderId.value = null;
 		selectedTagId.value = id;
+		goToGallery();
 	}
 
 	const currentTitle = computed(() => {
