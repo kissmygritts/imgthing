@@ -32,6 +32,23 @@ Hand-rolled single-owner login (see ADR 0003).
 - Verified end-to-end in dev: wrong passphrase → 401, correct → signed cookie, protected API 401
   without cookie / passes with it, page redirect to `/login` when unauthenticated.
 
-## Milestones 3–8 · ⚪ not started
+## Milestone 3 — Upload + Storage + EXIF · ✅ done
 
-**Next: M3 Upload + Storage + EXIF.** Then Folders · Gallery · Viewer · Search/Polish · Hardening.
+Upload flows through the Worker; EXIF parsed server-side with `exifr` (ADR pending — chosen for
+zero Node deps, ~27 kB gzip in the Worker bundle).
+
+- `server/utils/exif.ts` — `extractExif()` maps EXIF onto the `exif_data` columns, stores the full
+  parsed blob as JSON `other_data`, never throws (non-EXIF images → all-null).
+- `POST /api/photos` — multipart upload, streams each `image/*` part to R2 under `originals/<uuid>`,
+  writes `photos` + `exif_data` in one D1 batch; deletes the R2 object if the D1 write fails.
+- `GET /api/photos` — newest-first list joined with EXIF summary, `limit`/`offset` paging.
+- `GET /api/photos/[id]/raw` — streams the original bytes from R2 (Images variants deferred to M6).
+- `app/pages/index.vue` — upload button (multi-file) + responsive gallery grid; `Toaster` mounted
+  in `app.vue` for success/error toasts.
+- Verified end-to-end in dev: login → upload → R2 stored → D1 row → list → raw serve returns
+  byte-identical original; EXIF-bearing JPEG populates camera_make/model/iso/aperture/exposure.
+
+## Milestones 4–8 · ⚪ not started
+
+**Next: M4 Folder Management** (CRUD, nesting, move-between-folders). Then Gallery · Viewer ·
+Search/Polish · Hardening.

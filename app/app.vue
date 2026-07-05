@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Toaster } from "@/components/ui/sonner";
+
 useHead({
 	htmlAttrs: { lang: "en" },
 	meta: [{ name: "viewport", content: "width=device-width, initial-scale=1" }],
@@ -13,4 +15,5 @@ useSeoMeta({
 
 <template>
 	<NuxtPage />
+	<Toaster />
 </template>
