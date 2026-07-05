@@ -51,6 +51,7 @@ export default defineEventHandler(async (event) => {
 
 	const db = useDB(event);
 	const bucket = useBucket(event);
+	const images = useImages(event);
 
 	// Validate the target folder up front so we never upload bytes to R2 only to
 	// discover the folder doesn't exist (requireFolder throws a 404).
@@ -134,6 +135,22 @@ export default defineEventHandler(async (event) => {
 			// D1 write failed — don't leave an orphaned R2 object behind.
 			await bucket.delete(r2Key).catch(() => {});
 			throw err;
+		}
+
+		// Precompute the three serving variants now so serving is a pure R2 read.
+		// The row + original are already durable, so a generation failure must not
+		// fail the upload — serving self-heals on a variant miss. Leave
+		// variants_generated_at NULL on failure so a later serve regenerates.
+		try {
+			await generateVariants(images, bucket, id, bytes);
+			await db
+				.prepare(
+					"UPDATE photos SET variants_generated_at = datetime('now') WHERE id = ?",
+				)
+				.bind(id)
+				.run();
+		} catch (err) {
+			console.error(`Variant generation failed for photo ${id}:`, err);
 		}
 
 		uploaded.push({ id, original_filename: file.filename ?? id });
