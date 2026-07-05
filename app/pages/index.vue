@@ -51,6 +51,8 @@ const {
 	favoritesOnly,
 	selectedTagId,
 	trashOnly,
+	selectedCamera,
+	selectedLens,
 	search,
 	currentTitle,
 	foldersOf,
@@ -93,7 +95,11 @@ const listQuery = computed(() => {
 	if (trashOnly.value) query.deleted = "1";
 	else if (favoritesOnly.value) query.favorite = "1";
 	else if (selectedTagId.value) query.tag = selectedTagId.value;
-	else if (selectedFolderId.value !== null)
+	else if (selectedCamera.value || selectedLens.value) {
+		// Camera and lens can both be set — pass both so they AND server-side.
+		if (selectedCamera.value) query.camera = selectedCamera.value;
+		if (selectedLens.value) query.lens = selectedLens.value;
+	} else if (selectedFolderId.value !== null)
 		query.folderId = selectedFolderId.value;
 	if (activeSearch.value) query.q = activeSearch.value;
 	return query;

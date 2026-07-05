@@ -8,6 +8,8 @@
 //   folderId  a folder id, or "none" for photos in no folder
 //   favorite  "1" to return only favorited photos
 //   tag       a tag id or (case-insensitive) tag name — only photos carrying it
+//   camera    exact EXIF camera_model — only photos shot on it
+//   lens      exact EXIF lens_info — only photos shot with it (ANDs with camera)
 //   deleted   "1" to return only trashed (tombstoned) photos; default excludes them
 //   limit     1..200 (default 50)   offset  >= 0 (default 0)
 //
@@ -86,6 +88,21 @@ function buildFilter(q: Record<string, unknown>) {
 			         WHERE pt.photo_id = p.id AND (t.id = ? OR t.name = ? COLLATE NOCASE))`,
 		);
 		binds.push(tag, tag);
+	}
+
+	// ?camera and ?lens filter by exact EXIF value (the sidebar sends the model /
+	// lens string aggregated by /api/cameras and /api/lenses). Both may be present
+	// at once — they AND together, so the gallery shows a camera+lens combination.
+	const camera = typeof q.camera === "string" ? q.camera.trim() : "";
+	if (camera) {
+		conditions.push("e.camera_model = ?");
+		binds.push(camera);
+	}
+
+	const lens = typeof q.lens === "string" ? q.lens.trim() : "";
+	if (lens) {
+		conditions.push("e.lens_info = ?");
+		binds.push(lens);
 	}
 
 	const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";

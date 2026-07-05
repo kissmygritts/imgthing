@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import {
+	Aperture,
+	Camera,
 	ChevronsUpDown,
 	FolderPlus,
 	Hash,
@@ -49,14 +51,20 @@ import {
 const {
 	folders,
 	tags,
+	cameras,
+	lenses,
 	selectedFolderId,
 	favoritesOnly,
 	selectedTagId,
 	trashOnly,
+	selectedCamera,
+	selectedLens,
 	selectFolder,
 	selectFavorites,
 	selectTag,
 	selectTrash,
+	selectCamera,
+	selectLens,
 	deleteTag,
 	expanded,
 	search,
@@ -122,7 +130,7 @@ const onGallery = computed(() => route.path === "/");
 						<SidebarMenuItem>
 							<SidebarMenuButton
 								tooltip="All photos"
-								:is-active="onGallery && !favoritesOnly && !trashOnly && selectedFolderId === null"
+								:is-active="onGallery && !favoritesOnly && !trashOnly && !selectedCamera && !selectedLens && selectedFolderId === null"
 								@click="selectFolder(null)"
 							>
 								<Images />
@@ -182,7 +190,7 @@ const onGallery = computed(() => route.path === "/");
 						:folders="folders"
 						:parent-id="null"
 						:depth="0"
-						:selected-id="!onGallery || favoritesOnly || selectedTagId ? null : selectedFolderId"
+						:selected-id="!onGallery || favoritesOnly || selectedTagId || selectedCamera || selectedLens ? null : selectedFolderId"
 						:expanded="expanded"
 						@select="selectFolder($event)"
 						@action="onTreeAction"
@@ -220,6 +228,40 @@ const onGallery = computed(() => route.path === "/");
 					<p v-else class="px-2 py-1 text-xs text-muted-foreground">
 						No tags yet
 					</p>
+				</SidebarGroupContent>
+			</SidebarGroup>
+
+			<SidebarGroup v-if="cameras.length">
+				<SidebarGroupLabel>Cameras</SidebarGroupLabel>
+				<SidebarGroupContent>
+					<SidebarMenu>
+						<SidebarEntry
+							v-for="camera in cameras"
+							:key="camera.name"
+							:icon="Camera"
+							:label="camera.name"
+							:count="camera.photo_count"
+							:active="onGallery && selectedCamera === camera.name"
+							@select="selectCamera(camera.name)"
+						/>
+					</SidebarMenu>
+				</SidebarGroupContent>
+			</SidebarGroup>
+
+			<SidebarGroup v-if="lenses.length">
+				<SidebarGroupLabel>Lenses</SidebarGroupLabel>
+				<SidebarGroupContent>
+					<SidebarMenu>
+						<SidebarEntry
+							v-for="lens in lenses"
+							:key="lens.name"
+							:icon="Aperture"
+							:label="lens.name"
+							:count="lens.photo_count"
+							:active="onGallery && selectedLens === lens.name"
+							@select="selectLens(lens.name)"
+						/>
+					</SidebarMenu>
 				</SidebarGroupContent>
 			</SidebarGroup>
 		</SidebarContent>

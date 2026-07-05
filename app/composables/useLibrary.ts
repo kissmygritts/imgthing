@@ -2,6 +2,12 @@ import { toast } from "vue-sonner";
 import type { FolderAction, FolderNode } from "@/components/FolderTree.vue";
 import type { Photo, Tag } from "@/components/PhotoViewer.vue";
 
+// A camera model or lens aggregated from EXIF, with its live-photo count.
+export interface ExifFacet {
+	name: string;
+	photo_count: number;
+}
+
 // Shared library state + actions, consumed by both the sidebar (chrome) and the
 // gallery page. Folder data is fetched here; photo data is fetched in the page
 // (it's the primary, SSR-critical content). Mutations refresh both via keys.
@@ -19,6 +25,21 @@ export function useLibrary() {
 	});
 	const tags = computed(() => tagsData.value?.tags ?? []);
 
+	// ── Camera / lens data ─────────────────────────────────────────────────────
+	// Aggregated from EXIF, live photos only. Each entry is { name, photo_count }.
+	const { data: camerasData } = useFetch<{ cameras: ExifFacet[] }>(
+		"/api/cameras",
+		{ key: "cameras" },
+	);
+	const cameras = computed(() => camerasData.value?.cameras ?? []);
+	const { data: lensesData } = useFetch<{ lenses: ExifFacet[] }>(
+		"/api/lenses",
+		{
+			key: "lenses",
+		},
+	);
+	const lenses = computed(() => lensesData.value?.lenses ?? []);
+
 	// null = all photos · "none" = uncategorized · otherwise a folder id
 	const selectedFolderId = useState<string | null>(
 		"library:selected",
@@ -33,6 +54,11 @@ export function useLibrary() {
 	// Trash view: shows tombstoned (soft-deleted) photos. Another orthogonal,
 	// exclusive view — picking any other filter turns it back off (and vice versa).
 	const trashOnly = useState("library:trash", () => false);
+	// Camera / lens filters: exact EXIF values. Orthogonal to folder/tag/favorites/
+	// trash (picking either clears those) but NOT to each other — a camera and a
+	// lens can be active at once and AND together server-side.
+	const selectedCamera = useState<string | null>("library:camera", () => null);
+	const selectedLens = useState<string | null>("library:lens", () => null);
 	const expanded = useState<Set<string>>("library:expanded", () => new Set());
 	const search = useState("library:search", () => "");
 
@@ -46,10 +72,19 @@ export function useLibrary() {
 
 	// Pick a folder view (All / Uncategorized / a folder id) and leave the other
 	// exclusive views (Favorites / Tag).
+	// Clear the camera + lens EXIF filters. Called by every other view's select
+	// (they're exclusive with camera/lens), but selectCamera/selectLens do NOT call
+	// it — those two coexist and AND together.
+	function clearExif() {
+		selectedCamera.value = null;
+		selectedLens.value = null;
+	}
+
 	function selectFolder(id: string | null) {
 		favoritesOnly.value = false;
 		selectedTagId.value = null;
 		trashOnly.value = false;
+		clearExif();
 		selectedFolderId.value = id;
 		goToGallery();
 	}
@@ -57,6 +92,7 @@ export function useLibrary() {
 	function selectFavorites() {
 		selectedTagId.value = null;
 		trashOnly.value = false;
+		clearExif();
 		favoritesOnly.value = true;
 		goToGallery();
 	}
@@ -66,6 +102,7 @@ export function useLibrary() {
 		favoritesOnly.value = false;
 		trashOnly.value = false;
 		selectedFolderId.value = null;
+		clearExif();
 		selectedTagId.value = id;
 		goToGallery();
 	}
@@ -75,7 +112,30 @@ export function useLibrary() {
 		favoritesOnly.value = false;
 		selectedTagId.value = null;
 		selectedFolderId.value = null;
+		clearExif();
 		trashOnly.value = true;
+		goToGallery();
+	}
+
+	// Filter by a camera model. Clears folder/tag/favorites/trash but KEEPS any
+	// selected lens — so a camera + lens combination ANDs together in the gallery.
+	function selectCamera(name: string) {
+		favoritesOnly.value = false;
+		trashOnly.value = false;
+		selectedTagId.value = null;
+		selectedFolderId.value = null;
+		// Toggle off if re-picking the active camera.
+		selectedCamera.value = selectedCamera.value === name ? null : name;
+		goToGallery();
+	}
+
+	// Filter by a lens. Same rules as selectCamera — keeps any selected camera.
+	function selectLens(name: string) {
+		favoritesOnly.value = false;
+		trashOnly.value = false;
+		selectedTagId.value = null;
+		selectedFolderId.value = null;
+		selectedLens.value = selectedLens.value === name ? null : name;
 		goToGallery();
 	}
 
@@ -84,6 +144,11 @@ export function useLibrary() {
 		if (favoritesOnly.value) return "Favorites";
 		if (selectedTagId.value)
 			return `#${tags.value.find((t) => t.id === selectedTagId.value)?.name ?? "Tag"}`;
+		// Camera + lens can be active together — join them for a combined title.
+		if (selectedCamera.value || selectedLens.value)
+			return [selectedCamera.value, selectedLens.value]
+				.filter(Boolean)
+				.join(" · ");
 		if (selectedFolderId.value === null) return "All photos";
 		if (selectedFolderId.value === "none") return "Uncategorized";
 		return (
@@ -99,7 +164,7 @@ export function useLibrary() {
 	}
 
 	async function refreshAll() {
-		await refreshNuxtData(["folders", "photos", "tags"]);
+		await refreshNuxtData(["folders", "photos", "tags", "cameras", "lenses"]);
 	}
 
 	// ── Upload ─────────────────────────────────────────────────────────────────
@@ -457,14 +522,20 @@ export function useLibrary() {
 	return {
 		folders,
 		tags,
+		cameras,
+		lenses,
 		selectedFolderId,
 		favoritesOnly,
 		selectedTagId,
 		trashOnly,
+		selectedCamera,
+		selectedLens,
 		selectFolder,
 		selectFavorites,
 		selectTag,
 		selectTrash,
+		selectCamera,
+		selectLens,
 		expanded,
 		search,
 		currentTitle,
