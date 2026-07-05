@@ -84,9 +84,52 @@ Full-screen lightbox with EXIF panel and prev/next. POC-level styling — a desi
 M5 gallery grid already landed with M3; remaining: grid/list toggle + paging. Then Search/Polish ·
 Hardening.
 
+## Backlog Tiers 1–3 — autonomous build · ✅ done (2026-07-05)
+
+All ten backlog tasks (T1–T10) landed in an unattended build loop, one self-contained commit each
+(see `docs/plans/tiers-1-3-autonomous.md` for the ledger). Gate on every commit: Biome clean,
+typecheck 0 errors, `npm run test:all` green. Integration suite grew **19 → 42** over the run.
+
+- **T1 — Cloudflare Images variants** (`d679d46`). `GET /api/photos/[id]/variant?size=thumb|md|lg`
+  (320/1024/1600) transforms the R2 original to webp via `IMAGES`, long cache. Grid → thumb,
+  viewer → lg; download stays raw.
+- **T2 — Photo delete** (`8ccc2d2`). `DELETE /api/photos/[id]` (R2 delete + D1 batch over
+  `exif_data`/`folder_photos`/`photos`, resilient to a missing object). Trash button + confirm
+  dialog in the viewer, wired through `useLibrary`.
+- **T3 — Server-side search + pagination** (`b6ad22b`). Rewrote `GET /api/photos` as a `buildFilter()`
+  query builder: `q` (filename LIKE), `from`/`to` range, server `sort` (`newest|oldest|name`),
+  `{ photos, total, limit, offset }` response. Client: debounced search + infinite scroll; removed
+  client-side filter/sort. The backbone T4/T6/T7 extend.
+- **T4 — Sort by image size** (`73c47bd`). Added `size_asc`/`size_desc` to the sort whitelist +
+  "Largest"/"Smallest" dropdown options.
+- **T5 — Multi-select → organize** (`2ba3a83`). Gallery selection model (toggle, shift-range,
+  select-all, count) + contextual action bar: bulk add/remove-from-folder (folder endpoints already
+  batched) and bulk delete behind a confirm.
+- **T6 — Favorites** (`9aaff55`). Migration `0003` adds `photos.is_favorite`; `POST
+  /api/photos/[id]/favorite` toggle; `?favorite=1` filter; heart toggle on tiles + viewer; sidebar
+  Favorites view.
+- **T7 — Tags** (`a9708cc`). Migration `0004` adds `tags` + `photo_tags` junction (cascading FKs);
+  tag CRUD, attach/detach (DELETE via query param), `?tag=<id|name>` filter, `tag_ids` in rows;
+  per-photo tag editor in the viewer + sidebar tag filter. Junction cleaned on photo/tag delete.
+- **T8 — Upload page** (`1ee62b6`). `/upload` drag-and-drop page with per-file progress and a
+  target-folder selector; extended `POST /api/photos` to accept `folderId` and assign membership
+  server-side. Sidebar action now links to the page.
+- **T9 — Map view** (`979ebdd`). Added `maplibre-gl`; `GET /api/photos/geo` returns geotagged rows;
+  `/map` full-bleed MapLibre + OpenFreeMap (keyless) with thumb-variant markers → open the shared
+  `PhotoViewer`; sidebar Map entry.
+- **T10 — Dark mode** (`ddab967`). `@nuxtjs/color-mode` (`classSuffix: ''`, system default, no
+  flash); 3-way light/system/dark toggle in the sidebar; full dark token audit retuned to the iris
+  brand (background/glass/sidebar/aurora/borders/text); map basemap swaps light/dark reactively;
+  `color-scheme` set for native controls.
+
+**Known follow-up:** a pre-existing SSR hydration quirk (surfaced during T5) leaves the "All photos"
+grid empty on first SSR load until a client-side query change — unrelated to the tasks above, worth
+a fix pass. Tier 4 (provision + deploy, hardening) remains not started.
+
 ## Backlog — next features (2026-07-05)
 
-Prioritized by impact × existing-plumbing. Nothing below is started.
+Prioritized by impact × existing-plumbing. Tiers 1–3 are now **done** (see the section above); Tier 4
+remains.
 
 ### Tier 1 — highest ROI, plumbing already exists
 

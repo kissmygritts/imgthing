@@ -90,7 +90,7 @@ Statuses: `todo` · `in_progress` · `done` · `blocked`. Edit in place as the l
 | T7 | Tags                                   | done   | 0004 migration tags+photo_tags junction; CRUD + attach/detach endpoints; ?tag filter; viewer editor; sidebar; 38 integ |
 | T8 | Dedicated upload page (drag-and-drop)  | done   | /upload page drag-drop + per-file progress + folder selector; POST /api/photos extended w/ folderId server-side; 40 integ |
 | T9 | Map view (MapLibre + OpenFreeMap)      | done   | GET /api/photos/geo; map.vue MapLibre+OpenFreeMap thumb markers → PhotoViewer; sidebar Map; 42 integ |
-| T10| Dark mode (initial pass)               | in_progress |             |
+| T10| Dark mode (initial pass)               | done   | @nuxtjs/color-mode (classSuffix ''); 3-way toggle in sidebar; dark iris token audit + aurora/glass; map basemap swap; no flash |
 
 **Why this order (efficiency / dependencies):** T1–T2 are isolated Tier-1 wins with no schema
 churn. T3 rebuilds `GET /api/photos` into a real server-side query (search + paging + server sort) —
