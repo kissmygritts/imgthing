@@ -95,10 +95,14 @@ const listQuery = computed(() => {
 
 // Photos are the page's primary (SSR-critical) content, so fetch + await here.
 // The keyed request lets mutations elsewhere refresh page 0 via refreshNuxtData.
+// `useRequestFetch` forwards the incoming request's cookies during SSR — plain
+// `$fetch` would not, so the server-side call to the auth-guarded `/api/photos`
+// would 401 and the grid would render empty until a client-side query change.
+const requestFetch = useRequestFetch();
 const { data } = await useAsyncData(
 	"photos",
 	() =>
-		$fetch<PhotosResponse>("/api/photos", {
+		requestFetch<PhotosResponse>("/api/photos", {
 			query: { ...listQuery.value, offset: 0 },
 		}),
 	{ watch: [listQuery] },
