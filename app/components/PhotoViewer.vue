@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import {
+	ArrowLeft,
 	Check,
 	ChevronLeft,
 	ChevronRight,
+	Code2,
+	Copy,
 	Download,
 	Heart,
+	MoreHorizontal,
 	PanelRightClose,
 	PanelRightOpen,
 	Pencil,
@@ -21,6 +25,13 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 
 // Mirrors the row shape returned by GET /api/photos.
@@ -83,7 +94,7 @@ const photo = computed(() => props.photos[props.index] ?? null);
 // Drawer + editing state. The drawer is open by default; collapsing it hands
 // the whole stage to the image.
 const drawerOpen = ref(true);
-const mode = ref<"view" | "edit">("view");
+const mode = ref<"view" | "edit" | "usage">("view");
 
 function prev() {
 	if (props.index > 0) emit("update:index", props.index - 1);
@@ -99,8 +110,9 @@ function isTypingTarget(el: EventTarget | null): boolean {
 
 function onKeydown(e: KeyboardEvent) {
 	if (e.key === "Escape") {
-		// Esc backs out of edit mode first, then closes the viewer.
+		// Esc backs out of a sub-screen first, then closes the viewer.
 		if (mode.value === "edit") cancelEdit();
+		else if (mode.value === "usage") mode.value = "view";
 		else emit("close");
 		return;
 	}
@@ -114,10 +126,13 @@ function onKeydown(e: KeyboardEvent) {
 onMounted(() => {
 	window.addEventListener("keydown", onKeydown);
 	document.body.style.overflow = "hidden";
+	// Absolute origin so the embed screen's URLs are copy-paste ready.
+	origin.value = window.location.origin;
 });
 onUnmounted(() => {
 	window.removeEventListener("keydown", onKeydown);
 	document.body.style.overflow = "";
+	clearTimeout(copyTimer);
 });
 
 function formatDate(iso: string | null): string | null {
@@ -131,8 +146,6 @@ function formatDate(iso: string | null): string | null {
 				day: "numeric",
 			});
 }
-
-const plate = computed(() => String(props.index + 1).padStart(3, "0"));
 
 // [label, value] rows for the editorial fact list, in a fixed order. Missing
 // values render as an em dash so the panel keeps its instrument-panel rhythm.
@@ -152,11 +165,87 @@ const facts = computed(() => {
 	return rows;
 });
 
-const gpsUrl = computed(() =>
-	photo.value?.gps_latitude != null && photo.value?.gps_longitude != null
-		? `https://www.openstreetmap.org/?mlat=${photo.value.gps_latitude}&mlon=${photo.value.gps_longitude}#map=15/${photo.value.gps_latitude}/${photo.value.gps_longitude}`
-		: null,
-);
+// --- Embed / optimize screen --------------------------------------------
+// Photos are served as on-the-fly WebP renditions from `/variant?size=…`
+// (widths below; height auto, never upscaled) or the untouched `/raw` original.
+const origin = ref("");
+
+const embedSizes = [
+	{ key: "thumb", width: 800, label: "Thumb" },
+	{ key: "md", width: 1280, label: "Medium" },
+	{ key: "lg", width: 2560, label: "Large" },
+] as const;
+
+function variantUrl(size: string): string {
+	const p = photo.value;
+	return p ? `${origin.value}/api/photos/${p.id}/variant?size=${size}` : "";
+}
+const rawUrl = computed(() => {
+	const p = photo.value;
+	return p ? `${origin.value}/api/photos/${p.id}/raw` : "";
+});
+
+// The size list rendered on the embed screen — the three renditions plus the
+// untouched original, each as a scrollable, copyable URL box.
+const sizeRows = computed(() => [
+	...embedSizes.map((s) => ({
+		key: s.key,
+		name: s.key,
+		meta: `${s.width}px wide`,
+		url: variantUrl(s.key),
+	})),
+	{ key: "raw", name: "original", meta: "full resolution", url: rawUrl.value },
+]);
+
+// Copy-paste snippets, medium as the sensible default single-size embed.
+const snippets = computed(() => {
+	const name = photo.value?.original_filename ?? "";
+	return [
+		{
+			key: "html",
+			label: "HTML",
+			code: `<img src="${variantUrl("md")}" alt="${name}" />`,
+		},
+		{
+			key: "markdown",
+			label: "Markdown",
+			code: `![${name}](${variantUrl("md")})`,
+		},
+		{
+			key: "srcset",
+			label: "Responsive",
+			code: `<img
+  src="${variantUrl("md")}"
+  srcset="${variantUrl("thumb")} 800w,
+          ${variantUrl("md")} 1280w,
+          ${variantUrl("lg")} 2560w"
+  sizes="(max-width: 768px) 100vw, 768px"
+  alt="${name}"
+/>`,
+		},
+	];
+});
+
+// Which row/snippet most recently copied, for the transient check icon.
+const copiedKey = ref<string | null>(null);
+let copyTimer: ReturnType<typeof setTimeout> | undefined;
+async function copy(text: string, key: string) {
+	try {
+		await navigator.clipboard.writeText(text);
+		copiedKey.value = key;
+		clearTimeout(copyTimer);
+		copyTimer = setTimeout(() => {
+			copiedKey.value = null;
+		}, 1500);
+	} catch {
+		// Clipboard denied (insecure context / permissions) — no-op.
+	}
+}
+
+function openUsage() {
+	mode.value = "usage";
+	drawerOpen.value = true;
+}
 
 // --- Editing -------------------------------------------------------------
 // The editable EXIF fields, in drawer order. Dates/GPS are display-only for
@@ -271,6 +360,7 @@ watch(
 		mode.value = "view";
 		confirmDeleteOpen.value = false;
 		tagDraft.value = "";
+		copiedKey.value = null;
 	},
 );
 </script>
@@ -341,16 +431,11 @@ watch(
 			>
 				<aside
 					v-if="drawerOpen"
-					class="absolute inset-y-0 right-0 flex w-[min(380px,100%)] flex-col border-l border-white/40 dark:border-white/8 bg-white/40 dark:bg-white/8 shadow-[0_0_80px_-10px_rgba(90,70,160,0.5)] backdrop-blur-xl"
+					class="absolute inset-y-0 right-0 flex w-[min(380px,100%)] flex-col overflow-hidden border-l border-white/40 dark:border-white/8 bg-white/40 dark:bg-white/8 shadow-[0_0_80px_-10px_rgba(90,70,160,0.5)] backdrop-blur-xl"
 				>
 					<!-- Header: plate + title + actions (view ⇄ edit) -->
 					<header class="flex items-start gap-2 p-7 pb-4">
 						<div class="min-w-0 flex-1">
-							<p
-								class="mb-3 font-mono text-[10.5px] font-semibold tracking-[0.14em] text-primary"
-							>
-								PLATE {{ plate }} / {{ photos.length }}
-							</p>
 							<h2
 								class="break-words font-serif text-[22px] italic leading-tight text-foreground"
 							>
@@ -359,37 +444,56 @@ watch(
 						</div>
 
 						<div class="flex shrink-0 items-center gap-1.5">
+							<!-- Back to the detail view from edit / embed screens -->
 							<button
-								v-if="mode === 'view'"
-								class="flex size-8 items-center justify-center rounded-full border border-white/85 dark:border-white/15 bg-white/55 dark:bg-white/12 backdrop-blur transition hover:bg-white/85 dark:hover:bg-white/20"
-								:class="
-									photo.is_favorite
-										? 'text-rose-500'
-										: 'text-muted-foreground hover:text-foreground'
-								"
-								:aria-label="
-									photo.is_favorite ? 'Remove from favorites' : 'Add to favorites'
-								"
-								@click="emit('favorite', photo.id)"
-							>
-								<Heart class="size-4" :class="photo.is_favorite ? 'fill-current' : ''" />
-							</button>
-							<button
-								v-if="mode === 'view'"
+								v-if="mode !== 'view'"
 								class="flex size-8 items-center justify-center rounded-full border border-white/85 dark:border-white/15 bg-white/55 dark:bg-white/12 text-muted-foreground backdrop-blur transition hover:bg-white/85 dark:hover:bg-white/20 hover:text-foreground"
-								aria-label="Edit details"
-								@click="startEdit"
+								aria-label="Back to details"
+								@click="mode = 'view'"
 							>
-								<Pencil class="size-4" />
+								<ArrowLeft class="size-4" />
 							</button>
-							<button
-								v-if="mode === 'view'"
-								class="flex size-8 items-center justify-center rounded-full border border-white/85 dark:border-white/15 bg-white/55 dark:bg-white/12 text-muted-foreground backdrop-blur transition hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
-								aria-label="Delete photo"
-								@click="requestDelete"
-							>
-								<Trash2 class="size-4" />
-							</button>
+
+							<!-- Overflow menu: absorbs the per-photo actions so the cluster
+							     doesn't grow. New actions go here, not the top row. -->
+							<DropdownMenu v-if="mode === 'view'">
+								<DropdownMenuTrigger as-child>
+									<button
+										class="flex size-8 items-center justify-center rounded-full border border-white/85 dark:border-white/15 bg-white/55 dark:bg-white/12 text-muted-foreground backdrop-blur transition hover:bg-white/85 dark:hover:bg-white/20 hover:text-foreground data-[state=open]:bg-white/85 dark:data-[state=open]:bg-white/20 data-[state=open]:text-foreground"
+										aria-label="More actions"
+									>
+										<MoreHorizontal class="size-4" />
+									</button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent
+									align="end"
+									class="z-[120] w-48 border-white/40 dark:border-white/10 bg-white/80 dark:bg-[#1c1830]/85 backdrop-blur-xl"
+								>
+									<DropdownMenuItem @select="emit('favorite', photo.id)">
+										<Heart
+											class="size-4"
+											:class="
+												photo.is_favorite ? 'fill-rose-500 text-rose-500' : ''
+											"
+										/>
+										{{ photo.is_favorite ? "Remove from favorites" : "Add to favorites" }}
+									</DropdownMenuItem>
+									<DropdownMenuItem @select="startEdit">
+										<Pencil class="size-4" />
+										Edit details
+									</DropdownMenuItem>
+									<DropdownMenuItem @select="openUsage">
+										<Code2 class="size-4" />
+										Embed &amp; optimize
+									</DropdownMenuItem>
+									<DropdownMenuSeparator />
+									<DropdownMenuItem variant="destructive" @select="requestDelete">
+										<Trash2 class="size-4" />
+										Delete photo
+									</DropdownMenuItem>
+								</DropdownMenuContent>
+							</DropdownMenu>
+
 							<button
 								class="flex size-8 items-center justify-center rounded-full border border-white/85 dark:border-white/15 bg-white/55 dark:bg-white/12 text-muted-foreground backdrop-blur transition hover:bg-white/85 dark:hover:bg-white/20 hover:text-foreground"
 								aria-label="Collapse details"
@@ -408,7 +512,7 @@ watch(
 					</header>
 
 					<!-- Body: fact list (view) or editable fields (edit) -->
-					<div class="flex-1 overflow-y-auto px-7">
+					<div class="flex-1 overflow-y-auto overflow-x-hidden px-7">
 						<template v-if="mode === 'view'">
 							<dl class="grid gap-3">
 								<div
@@ -473,7 +577,10 @@ watch(
 							</section>
 						</template>
 
-						<div v-else class="grid gap-3.5 pb-2">
+						<div
+							v-else-if="mode === 'edit'"
+							class="grid gap-3.5 pb-2"
+						>
 							<div v-for="f in editFields" :key="f.key" class="grid gap-1">
 								<label
 									:for="`edit-${f.key}`"
@@ -489,20 +596,94 @@ watch(
 								/>
 							</div>
 						</div>
+
+						<!-- Embed & optimize: ready-to-use rendition URLs + snippets -->
+						<div v-else class="pb-2">
+							<p class="text-[12.5px] leading-relaxed text-muted-foreground">
+								Every size is generated on the fly as optimized
+								<span class="font-medium text-foreground">WebP</span>. Pick a
+								width — height scales automatically and never upsamples past
+								the original.
+							</p>
+
+							<section class="mt-5">
+								<p
+									class="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground"
+								>
+									Sizes
+								</p>
+								<div class="grid gap-2.5">
+									<div v-for="s in sizeRows" :key="s.key" class="min-w-0">
+										<div class="mb-1 flex items-center justify-between gap-2">
+											<span class="flex items-baseline gap-2">
+												<span class="font-mono text-[12px] font-semibold text-foreground">
+													{{ s.name }}
+												</span>
+												<span class="text-[10.5px] text-muted-foreground">
+													{{ s.meta }}
+												</span>
+											</span>
+											<button
+												class="flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground transition hover:text-foreground"
+												:aria-label="`Copy ${s.name} URL`"
+												@click="copy(s.url, s.key)"
+											>
+												<Check v-if="copiedKey === s.key" class="size-3 text-primary" />
+												<Copy v-else class="size-3" />
+												{{ copiedKey === s.key ? "Copied" : "Copy" }}
+											</button>
+										</div>
+										<pre
+											class="overflow-x-auto rounded-lg border border-white/60 dark:border-white/10 bg-white/45 dark:bg-black/25 p-2.5 font-mono text-[11px] leading-relaxed text-foreground backdrop-blur"
+										><code>{{ s.url }}</code></pre>
+									</div>
+								</div>
+							</section>
+
+							<section class="mt-5">
+								<p
+									class="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground"
+								>
+									Embed
+								</p>
+								<div class="grid gap-2.5">
+									<div v-for="snip in snippets" :key="snip.key" class="min-w-0">
+										<div class="mb-1 flex items-center justify-between">
+											<span
+												class="text-[10.5px] font-semibold uppercase tracking-[0.06em] text-muted-foreground"
+											>
+												{{ snip.label }}
+											</span>
+											<button
+												class="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground transition hover:text-foreground"
+												:aria-label="`Copy ${snip.label} snippet`"
+												@click="copy(snip.code, snip.key)"
+											>
+												<Check v-if="copiedKey === snip.key" class="size-3 text-primary" />
+												<Copy v-else class="size-3" />
+												{{ copiedKey === snip.key ? "Copied" : "Copy" }}
+											</button>
+										</div>
+										<pre
+											class="overflow-x-auto rounded-lg border border-white/60 dark:border-white/10 bg-white/45 dark:bg-black/25 p-2.5 font-mono text-[11px] leading-relaxed text-foreground backdrop-blur"
+										><code>{{ snip.code }}</code></pre>
+									</div>
+								</div>
+							</section>
+
+							<p
+								class="mt-5 rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-2.5 text-[11.5px] leading-relaxed text-amber-700 dark:text-amber-300"
+							>
+								These URLs require an active imgthing session. Public embedding
+								on external sites isn't available yet — it needs a public
+								delivery domain.
+							</p>
+						</div>
 					</div>
 
 					<!-- Footer: view actions or edit Save/Cancel -->
 					<footer class="flex gap-2.5 border-t border-border p-7 pt-5">
 						<template v-if="mode === 'view'">
-							<a
-								v-if="gpsUrl"
-								:href="gpsUrl"
-								target="_blank"
-								rel="noopener"
-								class="flex-1 rounded-xl border border-white/85 dark:border-white/15 bg-white/50 dark:bg-white/10 px-3 py-2.5 text-center text-xs font-semibold text-muted-foreground transition hover:bg-white/75 dark:hover:bg-white/18 hover:text-foreground"
-							>
-								View location
-							</a>
 							<a
 								:href="`/api/photos/${photo.id}/raw`"
 								:download="photo.original_filename"
@@ -511,6 +692,14 @@ watch(
 								<Download class="size-3.5" />
 								Download
 							</a>
+						</template>
+						<template v-else-if="mode === 'usage'">
+							<button
+								class="flex-1 rounded-xl border border-white/85 dark:border-white/15 bg-white/50 dark:bg-white/10 px-3 py-2.5 text-center text-xs font-semibold text-muted-foreground transition hover:bg-white/75 dark:hover:bg-white/18 hover:text-foreground"
+								@click="mode = 'view'"
+							>
+								Done
+							</button>
 						</template>
 						<template v-else>
 							<button
