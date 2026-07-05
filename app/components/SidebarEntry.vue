@@ -41,7 +41,7 @@ defineEmits<{ select: []; iconClick: [] }>();
 	<SidebarMenuItem>
 		<div class="group/entry relative">
 			<SidebarMenuButton
-				class="pr-8"
+				:class="$slots.menu ? 'pr-8' : undefined"
 				:tooltip="label"
 				:is-active="active"
 				:style="indent ? { paddingLeft: `${8 + indent}px` } : undefined"
@@ -70,7 +70,10 @@ defineEmits<{ select: []; iconClick: [] }>();
 				</span>
 			</SidebarMenuButton>
 
-			<DropdownMenu>
+			<!-- Only rows that supply a #menu slot get the 3-dot actions button.
+			     Menuless rows (e.g. Camera / Lens facets) render nothing here so
+			     they don't show a dead popover on hover. -->
+			<DropdownMenu v-if="$slots.menu">
 				<DropdownMenuTrigger as-child>
 					<button
 						type="button"

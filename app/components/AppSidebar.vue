@@ -46,6 +46,7 @@ import {
 	SidebarMenu,
 	SidebarMenuButton,
 	SidebarMenuItem,
+	useSidebar,
 } from "@/components/ui/sidebar";
 
 const {
@@ -85,6 +86,14 @@ const {
 // /upload the nav should highlight that page instead.
 const route = useRoute();
 const onGallery = computed(() => route.path === "/");
+
+// On mobile the sidebar is an offcanvas sheet. Picking a filter or following a
+// link should dismiss it so the chosen view is actually visible — otherwise the
+// sheet stays parked over the gallery. A no-op on desktop.
+const { isMobile, setOpenMobile } = useSidebar();
+function closeMobile() {
+	if (isMobile.value) setOpenMobile(false);
+}
 </script>
 
 <template>
@@ -116,6 +125,7 @@ const onGallery = computed(() => route.path === "/");
 			<NuxtLink
 				to="/upload"
 				class="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-b from-primary to-[#5a41b8] px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary/40 transition-transform hover:-translate-y-px active:translate-y-0"
+				@click="closeMobile"
 			>
 				<Upload class="size-4" />
 				Upload photos
@@ -131,7 +141,7 @@ const onGallery = computed(() => route.path === "/");
 							<SidebarMenuButton
 								tooltip="All photos"
 								:is-active="onGallery && !favoritesOnly && !trashOnly && !selectedCamera && !selectedLens && selectedFolderId === null"
-								@click="selectFolder(null)"
+								@click="selectFolder(null); closeMobile()"
 							>
 								<Images />
 								<span>All photos</span>
@@ -141,7 +151,7 @@ const onGallery = computed(() => route.path === "/");
 							<SidebarMenuButton
 								tooltip="Favorites"
 								:is-active="onGallery && favoritesOnly"
-								@click="selectFavorites()"
+								@click="selectFavorites(); closeMobile()"
 							>
 								<Heart />
 								<span>Favorites</span>
@@ -151,7 +161,7 @@ const onGallery = computed(() => route.path === "/");
 							<SidebarMenuButton
 								tooltip="Uncategorized"
 								:is-active="onGallery && !favoritesOnly && selectedFolderId === 'none'"
-								@click="selectFolder('none')"
+								@click="selectFolder('none'); closeMobile()"
 							>
 								<Layers />
 								<span>Uncategorized</span>
@@ -159,7 +169,7 @@ const onGallery = computed(() => route.path === "/");
 						</SidebarMenuItem>
 						<SidebarMenuItem>
 							<SidebarMenuButton as-child tooltip="Map" :is-active="route.path === '/map'">
-								<NuxtLink to="/map">
+								<NuxtLink to="/map" @click="closeMobile">
 									<MapPin />
 									<span>Map</span>
 								</NuxtLink>
@@ -169,7 +179,7 @@ const onGallery = computed(() => route.path === "/");
 							<SidebarMenuButton
 								tooltip="Trash"
 								:is-active="onGallery && trashOnly"
-								@click="selectTrash()"
+								@click="selectTrash(); closeMobile()"
 							>
 								<Trash2 />
 								<span>Trash</span>
@@ -192,7 +202,7 @@ const onGallery = computed(() => route.path === "/");
 						:depth="0"
 						:selected-id="!onGallery || favoritesOnly || selectedTagId || selectedCamera || selectedLens ? null : selectedFolderId"
 						:expanded="expanded"
-						@select="selectFolder($event)"
+						@select="selectFolder($event); closeMobile()"
 						@action="onTreeAction"
 						@toggle="toggleExpand"
 					/>
@@ -213,7 +223,7 @@ const onGallery = computed(() => route.path === "/");
 							:label="tag.name"
 							:count="tag.photo_count"
 							:active="onGallery && selectedTagId === tag.id"
-							@select="selectTag(tag.id)"
+							@select="selectTag(tag.id); closeMobile()"
 						>
 							<template #menu>
 								<DropdownMenuItem
@@ -242,7 +252,7 @@ const onGallery = computed(() => route.path === "/");
 							:label="camera.name"
 							:count="camera.photo_count"
 							:active="onGallery && selectedCamera === camera.name"
-							@select="selectCamera(camera.name)"
+							@select="selectCamera(camera.name); closeMobile()"
 						/>
 					</SidebarMenu>
 				</SidebarGroupContent>
@@ -259,7 +269,7 @@ const onGallery = computed(() => route.path === "/");
 							:label="lens.name"
 							:count="lens.photo_count"
 							:active="onGallery && selectedLens === lens.name"
-							@select="selectLens(lens.name)"
+							@select="selectLens(lens.name); closeMobile()"
 						/>
 					</SidebarMenu>
 				</SidebarGroupContent>

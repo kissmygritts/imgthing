@@ -560,17 +560,18 @@ async function onViewerPurge(id: string) {
 				class="fixed bottom-6 left-1/2 z-[60] -translate-x-1/2"
 			>
 			<div
-				class="glass-panel flex items-center gap-1.5 rounded-full py-2 pl-4 pr-2 text-sm"
+				class="glass-panel flex max-w-[calc(100vw-1rem)] items-center gap-1 rounded-full py-2 pl-4 pr-2 text-sm sm:gap-1.5"
 			>
 				<span class="mr-1 whitespace-nowrap font-semibold text-foreground">
 					{{ selectedCount }} selected
 				</span>
 
 				<button
-					class="rounded-full px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+					class="flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground sm:px-2.5"
+					title="Select all"
 					@click="selectAll"
 				>
-					<CheckCheck class="mr-1 inline size-3.5" />All
+					<CheckCheck class="size-3.5" /><span class="hidden sm:inline">All</span>
 				</button>
 
 				<span class="mx-0.5 h-5 w-px bg-border" />
@@ -579,9 +580,10 @@ async function onViewerPurge(id: string) {
 				<DropdownMenu>
 					<DropdownMenuTrigger as-child>
 						<button
-							class="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-white/50 dark:hover:bg-white/10"
+							class="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-white/50 dark:hover:bg-white/10 sm:px-3"
+							title="Add to folder"
 						>
-							<FolderPlus class="size-4" />Add to
+							<FolderPlus class="size-4" /><span class="hidden sm:inline">Add to</span>
 						</button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="center" side="top" class="min-w-44">
@@ -606,9 +608,10 @@ async function onViewerPurge(id: string) {
 				<DropdownMenu>
 					<DropdownMenuTrigger as-child>
 						<button
-							class="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-white/50 dark:hover:bg-white/10"
+							class="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-white/50 dark:hover:bg-white/10 sm:px-3"
+							title="Remove from folder"
 						>
-							<FolderMinus class="size-4" />Remove from
+							<FolderMinus class="size-4" /><span class="hidden sm:inline">Remove from</span>
 						</button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="center" side="top" class="min-w-44">
@@ -630,10 +633,11 @@ async function onViewerPurge(id: string) {
 				</DropdownMenu>
 
 				<button
-					class="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10"
+					class="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10 sm:px-3"
+					title="Move to Trash"
 					@click="confirmBulkDelete = true"
 				>
-					<Trash2 class="size-4" />Delete
+					<Trash2 class="size-4" /><span class="hidden sm:inline">Delete</span>
 				</button>
 
 				<button

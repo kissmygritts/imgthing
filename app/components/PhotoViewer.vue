@@ -100,9 +100,12 @@ const emit = defineEmits<{
 
 const photo = computed(() => props.photos[props.index] ?? null);
 
-// Drawer + editing state. The drawer is open by default; collapsing it hands
-// the whole stage to the image.
-const drawerOpen = ref(true);
+// Drawer + editing state. The drawer is open by default on desktop; collapsing
+// it hands the whole stage to the image. On a phone it starts closed so the
+// full-width drawer doesn't bury the photo — the reader taps Details to open it.
+// (This component only ever mounts client-side, on tile click, so reading the
+// viewport width here is safe.)
+const drawerOpen = ref(import.meta.client ? window.innerWidth >= 768 : true);
 const mode = ref<"view" | "edit" | "usage">("view");
 
 function prev() {
