@@ -1,29 +1,17 @@
 // Serve a resized WebP variant of a photo via the Cloudflare Images binding,
 // so grid tiles and the lightbox don't pull full-size originals. The R2
-// original is loaded, transformed to the requested width, and streamed back
+// original is loaded, transformed to the requested size, and streamed back
 // with a long cache lifetime. The untransformed original stays on `raw`.
-// Widths are sized for 2x (retina) rendering: grid tiles are ~260-300 CSS px,
-// the lightbox fills large viewports. Under-sizing here is what makes tiles look
-// fuzzy on retina, so thumb covers a 2x tile and lg covers a 2x full view.
-// Width-only, aspect-preserving resize (the binding never upscales past the
-// original). The grid tile does its own square crop via CSS object-cover, so we
-// must NOT ask the binding for a square here — its `fit: cover` pads to black in
-// local dev instead of cropping. `thumb` is wide enough that a landscape crop
-// still lands ~540px on the short side, i.e. crisp on a 2x retina tile.
-const SIZES = { thumb: 800, md: 1280, lg: 2560 } as const;
-type Size = keyof typeof SIZES;
-
-function isSize(value: string | undefined): value is Size {
-	return value != null && value in SIZES;
-}
-
+// Sizing/keys/generation live in server/utils/variants.ts; P4 rewrites this
+// route to serve precomputed variants straight from R2 via getOrCreateVariant.
 export default defineEventHandler(async (event) => {
 	const id = getRouterParam(event, "id");
 	if (!id) throw createError({ statusCode: 400, statusMessage: "Missing id" });
 
 	const size = getQuery(event).size;
-	const sizeKey = typeof size === "string" ? size : undefined;
-	if (!isSize(sizeKey)) {
+	const sizeKey: string | undefined =
+		typeof size === "string" ? size : undefined;
+	if (!isVariantSize(sizeKey)) {
 		throw createError({ statusCode: 400, statusMessage: "Unknown size" });
 	}
 
@@ -40,7 +28,11 @@ export default defineEventHandler(async (event) => {
 
 	const result = await useImages(event)
 		.input(object.body)
-		.transform({ width: SIZES[sizeKey] })
+		.transform({
+			width: VARIANT_SIZES[sizeKey],
+			height: VARIANT_SIZES[sizeKey],
+			fit: "scale-down",
+		})
 		.output({ format: "image/webp", quality: 88 });
 
 	setHeader(event, "content-type", "image/webp");
