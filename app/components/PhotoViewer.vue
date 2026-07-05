@@ -111,12 +111,12 @@ const gpsUrl = computed(() =>
 				@click="emit('close')"
 			/>
 
-			<!-- Stage -->
+			<!-- Stage (translucent glass so the blurred backdrop shows through) -->
 			<div
-				class="glass-panel relative z-[2] grid max-h-[88vh] w-[min(1120px,100%)] overflow-hidden rounded-[28px] md:grid-cols-[1fr_320px]"
+				class="relative z-[2] grid max-h-[88vh] w-[min(1120px,100%)] overflow-hidden rounded-[28px] border border-white/40 bg-white/20 shadow-[0_44px_90px_-32px_rgba(90,70,160,0.5)] backdrop-blur-2xl md:grid-cols-[1fr_320px]"
 			>
-				<!-- Image -->
-				<div class="relative flex min-h-[300px] items-center justify-center bg-black/5">
+				<!-- Image (transparent letterbox reveals the frosted stage) -->
+				<div class="relative flex min-h-[300px] items-center justify-center">
 					<img
 						:key="photo.id"
 						:src="`/api/photos/${photo.id}/raw`"
@@ -144,7 +144,7 @@ const gpsUrl = computed(() =>
 
 				<!-- Editorial metadata panel -->
 				<aside
-					class="relative flex flex-col overflow-y-auto bg-gradient-to-b from-white/80 to-white/55 p-7"
+					class="relative flex flex-col overflow-y-auto border-t border-white/40 bg-white/40 p-7 backdrop-blur-xl md:border-l md:border-t-0"
 				>
 					<button
 						class="absolute right-4 top-4 flex size-8 items-center justify-center rounded-full border border-white/85 bg-white/55 text-muted-foreground backdrop-blur transition hover:bg-white/85 hover:text-foreground"
