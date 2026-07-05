@@ -89,7 +89,7 @@ Statuses: `todo` · `in_progress` · `done` · `blocked`. Edit in place as the l
 
 | #  | Task                                   | Status | Result note |
 |----|----------------------------------------|--------|-------------|
-| S1 | Soft delete / trash                    | todo   |             |
+| S1 | Soft delete / trash                    | in_progress |             |
 | S2 | Batch delete endpoint                  | todo   |             |
 | S3 | Camera & lens filters                  | todo   |             |
 | S4 | Upload limits                          | todo   |             |
