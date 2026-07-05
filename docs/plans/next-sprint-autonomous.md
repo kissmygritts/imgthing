@@ -90,8 +90,8 @@ Statuses: `todo` · `in_progress` · `done` · `blocked`. Edit in place as the l
 | #  | Task                                   | Status | Result note |
 |----|----------------------------------------|--------|-------------|
 | S1 | Soft delete / trash                    | done   | 139da58 — tombstone+Trash view+restore+purge/empty-trash; geo & list exclude tombstones; trash.test.ts added |
-| S2 | Batch delete endpoint                  | in_progress |             |
-| S3 | Camera & lens filters                  | todo   |             |
+| S2 | Batch delete endpoint                  | done   | ecf3a49 — DELETE /api/photos single-write soft-delete (?ids=, ?purge=1); bulkDelete now one request; tests added |
+| S3 | Camera & lens filters                  | in_progress |             |
 | S4 | Upload limits                          | todo   |             |
 | S5 | Integration-test coverage audit        | todo   |             |
 | S6 | Mobile / responsive pass               | todo   |             |
