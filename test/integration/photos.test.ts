@@ -1,4 +1,4 @@
-import { SELF } from "cloudflare:test";
+import { env, SELF } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 import { login, pngBytes, url } from "./helpers";
 
@@ -404,5 +404,52 @@ describe("photos: search / sort / range / paging", () => {
 		// No overlap between pages.
 		const ids = new Set(page1.photos.map((p) => p.id));
 		expect(ids.has(page2.photos[0].id)).toBe(false);
+	});
+});
+
+interface GeoRow extends PhotoRow {
+	gps_latitude: number | null;
+	gps_longitude: number | null;
+}
+
+describe("photos: geo (map view)", () => {
+	it("returns only geotagged photos with their coordinates", async () => {
+		const cookie = await login();
+		// The 1x1 test PNG carries no EXIF GPS, so seed coordinates directly on the
+		// exif_data row the upload created — mirroring a real geotagged image.
+		const geo = await upload(cookie, `geo-${Date.now()}.png`);
+		const plain = await upload(cookie, `plain-${Date.now()}.png`);
+		const geoId = geo.uploaded[0].id;
+		const plainId = plain.uploaded[0].id;
+
+		const lat = 37.8199;
+		const lng = -122.4783;
+		await env.DB.prepare(
+			"UPDATE exif_data SET gps_latitude = ?, gps_longitude = ? WHERE photo_id = ?",
+		)
+			.bind(lat, lng, geoId)
+			.run();
+
+		const res = await SELF.fetch(url("/api/photos/geo"), {
+			headers: { cookie },
+		});
+		expect(res.status).toBe(200);
+		const { photos } = (await res.json()) as { photos: GeoRow[] };
+
+		const row = photos.find((p) => p.id === geoId);
+		expect(row, "geotagged photo should appear").toBeDefined();
+		expect(row?.gps_latitude).toBeCloseTo(lat, 4);
+		expect(row?.gps_longitude).toBeCloseTo(lng, 4);
+
+		// The un-geotagged upload is excluded, and every returned row has coords.
+		expect(photos.find((p) => p.id === plainId)).toBeUndefined();
+		expect(
+			photos.every((p) => p.gps_latitude != null && p.gps_longitude != null),
+		).toBe(true);
+	});
+
+	it("requires authentication", async () => {
+		const res = await SELF.fetch(url("/api/photos/geo"));
+		expect(res.status).toBe(401);
 	});
 });

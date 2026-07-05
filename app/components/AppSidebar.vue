@@ -7,6 +7,7 @@ import {
 	Images,
 	Layers,
 	LogOut,
+	MapPin,
 	Search,
 	Upload,
 	X,
@@ -138,6 +139,14 @@ const {
 							>
 								<Layers />
 								<span>Uncategorized</span>
+							</SidebarMenuButton>
+						</SidebarMenuItem>
+						<SidebarMenuItem>
+							<SidebarMenuButton as-child tooltip="Map">
+								<NuxtLink to="/map">
+									<MapPin />
+									<span>Map</span>
+								</NuxtLink>
 							</SidebarMenuButton>
 						</SidebarMenuItem>
 					</SidebarMenu>

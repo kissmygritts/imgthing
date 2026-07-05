@@ -5,7 +5,7 @@ export default defineNuxtConfig({
 	compatibilityDate: "2026-06-30",
 	devtools: { enabled: true },
 
-	css: ["~/assets/css/main.css"],
+	css: ["~/assets/css/main.css", "maplibre-gl/dist/maplibre-gl.css"],
 
 	modules: ["shadcn-nuxt", "nitro-cloudflare-dev"],
 
