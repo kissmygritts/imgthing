@@ -115,7 +115,7 @@ Edit in place as the loop runs.
 
 | #    | Task                                          | Status | Result note |
 |------|-----------------------------------------------|--------|-------------|
-| P1   | Migration 0006 (public sharing columns)       | todo   |             |
+| P1   | Migration 0006 (public sharing columns)       | in_progress |        |
 | P2   | Variant utility (`server/utils/variants.ts`)  | todo   |             |
 | P3   | Upload generates variants                     | todo   |             |
 | P4   | Serving rewrite + publish/unpublish + public routes | todo |         |
