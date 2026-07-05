@@ -5,6 +5,7 @@ import {
 	ChevronDown,
 	FolderMinus,
 	FolderPlus,
+	Globe,
 	Heart,
 	ImageOff,
 	Loader2,
@@ -67,6 +68,8 @@ const {
 	emptyTrash,
 	attachTag,
 	detachTag,
+	publishPhoto,
+	unpublishPhoto,
 } = useLibrary();
 
 // ── Search + sort now drive the server query ──────────────────────────────
@@ -271,6 +274,18 @@ function onViewerFavorite(id: string) {
 	if (photo) toggleFavorite(photo);
 }
 
+// Share (publish/unpublish) from the viewer — mirror the favorite treatment:
+// find the row and route through the composable, which mutates the row's
+// visibility/token in place and refreshes the list.
+function onViewerPublish(id: string, showLocation: boolean) {
+	const photo = photos.value.find((p) => p.id === id);
+	if (photo) publishPhoto(photo, showLocation);
+}
+function onViewerUnpublish(id: string) {
+	const photo = photos.value.find((p) => p.id === id);
+	if (photo) unpublishPhoto(photo);
+}
+
 // Tag attach/detach from the viewer drawer — route through the composable, which
 // persists and refreshes the photo list (updating this row's tag_ids).
 function onViewerAttachTag(id: string, name: string) {
@@ -448,6 +463,16 @@ async function onViewerPurge(id: string) {
 					<Heart class="size-4" :class="photo.is_favorite ? 'fill-current' : ''" />
 				</button>
 
+				<!-- public indicator — globe badge, always shown when published.
+				     Placeholder placement/styling (final polish is P7b). -->
+				<span
+					v-if="!trashOnly && photo.visibility === 'public'"
+					class="pointer-events-none absolute bottom-2 left-2 z-10 flex size-6 items-center justify-center rounded-full border border-white/70 dark:border-white/12 bg-white/40 dark:bg-white/8 text-white backdrop-blur"
+					title="Public"
+				>
+					<Globe class="size-3.5" />
+				</span>
+
 				<!-- signature prism rim (direct child of .group) -->
 				<span class="prism-edge" />
 				<span
@@ -538,6 +563,8 @@ async function onViewerPurge(id: string) {
 			@restore="onViewerRestore"
 			@purge="onViewerPurge"
 			@favorite="onViewerFavorite"
+			@publish="onViewerPublish"
+			@unpublish="onViewerUnpublish"
 			@attach-tag="onViewerAttachTag"
 			@detach-tag="onViewerDetachTag"
 		/>

@@ -7,6 +7,7 @@ import {
 	Code2,
 	Copy,
 	Download,
+	Globe,
 	Heart,
 	MoreHorizontal,
 	PanelRightClose,
@@ -14,6 +15,7 @@ import {
 	Pencil,
 	Plus,
 	RotateCcw,
+	Share2,
 	Trash2,
 	X,
 } from "@lucide/vue";
@@ -57,6 +59,12 @@ export interface Photo {
 	// via the `allTags` list. Null when the photo has no tags.
 	tag_ids: string | null;
 	is_favorite: number;
+	// Public sharing (P4 backend). visibility flips to 'public' on publish, which
+	// mints public_token; the tokened URLs are `${origin}/p/${token}/${size}`.
+	// show_location gates whether GPS is exposed on the public meta endpoint.
+	visibility: string;
+	public_token: string | null;
+	show_location: number;
 }
 
 // A tag as returned by GET /api/tags.
@@ -92,6 +100,12 @@ const emit = defineEmits<{
 	purge: [id: string];
 	// Emitted to toggle the favorite flag. The parent persists + refreshes.
 	favorite: [id: string];
+	// Emitted to publish a photo for public sharing. showLocation gates GPS in the
+	// public meta endpoint; re-publishing (incl. a show_location change) rotates
+	// the token. The parent persists + updates the row's visibility/public_token.
+	publish: [id: string, showLocation: boolean];
+	// Emitted to revoke a public share (drops the token → shared URLs 404).
+	unpublish: [id: string];
 	// Emitted to attach a tag (by name — reused or created) to a photo.
 	"attach-tag": [id: string, name: string];
 	// Emitted to detach a tag (by id) from a photo.
@@ -331,6 +345,48 @@ function confirmDelete() {
 	else emit("delete", p.id);
 }
 
+// --- Share / publish -----------------------------------------------------
+// The share panel toggles public visibility and surfaces the tokened URLs. The
+// switches emit up to the parent, which persists via the composable and mutates
+// this row in place (visibility/public_token) — so the computeds below react.
+const shareOpen = ref(false);
+// Local draft of the "show location" preference. Seeded from the row and kept as
+// the value we send on (re)publish.
+const shareShowLocation = ref(false);
+
+const isPublic = computed(() => photo.value?.visibility === "public");
+const hasGps = computed(
+	() => photo.value?.gps_latitude != null && photo.value?.gps_longitude != null,
+);
+
+// The tokened public URLs, built from the row's token. md + lg are the shareable
+// renditions surfaced here (thumb/meta exist too but aren't offered for copy).
+const publicUrls = computed(() => {
+	const t = photo.value?.public_token;
+	if (!t) return [];
+	return [
+		{ key: "public-md", name: "medium", url: `${origin.value}/p/${t}/md` },
+		{ key: "public-lg", name: "large", url: `${origin.value}/p/${t}/lg` },
+	];
+});
+
+function togglePublic() {
+	const p = photo.value;
+	if (!p) return;
+	if (p.visibility === "public") emit("unpublish", p.id);
+	else emit("publish", p.id, shareShowLocation.value);
+}
+
+// Toggling location while public re-publishes to apply it (which rotates the
+// link — the "this breaks the old URL" copy is a P7b concern). While private it
+// just records the preference for the next publish.
+function toggleShowLocation() {
+	const p = photo.value;
+	if (!p) return;
+	shareShowLocation.value = !shareShowLocation.value;
+	if (p.visibility === "public") emit("publish", p.id, shareShowLocation.value);
+}
+
 // --- Tags ----------------------------------------------------------------
 // Resolve the photo's tag_ids against the full tag list into {id, name} chips.
 const nameById = computed(
@@ -374,9 +430,12 @@ watch(
 	() => {
 		mode.value = "view";
 		confirmDeleteOpen.value = false;
+		shareOpen.value = false;
+		shareShowLocation.value = photo.value?.show_location === 1;
 		tagDraft.value = "";
 		copiedKey.value = null;
 	},
+	{ immediate: true },
 );
 </script>
 
@@ -456,6 +515,14 @@ watch(
 							>
 								{{ photo.original_filename }}
 							</h2>
+							<!-- public indicator — placeholder styling (final polish is P7b) -->
+							<span
+								v-if="photo.visibility === 'public'"
+								class="mt-1 inline-flex items-center gap-1 rounded-full border border-white/70 dark:border-white/12 bg-white/45 dark:bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground backdrop-blur"
+							>
+								<Globe class="size-3" />
+								Public
+							</span>
 						</div>
 
 						<div class="flex shrink-0 items-center gap-1.5">
@@ -504,6 +571,10 @@ watch(
 												"
 											/>
 											{{ photo.is_favorite ? "Remove from favorites" : "Add to favorites" }}
+										</DropdownMenuItem>
+										<DropdownMenuItem @select="shareOpen = true">
+											<Share2 class="size-4" />
+											Share
 										</DropdownMenuItem>
 										<DropdownMenuItem @select="startEdit">
 											<Pencil class="size-4" />
@@ -773,6 +844,106 @@ watch(
 						<Button variant="destructive" @click="confirmDelete">
 							{{ trash ? "Delete forever" : "Move to Trash" }}
 						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
+			<!-- Share panel — publish/unpublish + tokened public URLs. Placeholder
+			     styling/copy throughout (final polish is P7b). -->
+			<Dialog v-model:open="shareOpen">
+				<DialogContent class="z-[110]">
+					<DialogHeader>
+						<DialogTitle>Share “{{ photo.original_filename }}”</DialogTitle>
+						<DialogDescription>
+							Publish this photo to a public link anyone can open — no imgthing
+							account needed.
+						</DialogDescription>
+					</DialogHeader>
+
+					<div class="grid gap-4 py-2">
+						<!-- Public toggle -->
+						<div class="flex items-center justify-between gap-4">
+							<div class="min-w-0">
+								<p class="text-sm font-medium text-foreground">Public</p>
+								<p class="text-xs text-muted-foreground">
+									{{ isPublic ? "Anyone with the link can view this photo." : "Off — this photo is private." }}
+								</p>
+							</div>
+							<button
+								type="button"
+								role="switch"
+								:aria-checked="isPublic"
+								aria-label="Public"
+								class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border border-white/70 dark:border-white/12 transition-colors"
+								:class="isPublic ? 'bg-primary' : 'bg-white/40 dark:bg-white/10'"
+								@click="togglePublic"
+							>
+								<span
+									class="inline-block size-4 rounded-full bg-white shadow-sm transition-transform"
+									:class="isPublic ? 'translate-x-6' : 'translate-x-1'"
+								/>
+							</button>
+						</div>
+
+						<!-- Show location toggle — only for geotagged photos -->
+						<div v-if="hasGps" class="flex items-center justify-between gap-4">
+							<div class="min-w-0">
+								<p class="text-sm font-medium text-foreground">Show location</p>
+								<p class="text-xs text-muted-foreground">
+									Include GPS coordinates on the public page.
+								</p>
+							</div>
+							<button
+								type="button"
+								role="switch"
+								:aria-checked="shareShowLocation"
+								aria-label="Show location"
+								class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border border-white/70 dark:border-white/12 transition-colors"
+								:class="shareShowLocation ? 'bg-primary' : 'bg-white/40 dark:bg-white/10'"
+								@click="toggleShowLocation"
+							>
+								<span
+									class="inline-block size-4 rounded-full bg-white shadow-sm transition-transform"
+									:class="shareShowLocation ? 'translate-x-6' : 'translate-x-1'"
+								/>
+							</button>
+						</div>
+
+						<!-- Public URLs (only when published) -->
+						<div v-if="isPublic && publicUrls.length" class="grid gap-2.5">
+							<div v-for="u in publicUrls" :key="u.key" class="min-w-0">
+								<div class="mb-1 flex items-center justify-between gap-2">
+									<span class="font-mono text-[12px] font-semibold text-foreground">
+										{{ u.name }}
+									</span>
+									<button
+										type="button"
+										class="flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground transition hover:text-foreground"
+										:aria-label="`Copy ${u.name} URL`"
+										@click="copy(u.url, u.key)"
+									>
+										<Check v-if="copiedKey === u.key" class="size-3 text-primary" />
+										<Copy v-else class="size-3" />
+										{{ copiedKey === u.key ? "Copied" : "Copy" }}
+									</button>
+								</div>
+								<pre
+									class="overflow-x-auto rounded-lg border border-white/60 dark:border-white/10 bg-white/45 dark:bg-black/25 p-2.5 font-mono text-[11px] leading-relaxed text-foreground backdrop-blur"
+								><code>{{ u.url }}</code></pre>
+							</div>
+
+							<!-- Placeholder hint: links break on unpublish / re-publish (P7b copy) -->
+							<p
+								class="rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-2.5 text-[11.5px] leading-relaxed text-amber-700 dark:text-amber-300"
+							>
+								Turning this off — or changing Show location — replaces the link, so
+								any previously shared URL stops working.
+							</p>
+						</div>
+					</div>
+
+					<DialogFooter>
+						<Button variant="outline" @click="shareOpen = false">Done</Button>
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>

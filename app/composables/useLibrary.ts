@@ -458,6 +458,50 @@ export function useLibrary() {
 		}
 	}
 
+	// ── Public sharing (publish / unpublish) ─────────────────────────────────────
+	// Publish mints a FRESH token every call (rotation is the revocation primitive),
+	// so re-publishing — including a show_location change — invalidates any prior URL.
+	// Optimistically mirror the returned token onto the row (like toggleFavorite),
+	// then refresh the list so the badge + server truth stay in sync.
+	async function publishPhoto(
+		photo: Photo,
+		showLocation: boolean,
+	): Promise<boolean> {
+		try {
+			const res = await $fetch<{ token: string }>(
+				`/api/photos/${photo.id}/publish`,
+				{ method: "POST", body: { showLocation } },
+			);
+			photo.visibility = "public";
+			photo.public_token = res.token;
+			photo.show_location = showLocation ? 1 : 0;
+			await refreshNuxtData(["photos"]);
+			return true;
+		} catch (err) {
+			toast.error(
+				(err as { statusMessage?: string })?.statusMessage ?? "Publish failed",
+			);
+			return false;
+		}
+	}
+
+	// Revoke a photo's public share — drops the token so any shared URL 404s.
+	async function unpublishPhoto(photo: Photo): Promise<boolean> {
+		try {
+			await $fetch(`/api/photos/${photo.id}/unpublish`, { method: "POST" });
+			photo.visibility = "private";
+			photo.public_token = null;
+			await refreshNuxtData(["photos"]);
+			return true;
+		} catch (err) {
+			toast.error(
+				(err as { statusMessage?: string })?.statusMessage ??
+					"Unpublish failed",
+			);
+			return false;
+		}
+	}
+
 	// ── Tags ─────────────────────────────────────────────────────────────────────
 	// Resolve a photo's tag_ids into {id, name} pairs via the loaded tag list.
 	function tagsOf(photo: Photo): { id: string; name: string }[] {
@@ -563,6 +607,9 @@ export function useLibrary() {
 		purgePhoto,
 		emptyTrash,
 		toggleFavorite,
+		// sharing
+		publishPhoto,
+		unpublishPhoto,
 		// tags
 		tagsOf,
 		attachTag,

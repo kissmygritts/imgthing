@@ -136,6 +136,7 @@ export default defineEventHandler(async (event) => {
 			`SELECT
 				p.id, p.original_filename, p.content_type, p.file_size,
 				p.uploaded_at, p.is_favorite,
+				p.visibility, p.public_token, p.show_location,
 				e.camera_make, e.camera_model, e.lens_info, e.exposure,
 				e.aperture, e.iso, e.focal_length, e.taken_at,
 				e.gps_latitude, e.gps_longitude,
