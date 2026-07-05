@@ -121,8 +121,8 @@ Edit in place as the loop runs.
 | P4   | Serving rewrite + publish/unpublish + public routes | done | private variant from R2; publish mints 32-hex token; /p/{token}/{size}+meta unauth; uniform bare-404s; GPS opt-in gated |
 | P5   | Trash/delete interplay                        | done   | both soft-delete UPDATEs clear token+visibility; purgePhotos deletes 3 variantKeys; restore untouched |
 | P8   | Integration tests (public suite + updates)    | done   | public.test.ts all 8 scenarios (72 int tests); caught+fixed real bug: /p/** threw createError → SPA HTML 200 instead of uniform 404, now bare Response via publicNotFound() |
-| P9   | Docs                                          | in_progress |        |
-| P7a  | Functional share UI (autonomous)              | todo   |             |
+| P9   | Docs                                          | done   | cloudflare-setup.md deployment note (no new infra); fixed stale M6 variant comment in raw.get.ts |
+| P7a  | Functional share UI (autonomous)              | in_progress |        |
 | P7b  | **Design pass — HUMAN, loop stops here**      | hold   | Awaiting user design review; never delegate |
 
 **Why this order (dependencies):** P1 (schema) unblocks everything. P2 (util) is imported by P3/P4.
