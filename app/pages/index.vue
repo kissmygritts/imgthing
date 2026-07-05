@@ -32,12 +32,14 @@ const {
 } = useLibrary();
 
 // ── Search + sort now drive the server query ──────────────────────────────
-type SortMode = "newest" | "oldest" | "name";
+type SortMode = "newest" | "oldest" | "name" | "size_desc" | "size_asc";
 const sortMode = ref<SortMode>("newest");
 const sortLabels: Record<SortMode, string> = {
 	newest: "Newest first",
 	oldest: "Oldest first",
 	name: "Filename A–Z",
+	size_desc: "Largest",
+	size_asc: "Smallest",
 };
 
 const PAGE_SIZE = 50;
@@ -157,6 +159,8 @@ async function onViewerDelete(id: string) {
 						<DropdownMenuRadioItem value="newest">Newest first</DropdownMenuRadioItem>
 						<DropdownMenuRadioItem value="oldest">Oldest first</DropdownMenuRadioItem>
 						<DropdownMenuRadioItem value="name">Filename A–Z</DropdownMenuRadioItem>
+						<DropdownMenuRadioItem value="size_desc">Largest</DropdownMenuRadioItem>
+						<DropdownMenuRadioItem value="size_asc">Smallest</DropdownMenuRadioItem>
 					</DropdownMenuRadioGroup>
 				</DropdownMenuContent>
 			</DropdownMenu>

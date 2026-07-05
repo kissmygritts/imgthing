@@ -32,11 +32,16 @@ async function list(cookie: string, query = ""): Promise<ListResponse> {
 async function upload(
 	cookie: string,
 	filename: string,
+	// Optional trailing padding so tests can control file_size independently of
+	// the tiny 1x1 PNG. Padding after IEND keeps the bytes a valid image/png.
+	pad = 0,
 ): Promise<UploadResponse> {
+	const png = pngBytes();
+	const body = pad > 0 ? new Uint8Array([...png, ...new Uint8Array(pad)]) : png;
 	const form = new FormData();
 	form.append(
 		"file",
-		new File([pngBytes()], filename, { type: "image/png" }),
+		new File([body], filename, { type: "image/png" }),
 		filename,
 	);
 	const res = await SELF.fetch(url("/api/photos"), {
@@ -228,6 +233,30 @@ describe("photos: search / sort / range / paging", () => {
 		const oldest = await list(cookie, `?q=${tok}&sort=oldest`);
 		expect(newest.photos.map((p) => p.id)).toEqual(
 			oldest.photos.map((p) => p.id).reverse(),
+		);
+	});
+
+	it("sorts by file size in both directions server-side", async () => {
+		const cookie = await login();
+		const tok = `ztok${Date.now()}`;
+		// Same base PNG, distinct paddings → strictly increasing file_size.
+		await upload(cookie, `${tok}-mid.png`, 100);
+		await upload(cookie, `${tok}-big.png`, 500);
+		await upload(cookie, `${tok}-small.png`, 0);
+
+		const desc = await list(cookie, `?q=${tok}&sort=size_desc`);
+		expect(desc.photos.map((p) => p.original_filename)).toEqual([
+			`${tok}-big.png`,
+			`${tok}-mid.png`,
+			`${tok}-small.png`,
+		]);
+		// file_size is monotonically non-increasing for size_desc.
+		const sizes = desc.photos.map((p) => p.file_size);
+		expect(sizes).toEqual([...sizes].sort((a, b) => b - a));
+
+		const asc = await list(cookie, `?q=${tok}&sort=size_asc`);
+		expect(asc.photos.map((p) => p.id)).toEqual(
+			desc.photos.map((p) => p.id).reverse(),
 		);
 	});
 

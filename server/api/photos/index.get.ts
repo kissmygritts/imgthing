@@ -4,7 +4,7 @@
 // Query params:
 //   q         filename substring match (case-insensitive LIKE)
 //   from/to   inclusive date range over COALESCE(taken_at, uploaded_at)
-//   sort      newest | oldest | name  (default newest)
+//   sort      newest | oldest | name | size_desc | size_asc  (default newest)
 //   folderId  a folder id, or "none" for photos in no folder
 //   limit     1..200 (default 50)   offset  >= 0 (default 0)
 //
@@ -15,6 +15,8 @@ const SORTS = {
 	newest: "p.uploaded_at DESC, p.id DESC",
 	oldest: "p.uploaded_at ASC, p.id ASC",
 	name: "p.original_filename COLLATE NOCASE ASC, p.id ASC",
+	size_desc: "p.file_size DESC, p.id DESC",
+	size_asc: "p.file_size ASC, p.id ASC",
 } as const;
 
 type SortKey = keyof typeof SORTS;
