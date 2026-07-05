@@ -92,8 +92,8 @@ Statuses: `todo` · `in_progress` · `done` · `blocked`. Edit in place as the l
 | S1 | Soft delete / trash                    | done   | 139da58 — tombstone+Trash view+restore+purge/empty-trash; geo & list exclude tombstones; trash.test.ts added |
 | S2 | Batch delete endpoint                  | done   | ecf3a49 — DELETE /api/photos single-write soft-delete (?ids=, ?purge=1); bulkDelete now one request; tests added |
 | S3 | Camera & lens filters                  | done   | 1d27aeb — /api/cameras + /api/lenses facets, camera/lens buildFilter (AND), sidebar groups; tests. NOTE: SidebarEntry renders empty 3-dot menu on facet rows — suppress in S6 |
-| S4 | Upload limits                          | in_progress |             |
-| S5 | Integration-test coverage audit        | todo   |             |
+| S4 | Upload limits                          | done   | 981cf9b — 25MB/file, 50 files, 200MB batch caps; content-length early 413; partial-batch rejected[] reporting; tests |
+| S5 | Integration-test coverage audit        | in_progress |             |
 | S6 | Mobile / responsive pass               | todo   |             |
 
 **Why this order (dependencies):** **S1 is the backbone** — it adds `photos.deleted_at`, converts
