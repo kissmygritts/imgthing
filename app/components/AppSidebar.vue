@@ -69,6 +69,11 @@ const {
 	confirmDelete,
 	logout,
 } = useLibrary();
+
+// Gallery filters only read as "active" on the gallery route; on /map or
+// /upload the nav should highlight that page instead.
+const route = useRoute();
+const onGallery = computed(() => route.path === "/");
 </script>
 
 <template>
@@ -114,7 +119,7 @@ const {
 						<SidebarMenuItem>
 							<SidebarMenuButton
 								tooltip="All photos"
-								:is-active="!favoritesOnly && selectedFolderId === null"
+								:is-active="onGallery && !favoritesOnly && selectedFolderId === null"
 								@click="selectFolder(null)"
 							>
 								<Images />
@@ -124,7 +129,7 @@ const {
 						<SidebarMenuItem>
 							<SidebarMenuButton
 								tooltip="Favorites"
-								:is-active="favoritesOnly"
+								:is-active="onGallery && favoritesOnly"
 								@click="selectFavorites()"
 							>
 								<Heart />
@@ -134,7 +139,7 @@ const {
 						<SidebarMenuItem>
 							<SidebarMenuButton
 								tooltip="Uncategorized"
-								:is-active="!favoritesOnly && selectedFolderId === 'none'"
+								:is-active="onGallery && !favoritesOnly && selectedFolderId === 'none'"
 								@click="selectFolder('none')"
 							>
 								<Layers />
@@ -142,7 +147,7 @@ const {
 							</SidebarMenuButton>
 						</SidebarMenuItem>
 						<SidebarMenuItem>
-							<SidebarMenuButton as-child tooltip="Map">
+							<SidebarMenuButton as-child tooltip="Map" :is-active="route.path === '/map'">
 								<NuxtLink to="/map">
 									<MapPin />
 									<span>Map</span>
@@ -164,7 +169,7 @@ const {
 						:folders="folders"
 						:parent-id="null"
 						:depth="0"
-						:selected-id="favoritesOnly || selectedTagId ? null : selectedFolderId"
+						:selected-id="!onGallery || favoritesOnly || selectedTagId ? null : selectedFolderId"
 						:expanded="expanded"
 						@select="selectFolder($event)"
 						@action="onTreeAction"
@@ -186,7 +191,7 @@ const {
 							:icon="Hash"
 							:label="tag.name"
 							:count="tag.photo_count"
-							:active="selectedTagId === tag.id"
+							:active="onGallery && selectedTagId === tag.id"
 							@select="selectTag(tag.id)"
 						>
 							<template #menu>
