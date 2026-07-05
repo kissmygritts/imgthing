@@ -83,3 +83,49 @@ Full-screen lightbox with EXIF panel and prev/next. POC-level styling — a desi
 
 M5 gallery grid already landed with M3; remaining: grid/list toggle + paging. Then Search/Polish ·
 Hardening.
+
+## Backlog — next features (2026-07-05)
+
+Prioritized by impact × existing-plumbing. Nothing below is started.
+
+### Tier 1 — highest ROI, plumbing already exists
+
+- **Cloudflare Images variants.** The `IMAGES` binding is declared and wrapped (`useImages`) but
+  never used — `server/api/photos/[id]/raw.get.ts` serves full-size originals into every grid tile.
+  Serve real `thumb`/`md`/`lg` variants transformed from R2; grid → thumb, viewer → lg, download →
+  raw original. Biggest perf/UX win.
+- **Photo delete.** No delete endpoint exists (upload/list/serve/move only). Add `DELETE
+  /api/photos/[id]` → `BUCKET.delete(r2_key)` + D1 batch (`exif_data`, `folder_photos`, `photos`);
+  wire a trash button + confirm into the viewer and gallery. Closes the obvious CRUD gap.
+
+### Tier 2 — gallery maturity (finishes M5, starts M7)
+
+- **Server-side search + pagination.** Current search is client-side, filename-only, over the
+  already-fetched page (default 50). Add `GET /api/photos?q=&from=&to=&camera=&page=`; pager or
+  infinite scroll; grid ⇄ list toggle.
+- **Sort by image size.** Add file-size to the filters/sort dropdown (asc/desc) alongside the
+  existing newest/oldest/name.
+- **Multi-select + organize into folders.** Selection model on the gallery (click-to-select,
+  shift-range, select-all); bulk action bar to add/remove the selected photos to/from folders in one
+  request. Pairs naturally with the delete work (bulk delete).
+
+### Tier 3 — new surfaces
+
+- **Favorites / hearting.** Heart a photo (toggle endpoint + `photos.is_favorite` or a dedicated
+  table); a "Favorites" entry under Library in the sidebar that filters the gallery to hearted
+  photos.
+- **Tags.** Free-form tags per photo (`tags` + `photo_tags` junction, many-to-many like folders);
+  tag CRUD, per-photo tag editing in the viewer, filter/search by tag. Fulfils the M7 tagging goal.
+- **Dedicated upload page.** Today the sidebar upload button just opens the file picker. Add a real
+  `/upload` page: drag-and-drop dropzone, multi-file queue with per-file progress, and a
+  target-folder selector so uploads land directly in a chosen folder.
+- **Map view (EXIF GPS).** A `/map` view using **MapLibre GL** + **OpenFreeMap** tiles that plots
+  photos with GPS coordinates as markers; click a marker → open that photo in the viewer. EXIF lat/
+  lng is already extracted and stored (`exif_data.gps_latitude/longitude`), so the data is there.
+
+### Tier 4 — make it real (M1 + M8)
+
+- **Provision + deploy.** `database_id` is still `REPLACE_WITH_D1_DATABASE_ID`. Create remote D1/R2,
+  enable Images, apply remote migrations, set secrets, first deploy + custom domain. Hold until the
+  feature set feels done locally.
+- **Hardening.** D1 Time Travel backups, R2 versioning, monitoring, export-everything job.
