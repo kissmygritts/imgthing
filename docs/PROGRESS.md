@@ -65,6 +65,21 @@ Photos belong to **many** folders (many-to-many), folders nest into a tree.
 - Tests: `test/integration/folders.test.ts` (6 cases — create/nest/rename, cycle guard,
   add/remove + filter, cascade delete keeps photos, 404). Verified end-to-end in dev.
 
-## Milestones 5–8 · ⚪ not started
+## Milestone 6 — Photo Viewer · 🟡 POC done (variants + design deferred)
 
-Next: Gallery · Viewer · Search/Polish · Hardening.
+Full-screen lightbox with EXIF panel and prev/next. POC-level styling — a design pass comes later.
+
+- `app/components/PhotoViewer.vue` — teleported fixed overlay (90% black backdrop); exports the
+  shared `Photo` type (full EXIF shape from `GET /api/photos`), reused in `index.vue`.
+- Info panel (toggle with the button or `i`): filename, type, size, uploaded/taken, camera, lens,
+  exposure, aperture, ISO, focal length; GPS → OpenStreetMap link. Empty fields are hidden.
+- Nav: prev/next buttons (hidden at ends) + ←/→ keys; `Esc` / backdrop-click / X to close; `n / N`
+  counter; download link (raw bytes, `download` attr).
+- `index.vue` gallery thumbnails open the viewer at their index; image still served by
+  `/api/photos/[id]/raw` (Images variants still deferred).
+- Verified in dev via browser: open, EXIF populated, keyboard nav updates counter/panel, Esc closes.
+
+## Milestones 5, 7–8 · ⚪ not started
+
+M5 gallery grid already landed with M3; remaining: grid/list toggle + paging. Then Search/Polish ·
+Hardening.

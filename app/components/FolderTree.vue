@@ -45,8 +45,8 @@ function hasChildren(id: string): boolean {
 	<ul class="space-y-0.5">
 		<li v-for="folder in children" :key="folder.id">
 			<div
-				class="group flex items-center gap-1 rounded-md pr-1 text-sm hover:bg-accent"
-				:class="selectedId === folder.id && 'bg-accent font-medium'"
+				class="group flex items-center gap-1 rounded-md pr-1 text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+				:class="selectedId === folder.id && 'bg-sidebar-accent font-medium text-sidebar-accent-foreground'"
 				:style="{ paddingLeft: `${depth * 12}px` }"
 			>
 				<button
