@@ -8,6 +8,7 @@
 //   folderId  a folder id, or "none" for photos in no folder
 //   favorite  "1" to return only favorited photos
 //   tag       a tag id or (case-insensitive) tag name — only photos carrying it
+//   deleted   "1" to return only trashed (tombstoned) photos; default excludes them
 //   limit     1..200 (default 50)   offset  >= 0 (default 0)
 //
 // Response: { photos, total, limit, offset } — `total` is the full match count
@@ -34,6 +35,13 @@ function escapeLike(s: string): string {
 function buildFilter(q: Record<string, unknown>) {
 	const conditions: string[] = [];
 	const binds: (string | number)[] = [];
+
+	// Tombstones are hidden from every normal view. ?deleted=1 flips to the Trash
+	// view (only tombstoned rows); otherwise only live (deleted_at IS NULL) rows.
+	const deleted = q.deleted === "1" || q.deleted === 1 || q.deleted === true;
+	conditions.push(
+		deleted ? "p.deleted_at IS NOT NULL" : "p.deleted_at IS NULL",
+	);
 
 	const folderId = typeof q.folderId === "string" ? q.folderId : "";
 	if (folderId === "none") {

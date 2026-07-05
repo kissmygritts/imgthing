@@ -9,6 +9,7 @@ import {
 	LogOut,
 	MapPin,
 	Search,
+	Trash2,
 	Upload,
 } from "@lucide/vue";
 import FolderTree from "@/components/FolderTree.vue";
@@ -51,9 +52,11 @@ const {
 	selectedFolderId,
 	favoritesOnly,
 	selectedTagId,
+	trashOnly,
 	selectFolder,
 	selectFavorites,
 	selectTag,
+	selectTrash,
 	deleteTag,
 	expanded,
 	search,
@@ -119,7 +122,7 @@ const onGallery = computed(() => route.path === "/");
 						<SidebarMenuItem>
 							<SidebarMenuButton
 								tooltip="All photos"
-								:is-active="onGallery && !favoritesOnly && selectedFolderId === null"
+								:is-active="onGallery && !favoritesOnly && !trashOnly && selectedFolderId === null"
 								@click="selectFolder(null)"
 							>
 								<Images />
@@ -152,6 +155,16 @@ const onGallery = computed(() => route.path === "/");
 									<MapPin />
 									<span>Map</span>
 								</NuxtLink>
+							</SidebarMenuButton>
+						</SidebarMenuItem>
+						<SidebarMenuItem>
+							<SidebarMenuButton
+								tooltip="Trash"
+								:is-active="onGallery && trashOnly"
+								@click="selectTrash()"
+							>
+								<Trash2 />
+								<span>Trash</span>
 							</SidebarMenuButton>
 						</SidebarMenuItem>
 					</SidebarMenu>

@@ -12,3 +12,29 @@ export async function requirePhoto(
 	}
 	return photo;
 }
+
+/**
+ * Permanently remove one or more photos: drop each R2 object first, then batch a
+ * full D1 cleanup (exif_data, folder_photos, photo_tags, and the photos row) for
+ * every id. Resilient to already-missing R2 bytes — a failed delete() still lets
+ * the D1 cleanup proceed. Shared by permanent-delete (`?purge=1`) and empty-trash.
+ */
+export async function purgePhotos(
+	db: D1Database,
+	bucket: R2Bucket,
+	rows: { id: string; r2_key: string }[],
+): Promise<void> {
+	if (rows.length === 0) return;
+
+	// R2 first. delete() is idempotent (no error if the key is already gone), but
+	// guard each one so a transient R2 error still lets the D1 cleanup proceed.
+	await Promise.all(rows.map((r) => bucket.delete(r.r2_key).catch(() => {})));
+
+	const statements = rows.flatMap((r) => [
+		db.prepare("DELETE FROM exif_data WHERE photo_id = ?").bind(r.id),
+		db.prepare("DELETE FROM folder_photos WHERE photo_id = ?").bind(r.id),
+		db.prepare("DELETE FROM photo_tags WHERE photo_id = ?").bind(r.id),
+		db.prepare("DELETE FROM photos WHERE id = ?").bind(r.id),
+	]);
+	await db.batch(statements);
+}

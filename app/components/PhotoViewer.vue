@@ -13,6 +13,7 @@ import {
 	PanelRightOpen,
 	Pencil,
 	Plus,
+	RotateCcw,
 	Trash2,
 	X,
 } from "@lucide/vue";
@@ -70,6 +71,9 @@ const props = defineProps<{
 	index: number;
 	// The full tag list, for rendering chips + autocompleting the add field.
 	allTags: Tag[];
+	// Trash mode: the visible photos are tombstoned, so the actions swap from
+	// "move to Trash" to Restore + Delete forever (permanent purge).
+	trash?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -78,9 +82,14 @@ const emit = defineEmits<{
 	// Emitted when the metadata drawer saves an edit. No PATCH endpoint exists
 	// yet — the parent is responsible for persisting the patch.
 	save: [id: string, patch: Partial<Photo>];
-	// Emitted (after confirm) to delete a photo. The parent performs the request,
-	// refreshes the list, and advances nav / closes the viewer.
+	// Emitted (after confirm) to delete a photo. In the normal library this is a
+	// soft delete (move to Trash); the parent performs the request, refreshes the
+	// list, and advances nav / closes the viewer.
 	delete: [id: string];
+	// Trash-only: restore a tombstoned photo back to the library.
+	restore: [id: string];
+	// Trash-only (after confirm): permanently purge a tombstoned photo.
+	purge: [id: string];
 	// Emitted to toggle the favorite flag. The parent persists + refreshes.
 	favorite: [id: string];
 	// Emitted to attach a tag (by name — reused or created) to a photo.
@@ -313,7 +322,10 @@ function confirmDelete() {
 	const p = photo.value;
 	if (!p) return;
 	confirmDeleteOpen.value = false;
-	emit("delete", p.id);
+	// In Trash the destructive action is a permanent purge; elsewhere it's a
+	// recoverable move-to-Trash.
+	if (props.trash) emit("purge", p.id);
+	else emit("delete", p.id);
 }
 
 // --- Tags ----------------------------------------------------------------
@@ -469,28 +481,41 @@ watch(
 									align="end"
 									class="z-[120] w-48 border-white/40 dark:border-white/10 bg-white/80 dark:bg-[#1c1830]/85 backdrop-blur-xl"
 								>
-									<DropdownMenuItem @select="emit('favorite', photo.id)">
-										<Heart
-											class="size-4"
-											:class="
-												photo.is_favorite ? 'fill-rose-500 text-rose-500' : ''
-											"
-										/>
-										{{ photo.is_favorite ? "Remove from favorites" : "Add to favorites" }}
-									</DropdownMenuItem>
-									<DropdownMenuItem @select="startEdit">
-										<Pencil class="size-4" />
-										Edit details
-									</DropdownMenuItem>
-									<DropdownMenuItem @select="openUsage">
-										<Code2 class="size-4" />
-										Embed &amp; optimize
-									</DropdownMenuItem>
-									<DropdownMenuSeparator />
-									<DropdownMenuItem variant="destructive" @select="requestDelete">
-										<Trash2 class="size-4" />
-										Delete photo
-									</DropdownMenuItem>
+									<template v-if="trash">
+										<DropdownMenuItem @select="emit('restore', photo.id)">
+											<RotateCcw class="size-4" />
+											Restore
+										</DropdownMenuItem>
+										<DropdownMenuSeparator />
+										<DropdownMenuItem variant="destructive" @select="requestDelete">
+											<Trash2 class="size-4" />
+											Delete forever
+										</DropdownMenuItem>
+									</template>
+									<template v-else>
+										<DropdownMenuItem @select="emit('favorite', photo.id)">
+											<Heart
+												class="size-4"
+												:class="
+													photo.is_favorite ? 'fill-rose-500 text-rose-500' : ''
+												"
+											/>
+											{{ photo.is_favorite ? "Remove from favorites" : "Add to favorites" }}
+										</DropdownMenuItem>
+										<DropdownMenuItem @select="startEdit">
+											<Pencil class="size-4" />
+											Edit details
+										</DropdownMenuItem>
+										<DropdownMenuItem @select="openUsage">
+											<Code2 class="size-4" />
+											Embed &amp; optimize
+										</DropdownMenuItem>
+										<DropdownMenuSeparator />
+										<DropdownMenuItem variant="destructive" @select="requestDelete">
+											<Trash2 class="size-4" />
+											Move to Trash
+										</DropdownMenuItem>
+									</template>
 								</DropdownMenuContent>
 							</DropdownMenu>
 
@@ -724,17 +749,27 @@ watch(
 			<Dialog v-model:open="confirmDeleteOpen">
 				<DialogContent class="z-[110]">
 					<DialogHeader>
-						<DialogTitle>Delete this photo?</DialogTitle>
+						<DialogTitle>
+							{{ trash ? "Delete this photo forever?" : "Move this photo to Trash?" }}
+						</DialogTitle>
 						<DialogDescription>
-							“{{ photo.original_filename }}” and its metadata will be permanently
-							removed. This can’t be undone.
+							<template v-if="trash">
+								“{{ photo.original_filename }}” and its metadata will be
+								permanently removed. This can’t be undone.
+							</template>
+							<template v-else>
+								“{{ photo.original_filename }}” moves to Trash. You can restore it
+								later, or empty the Trash to remove it for good.
+							</template>
 						</DialogDescription>
 					</DialogHeader>
 					<DialogFooter>
 						<Button variant="outline" @click="confirmDeleteOpen = false">
 							Cancel
 						</Button>
-						<Button variant="destructive" @click="confirmDelete">Delete</Button>
+						<Button variant="destructive" @click="confirmDelete">
+							{{ trash ? "Delete forever" : "Move to Trash" }}
+						</Button>
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>

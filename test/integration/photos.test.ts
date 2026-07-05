@@ -189,7 +189,7 @@ describe("photos", () => {
 		expect(res.status).toBe(404);
 	});
 
-	it("deletes a photo, its bytes, and all D1 rows", async () => {
+	it("soft-deletes then purges a photo, dropping its bytes and all D1 rows", async () => {
 		const cookie = await login();
 		const { uploaded } = await upload(cookie, "trash-me.png");
 		const id = uploaded[0].id;
@@ -212,7 +212,7 @@ describe("photos", () => {
 		);
 		expect(memberRes.status).toBe(200);
 
-		// Delete succeeds.
+		// A plain DELETE is now a soft delete (move to Trash).
 		const delRes = await SELF.fetch(url(`/api/photos/${id}`), {
 			method: "DELETE",
 			headers: { cookie },
@@ -220,14 +220,25 @@ describe("photos", () => {
 		expect(delRes.status).toBe(200);
 		expect((await delRes.json()) as { ok: boolean }).toEqual({ ok: true });
 
-		// Gone from the listing.
+		// Gone from the normal listing…
 		const listRes = await SELF.fetch(url("/api/photos"), {
 			headers: { cookie },
 		});
 		const { photos } = (await listRes.json()) as { photos: PhotoRow[] };
 		expect(photos.find((p) => p.id === id)).toBeUndefined();
 
-		// Bytes gone: raw now 404s.
+		// …but the bytes survive until purge.
+		const stillThere = await SELF.fetch(url(`/api/photos/${id}/raw`), {
+			headers: { cookie },
+		});
+		expect(stillThere.status).toBe(200);
+
+		// Permanent purge drops the R2 object + all D1 rows.
+		const purgeRes = await SELF.fetch(url(`/api/photos/${id}?purge=1`), {
+			method: "DELETE",
+			headers: { cookie },
+		});
+		expect(purgeRes.status).toBe(200);
 		const rawRes = await SELF.fetch(url(`/api/photos/${id}/raw`), {
 			headers: { cookie },
 		});

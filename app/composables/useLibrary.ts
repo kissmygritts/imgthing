@@ -30,6 +30,9 @@ export function useLibrary() {
 	// Tag filter: when set, the gallery shows only photos carrying this tag id.
 	// Exclusive with the folder / favorites views (picking one clears the others).
 	const selectedTagId = useState<string | null>("library:tag", () => null);
+	// Trash view: shows tombstoned (soft-deleted) photos. Another orthogonal,
+	// exclusive view — picking any other filter turns it back off (and vice versa).
+	const trashOnly = useState("library:trash", () => false);
 	const expanded = useState<Set<string>>("library:expanded", () => new Set());
 	const search = useState("library:search", () => "");
 
@@ -46,25 +49,38 @@ export function useLibrary() {
 	function selectFolder(id: string | null) {
 		favoritesOnly.value = false;
 		selectedTagId.value = null;
+		trashOnly.value = false;
 		selectedFolderId.value = id;
 		goToGallery();
 	}
 
 	function selectFavorites() {
 		selectedTagId.value = null;
+		trashOnly.value = false;
 		favoritesOnly.value = true;
 		goToGallery();
 	}
 
-	// Filter the gallery by a tag. Clears the folder / favorites views.
+	// Filter the gallery by a tag. Clears the folder / favorites / trash views.
 	function selectTag(id: string) {
 		favoritesOnly.value = false;
+		trashOnly.value = false;
 		selectedFolderId.value = null;
 		selectedTagId.value = id;
 		goToGallery();
 	}
 
+	// Show the Trash (tombstoned photos). Exclusive with every other view.
+	function selectTrash() {
+		favoritesOnly.value = false;
+		selectedTagId.value = null;
+		selectedFolderId.value = null;
+		trashOnly.value = true;
+		goToGallery();
+	}
+
 	const currentTitle = computed(() => {
+		if (trashOnly.value) return "Trash";
 		if (favoritesOnly.value) return "Favorites";
 		if (selectedTagId.value)
 			return `#${tags.value.find((t) => t.id === selectedTagId.value)?.name ?? "Tag"}`;
@@ -263,14 +279,15 @@ export function useLibrary() {
 		else await addPhotosToFolder([photo.id], folder.id);
 	}
 
-	// ── Photo delete ───────────────────────────────────────────────────────────
-	// Deletes the R2 object + all D1 rows for a photo. Returns true on success so
-	// the caller (the viewer) can advance nav / close after refreshing the list.
+	// ── Photo delete (soft) ──────────────────────────────────────────────────────
+	// A plain DELETE now tombstones the photo (moves it to Trash) — its bytes + rows
+	// survive until it's purged. Returns true on success so the caller (the viewer)
+	// can advance nav / close after refreshing the list.
 	async function deletePhoto(photo: Photo): Promise<boolean> {
 		try {
 			await $fetch(`/api/photos/${photo.id}`, { method: "DELETE" });
 			await refreshNuxtData(["photos"]);
-			toast.success("Photo deleted");
+			toast.success("Moved to Trash");
 			return true;
 		} catch (err) {
 			toast.error(
@@ -280,25 +297,79 @@ export function useLibrary() {
 		}
 	}
 
-	// Bulk delete: no batch endpoint exists, so reuse the per-photo DELETE (R2 +
-	// D1 cleanup) but fire them in parallel and finish with a single list refresh
-	// and one toast. Returns true if every delete succeeded.
+	// Bulk (soft) delete: no batch endpoint exists, so reuse the per-photo DELETE
+	// tombstone but fire them in parallel and finish with a single list refresh and
+	// one toast. Returns true if every delete succeeded.
 	async function bulkDelete(photoIds: string[]): Promise<boolean> {
 		if (photoIds.length === 0) return false;
 		try {
 			await Promise.all(
 				photoIds.map((id) => $fetch(`/api/photos/${id}`, { method: "DELETE" })),
 			);
-			await refreshAll();
+			await refreshNuxtData(["photos"]);
 			toast.success(
-				`Deleted ${photoIds.length} photo${photoIds.length === 1 ? "" : "s"}`,
+				`Moved ${photoIds.length} photo${photoIds.length === 1 ? "" : "s"} to Trash`,
 			);
 			return true;
 		} catch (err) {
 			// Some may have gone through; refresh so the grid reflects reality.
-			await refreshAll();
+			await refreshNuxtData(["photos"]);
 			toast.error(
 				(err as { statusMessage?: string })?.statusMessage ?? "Delete failed",
+			);
+			return false;
+		}
+	}
+
+	// ── Trash: restore / permanent delete / empty ────────────────────────────────
+	// Restore a tombstoned photo back to the live library (clears deleted_at).
+	async function restorePhoto(photo: Photo): Promise<boolean> {
+		try {
+			await $fetch(`/api/photos/${photo.id}/restore`, { method: "POST" });
+			await refreshNuxtData(["photos"]);
+			toast.success("Photo restored");
+			return true;
+		} catch (err) {
+			toast.error(
+				(err as { statusMessage?: string })?.statusMessage ?? "Restore failed",
+			);
+			return false;
+		}
+	}
+
+	// Permanently delete one tombstoned photo (R2 object + all D1 rows). refreshAll
+	// so folder/tag counts drop with the removed memberships.
+	async function purgePhoto(photo: Photo): Promise<boolean> {
+		try {
+			await $fetch(`/api/photos/${photo.id}`, {
+				method: "DELETE",
+				query: { purge: "1" },
+			});
+			await refreshAll();
+			toast.success("Photo permanently deleted");
+			return true;
+		} catch (err) {
+			toast.error(
+				(err as { statusMessage?: string })?.statusMessage ?? "Delete failed",
+			);
+			return false;
+		}
+	}
+
+	// Empty the whole Trash — permanently removes every tombstoned photo.
+	async function emptyTrash(): Promise<boolean> {
+		try {
+			const res = await $fetch<{ purged: number }>("/api/photos/trash", {
+				method: "DELETE",
+			});
+			await refreshAll();
+			toast.success(
+				`Emptied Trash — ${res.purged} photo${res.purged === 1 ? "" : "s"} removed`,
+			);
+			return true;
+		} catch (err) {
+			toast.error(
+				(err as { statusMessage?: string })?.statusMessage ?? "Empty failed",
 			);
 			return false;
 		}
@@ -389,9 +460,11 @@ export function useLibrary() {
 		selectedFolderId,
 		favoritesOnly,
 		selectedTagId,
+		trashOnly,
 		selectFolder,
 		selectFavorites,
 		selectTag,
+		selectTrash,
 		expanded,
 		search,
 		currentTitle,
@@ -415,6 +488,9 @@ export function useLibrary() {
 		removePhotosFromFolder,
 		deletePhoto,
 		bulkDelete,
+		restorePhoto,
+		purgePhoto,
+		emptyTrash,
 		toggleFavorite,
 		// tags
 		tagsOf,

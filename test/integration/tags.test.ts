@@ -159,7 +159,7 @@ describe("tags", () => {
 		expect(res.status).toBe(404);
 	});
 
-	it("cleans the junction when the photo is deleted", async () => {
+	it("cleans the junction when the photo is purged", async () => {
 		const cookie = await login();
 		const tok = `pd${Date.now()}`;
 		const photoId = await uploadPhoto(cookie, `${tok}.png`);
@@ -173,13 +173,22 @@ describe("tags", () => {
 			(await listTags(cookie)).find((t) => t.id === tag.id)?.photo_count,
 		).toBe(1);
 
+		// A soft delete (move to Trash) keeps the junction row.
 		const del = await SELF.fetch(url(`/api/photos/${photoId}`), {
 			method: "DELETE",
 			headers: { cookie },
 		});
 		expect(del.status).toBe(200);
+		expect(
+			(await listTags(cookie)).find((t) => t.id === tag.id)?.photo_count,
+		).toBe(1);
 
-		// The tag survives but its membership is gone.
+		// Only a permanent purge cleans the junction — the tag survives, membership gone.
+		const purge = await SELF.fetch(url(`/api/photos/${photoId}?purge=1`), {
+			method: "DELETE",
+			headers: { cookie },
+		});
+		expect(purge.status).toBe(200);
 		expect(
 			(await listTags(cookie)).find((t) => t.id === tag.id)?.photo_count,
 		).toBe(0);

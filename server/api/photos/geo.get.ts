@@ -24,7 +24,8 @@ export default defineEventHandler(async (event) => {
 				 FROM photo_tags pt WHERE pt.photo_id = p.id) AS tag_ids
 			 FROM photos p
 			 JOIN exif_data e ON e.photo_id = p.id
-			 WHERE e.gps_latitude IS NOT NULL AND e.gps_longitude IS NOT NULL
+			 WHERE p.deleted_at IS NULL
+			   AND e.gps_latitude IS NOT NULL AND e.gps_longitude IS NOT NULL
 			 ORDER BY p.uploaded_at DESC, p.id DESC`,
 		)
 		.all();

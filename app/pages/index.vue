@@ -9,6 +9,7 @@ import {
 	ImageOff,
 	Loader2,
 	MoreVertical,
+	RotateCcw,
 	SquareCheckBig,
 	Trash2,
 	X,
@@ -49,6 +50,7 @@ const {
 	selectedFolderId,
 	favoritesOnly,
 	selectedTagId,
+	trashOnly,
 	search,
 	currentTitle,
 	foldersOf,
@@ -58,6 +60,9 @@ const {
 	removePhotosFromFolder,
 	deletePhoto,
 	bulkDelete,
+	restorePhoto,
+	purgePhoto,
+	emptyTrash,
 	attachTag,
 	detachTag,
 } = useLibrary();
@@ -85,7 +90,8 @@ const listQuery = computed(() => {
 		sort: sortMode.value,
 		limit: String(PAGE_SIZE),
 	};
-	if (favoritesOnly.value) query.favorite = "1";
+	if (trashOnly.value) query.deleted = "1";
+	else if (favoritesOnly.value) query.favorite = "1";
 	else if (selectedTagId.value) query.tag = selectedTagId.value;
 	else if (selectedFolderId.value !== null)
 		query.folderId = selectedFolderId.value;
@@ -218,6 +224,35 @@ async function runBulkDelete() {
 	}
 }
 
+// ── Trash: per-tile restore / permanent delete + empty ─────────
+// A tombstoned photo leaves the current (trash) list when restored or purged, so
+// both refresh the grid; the confirm dialog gates the destructive permanent purge.
+const purgeTarget = ref<Photo | null>(null);
+const purging = ref(false);
+async function runPurge() {
+	const target = purgeTarget.value;
+	if (!target) return;
+	purging.value = true;
+	try {
+		await purgePhoto(target);
+		purgeTarget.value = null;
+	} finally {
+		purging.value = false;
+	}
+}
+
+const confirmEmptyTrash = ref(false);
+const emptying = ref(false);
+async function runEmptyTrash() {
+	emptying.value = true;
+	try {
+		await emptyTrash();
+		confirmEmptyTrash.value = false;
+	} finally {
+		emptying.value = false;
+	}
+}
+
 const viewerIndex = ref<number | null>(null);
 function openViewer(i: number) {
 	viewerIndex.value = i;
@@ -241,13 +276,11 @@ function onViewerDetachTag(id: string, tagId: string) {
 	if (photo) detachTag(photo, tagId);
 }
 
-// Delete flows through the composable (R2 + D1 + toast + list refresh). Once the
-// list shrinks, keep the viewer on the photo that slid into this slot; clamp to
-// the last one, or close if nothing is left.
-async function onViewerDelete(id: string) {
-	const photo = photos.value.find((p) => p.id === id);
-	if (!photo) return;
-	const ok = await deletePhoto(photo);
+// Any viewer action that removes the visible photo from the current list (soft
+// delete, restore, or permanent purge) shares the same after-step: once the list
+// shrinks, keep the viewer on the photo that slid into this slot, clamp to the
+// last one, or close if nothing is left.
+async function afterViewerRemoval(ok: boolean) {
 	if (!ok) return;
 	await nextTick();
 	const count = photos.value.length;
@@ -256,6 +289,24 @@ async function onViewerDelete(id: string) {
 	} else if (viewerIndex.value > count - 1) {
 		viewerIndex.value = count - 1;
 	}
+}
+
+async function onViewerDelete(id: string) {
+	const photo = photos.value.find((p) => p.id === id);
+	if (!photo) return;
+	await afterViewerRemoval(await deletePhoto(photo));
+}
+
+// Trash viewer: restore back to the library, or permanently purge (R2 + D1).
+async function onViewerRestore(id: string) {
+	const photo = photos.value.find((p) => p.id === id);
+	if (!photo) return;
+	await afterViewerRemoval(await restorePhoto(photo));
+}
+async function onViewerPurge(id: string) {
+	const photo = photos.value.find((p) => p.id === id);
+	if (!photo) return;
+	await afterViewerRemoval(await purgePhoto(photo));
 }
 </script>
 
@@ -276,6 +327,15 @@ async function onViewerDelete(id: string) {
 
 			<div class="flex items-center gap-2">
 				<button
+					v-if="trashOnly && photos.length"
+					class="flex items-center gap-2 rounded-full border border-destructive/40 bg-destructive/10 px-4 py-2 text-xs font-semibold text-destructive shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] transition-colors hover:bg-destructive/15"
+					@click="confirmEmptyTrash = true"
+				>
+					<Trash2 class="size-3.5 opacity-80" />
+					Empty trash
+				</button>
+				<button
+					v-if="!trashOnly"
 					class="flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] transition-colors"
 					:class="
 						selectMode
@@ -349,9 +409,27 @@ async function onViewerDelete(id: string) {
 					<Check class="size-3.5" />
 				</button>
 
+				<!-- Trash tile actions: restore (left) + delete forever (right) -->
+				<button
+					v-if="!selectMode && trashOnly"
+					class="absolute left-2 top-2 z-10 flex size-7 items-center justify-center rounded-full border border-white/70 dark:border-white/12 bg-white/40 dark:bg-white/8 text-white opacity-0 backdrop-blur transition hover:bg-white/60 dark:hover:bg-white/15 group-hover:opacity-100"
+					title="Restore"
+					@click.stop="restorePhoto(photo)"
+				>
+					<RotateCcw class="size-4" />
+				</button>
+				<button
+					v-if="!selectMode && trashOnly"
+					class="absolute right-2 top-2 z-10 flex size-7 items-center justify-center rounded-full border border-white/70 dark:border-white/12 bg-white/40 dark:bg-white/8 text-white opacity-0 backdrop-blur transition hover:bg-destructive hover:text-destructive-foreground group-hover:opacity-100"
+					title="Delete forever"
+					@click.stop="purgeTarget = photo"
+				>
+					<Trash2 class="size-4" />
+				</button>
+
 				<!-- favorite heart — always shown when hearted, else on hover -->
 				<button
-					v-if="!selectMode"
+					v-if="!selectMode && !trashOnly"
 					class="absolute left-2 top-2 z-10 flex size-7 items-center justify-center rounded-full border border-white/70 dark:border-white/12 bg-white/40 dark:bg-white/8 backdrop-blur transition hover:bg-white/60 dark:hover:bg-white/15"
 					:class="
 						photo.is_favorite
@@ -381,7 +459,7 @@ async function onViewerDelete(id: string) {
 				</figcaption>
 
 				<!-- add-to-folder -->
-				<DropdownMenu v-if="!selectMode">
+				<DropdownMenu v-if="!selectMode && !trashOnly">
 					<DropdownMenuTrigger as-child>
 						<button
 							class="absolute right-2 top-2 z-10 flex size-7 items-center justify-center rounded-full border border-white/70 dark:border-white/12 bg-white/40 dark:bg-white/8 text-white opacity-0 backdrop-blur transition hover:bg-white/60 dark:hover:bg-white/15 group-hover:opacity-100 data-[state=open]:opacity-100"
@@ -418,13 +496,15 @@ async function onViewerDelete(id: string) {
 			<ImageOff class="size-8 text-muted-foreground" />
 			<div class="space-y-1">
 				<p class="font-medium">
-					{{ activeSearch ? "No matches" : "No photos here" }}
+					{{ activeSearch ? "No matches" : trashOnly ? "Trash is empty" : "No photos here" }}
 				</p>
 				<p class="text-sm text-muted-foreground">
 					{{
 						activeSearch
 							? "Try a different search."
-							: "Upload an image or add photos to this folder."
+							: trashOnly
+								? "Deleted photos land here — restore them or clear them out for good."
+								: "Upload an image or add photos to this folder."
 					}}
 				</p>
 			</div>
@@ -445,9 +525,12 @@ async function onViewerDelete(id: string) {
 			:photos="photos"
 			:index="viewerIndex"
 			:all-tags="tags"
+			:trash="trashOnly"
 			@update:index="viewerIndex = $event"
 			@close="viewerIndex = null"
 			@delete="onViewerDelete"
+			@restore="onViewerRestore"
+			@purge="onViewerPurge"
 			@favorite="onViewerFavorite"
 			@attach-tag="onViewerAttachTag"
 			@detach-tag="onViewerDetachTag"
@@ -567,13 +650,12 @@ async function onViewerDelete(id: string) {
 			<DialogContent>
 				<DialogHeader>
 					<DialogTitle>
-						Delete {{ selectedCount }} photo{{ selectedCount === 1 ? "" : "s" }}?
+						Move {{ selectedCount }} photo{{ selectedCount === 1 ? "" : "s" }} to Trash?
 					</DialogTitle>
 					<DialogDescription>
-						This permanently removes the selected photo{{
-							selectedCount === 1 ? "" : "s"
-						}}
-						and their folder memberships. This can’t be undone.
+						The selected photo{{ selectedCount === 1 ? "" : "s" }} move to Trash. You
+						can restore {{ selectedCount === 1 ? "it" : "them" }} later, or empty the
+						Trash to remove {{ selectedCount === 1 ? "it" : "them" }} for good.
 					</DialogDescription>
 				</DialogHeader>
 				<DialogFooter>
@@ -584,7 +666,53 @@ async function onViewerDelete(id: string) {
 						@click="runBulkDelete"
 					>
 						<Loader2 v-if="bulkDeleting" class="size-4 animate-spin" />
-						Delete
+						Move to Trash
+					</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
+
+		<!-- Permanent (per-photo) purge confirm -->
+		<Dialog
+			:open="!!purgeTarget"
+			@update:open="(v) => !v && (purgeTarget = null)"
+		>
+			<DialogContent>
+				<DialogHeader>
+					<DialogTitle>Delete this photo forever?</DialogTitle>
+					<DialogDescription>
+						“{{ purgeTarget?.original_filename }}” and its metadata will be
+						permanently removed. This can’t be undone.
+					</DialogDescription>
+				</DialogHeader>
+				<DialogFooter>
+					<Button variant="outline" @click="purgeTarget = null">Cancel</Button>
+					<Button variant="destructive" :disabled="purging" @click="runPurge">
+						<Loader2 v-if="purging" class="size-4 animate-spin" />
+						Delete forever
+					</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
+
+		<!-- Empty trash confirm -->
+		<Dialog
+			:open="confirmEmptyTrash"
+			@update:open="(v) => !v && (confirmEmptyTrash = false)"
+		>
+			<DialogContent>
+				<DialogHeader>
+					<DialogTitle>Empty the Trash?</DialogTitle>
+					<DialogDescription>
+						Every photo in the Trash is permanently removed, along with its
+						metadata and folder/tag memberships. This can’t be undone.
+					</DialogDescription>
+				</DialogHeader>
+				<DialogFooter>
+					<Button variant="outline" @click="confirmEmptyTrash = false">Cancel</Button>
+					<Button variant="destructive" :disabled="emptying" @click="runEmptyTrash">
+						<Loader2 v-if="emptying" class="size-4 animate-spin" />
+						Empty trash
 					</Button>
 				</DialogFooter>
 			</DialogContent>
