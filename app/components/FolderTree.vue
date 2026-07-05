@@ -1,13 +1,11 @@
 <script setup lang="ts">
-import { ChevronRight, Folder, MoreVertical } from "@lucide/vue";
-import { Button } from "@/components/ui/button";
+import { Folder, FolderDot, FolderOpenDot } from "@lucide/vue";
+import SidebarEntry from "@/components/SidebarEntry.vue";
 import {
-	DropdownMenu,
-	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuSeparator,
-	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { SidebarMenu } from "@/components/ui/sidebar";
 
 export interface FolderNode {
 	id: string;
@@ -39,65 +37,45 @@ const children = computed(() =>
 function hasChildren(id: string): boolean {
 	return props.folders.some((f) => f.parent_folder_id === id);
 }
+
+// Empty folder → plain Folder. A folder with subfolders shows the "dotted" folder
+// (filled look = has contents), opening when expanded. Clicking the icon toggles.
+function iconFor(folder: FolderNode) {
+	if (!hasChildren(folder.id)) return Folder;
+	return props.expanded.has(folder.id) ? FolderOpenDot : FolderDot;
+}
 </script>
 
 <template>
-	<ul class="space-y-0.5">
-		<li v-for="folder in children" :key="folder.id">
-			<div
-				class="group flex items-center gap-1 rounded-md pr-1 text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-				:class="selectedId === folder.id && 'bg-sidebar-accent font-medium text-sidebar-accent-foreground'"
-				:style="{ paddingLeft: `${depth * 12}px` }"
-			>
-				<button
-					type="button"
-					class="flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground hover:text-foreground"
-					:class="!hasChildren(folder.id) && 'invisible'"
-					@click="emit('toggle', folder.id)"
+	<SidebarMenu>
+		<SidebarEntry
+			v-for="folder in children"
+			:key="folder.id"
+			:icon="iconFor(folder)"
+			:label="folder.name"
+			:count="folder.photo_count"
+			:active="selectedId === folder.id"
+			:indent="depth * 12"
+			:icon-interactive="hasChildren(folder.id)"
+			@select="emit('select', folder.id)"
+			@icon-click="emit('toggle', folder.id)"
+		>
+			<template #menu>
+				<DropdownMenuItem @click="emit('action', { type: 'new-sub', folder })">
+					New subfolder
+				</DropdownMenuItem>
+				<DropdownMenuItem @click="emit('action', { type: 'rename', folder })">
+					Rename
+				</DropdownMenuItem>
+				<DropdownMenuSeparator />
+				<DropdownMenuItem
+					class="text-destructive"
+					@click="emit('action', { type: 'delete', folder })"
 				>
-					<ChevronRight
-						class="size-3.5 transition-transform"
-						:class="expanded.has(folder.id) && 'rotate-90'"
-					/>
-				</button>
-				<button
-					type="button"
-					class="flex min-w-0 flex-1 items-center gap-2 py-1.5 text-left"
-					@click="emit('select', folder.id)"
-				>
-					<Folder class="size-4 shrink-0 text-muted-foreground" />
-					<span class="truncate">{{ folder.name }}</span>
-					<span class="ml-auto shrink-0 text-xs text-muted-foreground">
-						{{ folder.photo_count }}
-					</span>
-				</button>
-				<DropdownMenu>
-					<DropdownMenuTrigger as-child>
-						<Button
-							variant="ghost"
-							size="icon"
-							class="size-6 opacity-0 group-hover:opacity-100"
-						>
-							<MoreVertical class="size-3.5" />
-						</Button>
-					</DropdownMenuTrigger>
-					<DropdownMenuContent align="end">
-						<DropdownMenuItem @click="emit('action', { type: 'new-sub', folder })">
-							New subfolder
-						</DropdownMenuItem>
-						<DropdownMenuItem @click="emit('action', { type: 'rename', folder })">
-							Rename
-						</DropdownMenuItem>
-						<DropdownMenuSeparator />
-						<DropdownMenuItem
-							class="text-destructive"
-							@click="emit('action', { type: 'delete', folder })"
-						>
-							Delete
-						</DropdownMenuItem>
-					</DropdownMenuContent>
-				</DropdownMenu>
-			</div>
+					Delete
+				</DropdownMenuItem>
+			</template>
+
 			<FolderTree
 				v-if="expanded.has(folder.id) && hasChildren(folder.id)"
 				:folders="folders"
@@ -109,6 +87,6 @@ function hasChildren(id: string): boolean {
 				@action="emit('action', $event)"
 				@toggle="emit('toggle', $event)"
 			/>
-		</li>
-	</ul>
+		</SidebarEntry>
+	</SidebarMenu>
 </template>

@@ -10,9 +10,9 @@ import {
 	MapPin,
 	Search,
 	Upload,
-	X,
 } from "@lucide/vue";
 import FolderTree from "@/components/FolderTree.vue";
+import SidebarEntry from "@/components/SidebarEntry.vue";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -180,26 +180,24 @@ const {
 				<SidebarGroupLabel>Tags</SidebarGroupLabel>
 				<SidebarGroupContent>
 					<SidebarMenu v-if="tags.length">
-						<SidebarMenuItem v-for="tag in tags" :key="tag.id" class="group/tag">
-							<SidebarMenuButton
-								:tooltip="tag.name"
-								:is-active="selectedTagId === tag.id"
-								@click="selectTag(tag.id)"
-							>
-								<Hash />
-								<span class="truncate">{{ tag.name }}</span>
-								<span class="ml-auto text-xs text-muted-foreground">
-									{{ tag.photo_count }}
-								</span>
-							</SidebarMenuButton>
-							<button
-								class="absolute right-1.5 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground opacity-0 transition hover:bg-destructive/15 hover:text-destructive group-hover/tag:opacity-100"
-								:aria-label="`Delete tag ${tag.name}`"
-								@click.stop="deleteTag(tag)"
-							>
-								<X class="size-3.5" />
-							</button>
-						</SidebarMenuItem>
+						<SidebarEntry
+							v-for="tag in tags"
+							:key="tag.id"
+							:icon="Hash"
+							:label="tag.name"
+							:count="tag.photo_count"
+							:active="selectedTagId === tag.id"
+							@select="selectTag(tag.id)"
+						>
+							<template #menu>
+								<DropdownMenuItem
+									class="text-destructive"
+									@click="deleteTag(tag)"
+								>
+									Delete
+								</DropdownMenuItem>
+							</template>
+						</SidebarEntry>
 					</SidebarMenu>
 					<p v-else class="px-2 py-1 text-xs text-muted-foreground">
 						No tags yet
