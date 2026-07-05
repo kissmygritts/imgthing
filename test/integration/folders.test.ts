@@ -128,6 +128,39 @@ describe("folders", () => {
 		expect(unfiled.some((p) => p.id === photoId)).toBe(true);
 	});
 
+	it("bulk-adds and bulk-removes many photos in a single request", async () => {
+		const cookie = await login();
+		const folder = await createFolder(cookie, "Bulk");
+		const ids = [
+			await uploadPhoto(cookie),
+			await uploadPhoto(cookie),
+			await uploadPhoto(cookie),
+		];
+
+		// One POST carries every id.
+		const addRes = await SELF.fetch(url(`/api/folders/${folder.id}/photos`), {
+			method: "POST",
+			headers: { cookie, "content-type": "application/json" },
+			body: JSON.stringify({ photoIds: ids }),
+		});
+		expect(addRes.status).toBe(200);
+		expect((await addRes.json()) as { added: number }).toMatchObject({
+			added: 3,
+		});
+		expect(listCount(await listFolders(cookie), folder.id)).toBe(3);
+
+		// One DELETE (comma-joined query) removes all three at once.
+		const delRes = await SELF.fetch(
+			url(`/api/folders/${folder.id}/photos?photoIds=${ids.join(",")}`),
+			{ method: "DELETE", headers: { cookie } },
+		);
+		expect(delRes.status).toBe(200);
+		expect((await delRes.json()) as { removed: number }).toMatchObject({
+			removed: 3,
+		});
+		expect(listCount(await listFolders(cookie), folder.id)).toBe(0);
+	});
+
 	it("deleting a folder cascades to subfolders but keeps photos", async () => {
 		const cookie = await login();
 		const parent = await createFolder(cookie, "Parent");

@@ -167,26 +167,54 @@ export function useLibrary() {
 		return photo.folder_ids ? photo.folder_ids.split(",") : [];
 	}
 
-	async function toggleMembership(photo: Photo, folder: FolderNode) {
-		const inFolder = foldersOf(photo).includes(folder.id);
+	// Bulk add: one request handles every id (the endpoint takes a photoIds array
+	// and is idempotent). Returns true on success so callers can clear selection.
+	async function addPhotosToFolder(
+		photoIds: string[],
+		folderId: string,
+	): Promise<boolean> {
+		if (photoIds.length === 0) return false;
 		try {
-			if (inFolder) {
-				await $fetch(`/api/folders/${folder.id}/photos`, {
-					method: "DELETE",
-					query: { photoIds: photo.id },
-				});
-			} else {
-				await $fetch(`/api/folders/${folder.id}/photos`, {
-					method: "POST",
-					body: { photoIds: [photo.id] },
-				});
-			}
+			await $fetch(`/api/folders/${folderId}/photos`, {
+				method: "POST",
+				body: { photoIds },
+			});
 			await refreshAll();
+			return true;
 		} catch (err) {
 			toast.error(
 				(err as { statusMessage?: string })?.statusMessage ?? "Update failed",
 			);
+			return false;
 		}
+	}
+
+	// Bulk remove: ids ride the query string (the DELETE handler reads a
+	// comma-joined photoIds param — DELETE bodies are dropped in the CF build).
+	async function removePhotosFromFolder(
+		photoIds: string[],
+		folderId: string,
+	): Promise<boolean> {
+		if (photoIds.length === 0) return false;
+		try {
+			await $fetch(`/api/folders/${folderId}/photos`, {
+				method: "DELETE",
+				query: { photoIds: photoIds.join(",") },
+			});
+			await refreshAll();
+			return true;
+		} catch (err) {
+			toast.error(
+				(err as { statusMessage?: string })?.statusMessage ?? "Update failed",
+			);
+			return false;
+		}
+	}
+
+	async function toggleMembership(photo: Photo, folder: FolderNode) {
+		const inFolder = foldersOf(photo).includes(folder.id);
+		if (inFolder) await removePhotosFromFolder([photo.id], folder.id);
+		else await addPhotosToFolder([photo.id], folder.id);
 	}
 
 	// ── Photo delete ───────────────────────────────────────────────────────────
@@ -199,6 +227,30 @@ export function useLibrary() {
 			toast.success("Photo deleted");
 			return true;
 		} catch (err) {
+			toast.error(
+				(err as { statusMessage?: string })?.statusMessage ?? "Delete failed",
+			);
+			return false;
+		}
+	}
+
+	// Bulk delete: no batch endpoint exists, so reuse the per-photo DELETE (R2 +
+	// D1 cleanup) but fire them in parallel and finish with a single list refresh
+	// and one toast. Returns true if every delete succeeded.
+	async function bulkDelete(photoIds: string[]): Promise<boolean> {
+		if (photoIds.length === 0) return false;
+		try {
+			await Promise.all(
+				photoIds.map((id) => $fetch(`/api/photos/${id}`, { method: "DELETE" })),
+			);
+			await refreshAll();
+			toast.success(
+				`Deleted ${photoIds.length} photo${photoIds.length === 1 ? "" : "s"}`,
+			);
+			return true;
+		} catch (err) {
+			// Some may have gone through; refresh so the grid reflects reality.
+			await refreshAll();
 			toast.error(
 				(err as { statusMessage?: string })?.statusMessage ?? "Delete failed",
 			);
@@ -233,7 +285,10 @@ export function useLibrary() {
 		// membership
 		foldersOf,
 		toggleMembership,
+		addPhotosToFolder,
+		removePhotosFromFolder,
 		deletePhoto,
+		bulkDelete,
 		logout,
 	};
 }

@@ -1,12 +1,33 @@
 <script setup lang="ts">
-import { ChevronDown, ImageOff, Loader2, MoreVertical } from "@lucide/vue";
+import {
+	Check,
+	CheckCheck,
+	ChevronDown,
+	FolderMinus,
+	FolderPlus,
+	ImageOff,
+	Loader2,
+	MoreVertical,
+	SquareCheckBig,
+	Trash2,
+	X,
+} from "@lucide/vue";
 import { refDebounced, useIntersectionObserver } from "@vueuse/core";
 import PhotoViewer, { type Photo } from "@/components/PhotoViewer.vue";
 import { Button } from "@/components/ui/button";
 import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
+import {
 	DropdownMenu,
 	DropdownMenuCheckboxItem,
 	DropdownMenuContent,
+	DropdownMenuItem,
 	DropdownMenuLabel,
 	DropdownMenuRadioGroup,
 	DropdownMenuRadioItem,
@@ -28,7 +49,10 @@ const {
 	currentTitle,
 	foldersOf,
 	toggleMembership,
+	addPhotosToFolder,
+	removePhotosFromFolder,
 	deletePhoto,
+	bulkDelete,
 } = useLibrary();
 
 // ── Search + sort now drive the server query ──────────────────────────────
@@ -107,6 +131,79 @@ useIntersectionObserver(sentinel, (entries) => {
 	if (entries[0]?.isIntersecting) loadMore();
 });
 
+// ── Multi-select ───────────────────────────────────────────────────────────
+// A contextual mode: toggle it on, click tiles to (de)select, shift-click for a
+// range. The action bar only appears once something is selected, so the gallery
+// stays uncluttered at rest. Changing the query (folder/search/sort) resets the
+// accumulated `photos`, so we clear the selection with it to avoid stale ids.
+const selectMode = ref(false);
+const selectedIds = ref<Set<string>>(new Set());
+const lastIndex = ref<number | null>(null);
+const selectedCount = computed(() => selectedIds.value.size);
+const selectedPhotoIds = computed(() => [...selectedIds.value]);
+
+function isSelected(id: string) {
+	return selectedIds.value.has(id);
+}
+
+function toggleSelect(i: number, ev?: MouseEvent) {
+	const photo = photos.value[i];
+	if (!photo) return;
+	const next = new Set(selectedIds.value);
+	if (ev?.shiftKey && lastIndex.value !== null) {
+		const a = Math.min(lastIndex.value, i);
+		const b = Math.max(lastIndex.value, i);
+		for (let k = a; k <= b; k++) {
+			const p = photos.value[k];
+			if (p) next.add(p.id);
+		}
+	} else if (next.has(photo.id)) {
+		next.delete(photo.id);
+	} else {
+		next.add(photo.id);
+	}
+	selectedIds.value = next;
+	lastIndex.value = i;
+}
+
+function clearSelection() {
+	selectedIds.value = new Set();
+	lastIndex.value = null;
+}
+
+function exitSelect() {
+	selectMode.value = false;
+	clearSelection();
+}
+
+function selectAll() {
+	selectedIds.value = new Set(photos.value.map((p) => p.id));
+}
+
+// A filter/sort change reflows the grid — drop any stale selection.
+watch(listQuery, clearSelection);
+
+async function bulkAddToFolder(folderId: string) {
+	if (await addPhotosToFolder(selectedPhotoIds.value, folderId)) exitSelect();
+}
+async function bulkRemoveFromFolder(folderId: string) {
+	if (await removePhotosFromFolder(selectedPhotoIds.value, folderId))
+		exitSelect();
+}
+
+const confirmBulkDelete = ref(false);
+const bulkDeleting = ref(false);
+async function runBulkDelete() {
+	bulkDeleting.value = true;
+	try {
+		const ok = await bulkDelete(selectedPhotoIds.value);
+		confirmBulkDelete.value = false;
+		if (ok) exitSelect();
+	} finally {
+		bulkDeleting.value = false;
+	}
+}
+
 const viewerIndex = ref<number | null>(null);
 function openViewer(i: number) {
 	viewerIndex.value = i;
@@ -145,25 +242,40 @@ async function onViewerDelete(id: string) {
 				</p>
 			</div>
 
-			<DropdownMenu>
-				<DropdownMenuTrigger as-child>
-					<button
-						class="flex items-center gap-2 rounded-full border border-white/70 bg-white/55 px-4 py-2 text-xs font-semibold text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] transition-colors hover:text-foreground"
-					>
-						{{ sortLabels[sortMode] }}
-						<ChevronDown class="size-3 opacity-70" />
-					</button>
-				</DropdownMenuTrigger>
-				<DropdownMenuContent align="end" class="min-w-44">
-					<DropdownMenuRadioGroup v-model="sortMode">
-						<DropdownMenuRadioItem value="newest">Newest first</DropdownMenuRadioItem>
-						<DropdownMenuRadioItem value="oldest">Oldest first</DropdownMenuRadioItem>
-						<DropdownMenuRadioItem value="name">Filename A–Z</DropdownMenuRadioItem>
-						<DropdownMenuRadioItem value="size_desc">Largest</DropdownMenuRadioItem>
-						<DropdownMenuRadioItem value="size_asc">Smallest</DropdownMenuRadioItem>
-					</DropdownMenuRadioGroup>
-				</DropdownMenuContent>
-			</DropdownMenu>
+			<div class="flex items-center gap-2">
+				<button
+					class="flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] transition-colors"
+					:class="
+						selectMode
+							? 'border-primary/40 bg-primary/15 text-accent-foreground'
+							: 'border-white/70 bg-white/55 text-muted-foreground hover:text-foreground'
+					"
+					@click="selectMode ? exitSelect() : (selectMode = true)"
+				>
+					<SquareCheckBig class="size-3.5 opacity-80" />
+					{{ selectMode ? "Done" : "Select" }}
+				</button>
+
+				<DropdownMenu>
+					<DropdownMenuTrigger as-child>
+						<button
+							class="flex items-center gap-2 rounded-full border border-white/70 bg-white/55 px-4 py-2 text-xs font-semibold text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] transition-colors hover:text-foreground"
+						>
+							{{ sortLabels[sortMode] }}
+							<ChevronDown class="size-3 opacity-70" />
+						</button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent align="end" class="min-w-44">
+						<DropdownMenuRadioGroup v-model="sortMode">
+							<DropdownMenuRadioItem value="newest">Newest first</DropdownMenuRadioItem>
+							<DropdownMenuRadioItem value="oldest">Oldest first</DropdownMenuRadioItem>
+							<DropdownMenuRadioItem value="name">Filename A–Z</DropdownMenuRadioItem>
+							<DropdownMenuRadioItem value="size_desc">Largest</DropdownMenuRadioItem>
+							<DropdownMenuRadioItem value="size_asc">Smallest</DropdownMenuRadioItem>
+						</DropdownMenuRadioGroup>
+					</DropdownMenuContent>
+				</DropdownMenu>
+			</div>
 		</header>
 
 		<section
@@ -174,14 +286,36 @@ async function onViewerDelete(id: string) {
 				v-for="(photo, i) in photos"
 				:key="photo.id"
 				class="group relative aspect-square overflow-hidden rounded-[20px] shadow-[0_1px_2px_rgba(51,43,73,0.06),0_14px_30px_-16px_rgba(51,43,73,0.35)] transition-transform duration-300 hover:-translate-y-1"
+				:class="isSelected(photo.id) && 'ring-2 ring-primary ring-offset-2 ring-offset-background'"
 			>
 				<img
 					:src="`/api/photos/${photo.id}/variant?size=thumb`"
 					:alt="photo.original_filename"
 					loading="lazy"
 					class="absolute inset-0 size-full cursor-pointer object-cover"
-					@click="openViewer(i)"
+					@click="selectMode ? toggleSelect(i, $event) : openViewer(i)"
 				/>
+
+				<!-- selection tint + inner iris ring -->
+				<span
+					v-if="isSelected(photo.id)"
+					class="pointer-events-none absolute inset-0 z-[5] rounded-[20px] bg-primary/15 shadow-[inset_0_0_0_2px_var(--color-primary)]"
+				/>
+
+				<!-- selection checkbox (visible in select mode) -->
+				<button
+					v-if="selectMode"
+					class="absolute left-2 top-2 z-10 flex size-6 items-center justify-center rounded-full border shadow-sm transition"
+					:class="
+						isSelected(photo.id)
+							? 'border-primary bg-primary text-primary-foreground'
+							: 'border-white/80 bg-white/50 text-transparent backdrop-blur'
+					"
+					:title="isSelected(photo.id) ? 'Deselect' : 'Select'"
+					@click.stop="toggleSelect(i, $event)"
+				>
+					<Check class="size-3.5" />
+				</button>
 
 				<!-- signature prism rim (direct child of .group) -->
 				<span class="prism-edge" />
@@ -200,7 +334,7 @@ async function onViewerDelete(id: string) {
 				</figcaption>
 
 				<!-- add-to-folder -->
-				<DropdownMenu>
+				<DropdownMenu v-if="!selectMode">
 					<DropdownMenuTrigger as-child>
 						<button
 							class="absolute right-2 top-2 z-10 flex size-7 items-center justify-center rounded-full border border-white/70 bg-white/40 text-white opacity-0 backdrop-blur transition hover:bg-white/60 group-hover:opacity-100 data-[state=open]:opacity-100"
@@ -267,5 +401,142 @@ async function onViewerDelete(id: string) {
 			@close="viewerIndex = null"
 			@delete="onViewerDelete"
 		/>
+
+		<!-- Contextual bulk-action bar — only present once photos are selected.
+		     Teleported to <body>: the floating panel's backdrop-filter would
+		     otherwise capture position:fixed and pin the bar to the tall panel
+		     (off-screen) instead of the viewport. The fixed positioning lives on
+		     the outer wrapper; .glass-panel (unlayered, position:relative) rides
+		     the inner element so it can't override the fixed placement. -->
+		<Teleport to="body">
+		<Transition
+			enter-active-class="transition duration-200 ease-out"
+			enter-from-class="translate-y-4 opacity-0"
+			leave-active-class="transition duration-150 ease-in"
+			leave-to-class="translate-y-4 opacity-0"
+		>
+			<div
+				v-if="selectMode && selectedCount"
+				class="fixed bottom-6 left-1/2 z-[60] -translate-x-1/2"
+			>
+			<div
+				class="glass-panel flex items-center gap-1.5 rounded-full py-2 pl-4 pr-2 text-sm"
+			>
+				<span class="mr-1 whitespace-nowrap font-semibold text-foreground">
+					{{ selectedCount }} selected
+				</span>
+
+				<button
+					class="rounded-full px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+					@click="selectAll"
+				>
+					<CheckCheck class="mr-1 inline size-3.5" />All
+				</button>
+
+				<span class="mx-0.5 h-5 w-px bg-border" />
+
+				<!-- Add selected → folder -->
+				<DropdownMenu>
+					<DropdownMenuTrigger as-child>
+						<button
+							class="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-white/50"
+						>
+							<FolderPlus class="size-4" />Add to
+						</button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent align="center" side="top" class="min-w-44">
+						<DropdownMenuLabel>Add to folder</DropdownMenuLabel>
+						<template v-if="folders.length">
+							<DropdownMenuSeparator />
+							<DropdownMenuItem
+								v-for="folder in folders"
+								:key="folder.id"
+								@select="bulkAddToFolder(folder.id)"
+							>
+								{{ folder.name }}
+							</DropdownMenuItem>
+						</template>
+						<p v-else class="px-2 py-1.5 text-xs text-muted-foreground">
+							Create a folder first
+						</p>
+					</DropdownMenuContent>
+				</DropdownMenu>
+
+				<!-- Remove selected from folder -->
+				<DropdownMenu>
+					<DropdownMenuTrigger as-child>
+						<button
+							class="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-white/50"
+						>
+							<FolderMinus class="size-4" />Remove from
+						</button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent align="center" side="top" class="min-w-44">
+						<DropdownMenuLabel>Remove from folder</DropdownMenuLabel>
+						<template v-if="folders.length">
+							<DropdownMenuSeparator />
+							<DropdownMenuItem
+								v-for="folder in folders"
+								:key="folder.id"
+								@select="bulkRemoveFromFolder(folder.id)"
+							>
+								{{ folder.name }}
+							</DropdownMenuItem>
+						</template>
+						<p v-else class="px-2 py-1.5 text-xs text-muted-foreground">
+							No folders yet
+						</p>
+					</DropdownMenuContent>
+				</DropdownMenu>
+
+				<button
+					class="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10"
+					@click="confirmBulkDelete = true"
+				>
+					<Trash2 class="size-4" />Delete
+				</button>
+
+				<button
+					class="ml-0.5 flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-white/50 hover:text-foreground"
+					title="Clear selection"
+					@click="exitSelect"
+				>
+					<X class="size-4" />
+				</button>
+			</div>
+			</div>
+		</Transition>
+		</Teleport>
+
+		<!-- Bulk delete confirm -->
+		<Dialog
+			:open="confirmBulkDelete"
+			@update:open="(v) => !v && (confirmBulkDelete = false)"
+		>
+			<DialogContent>
+				<DialogHeader>
+					<DialogTitle>
+						Delete {{ selectedCount }} photo{{ selectedCount === 1 ? "" : "s" }}?
+					</DialogTitle>
+					<DialogDescription>
+						This permanently removes the selected photo{{
+							selectedCount === 1 ? "" : "s"
+						}}
+						and their folder memberships. This can’t be undone.
+					</DialogDescription>
+				</DialogHeader>
+				<DialogFooter>
+					<Button variant="outline" @click="confirmBulkDelete = false">Cancel</Button>
+					<Button
+						variant="destructive"
+						:disabled="bulkDeleting"
+						@click="runBulkDelete"
+					>
+						<Loader2 v-if="bulkDeleting" class="size-4 animate-spin" />
+						Delete
+					</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
 	</div>
 </template>
