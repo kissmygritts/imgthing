@@ -163,23 +163,25 @@
 }
 .aurora span {
 	position: absolute;
-	width: 60vmax;
-	height: 60vmax;
+	width: 64vmax;
+	height: 64vmax;
 	border-radius: 50%;
 	filter: blur(70px);
-	opacity: 0.6;
+	opacity: 0.8;
 	will-change: transform;
 }
 .aurora .b1 {
-	background: radial-gradient(circle, #ffd3ae, transparent 70%);
+	background: radial-gradient(circle, #ffd9cf, transparent 70%);
 	top: -18vmax;
 	left: -14vmax;
+	opacity: 0.55;
 	animation: aurora-drift-1 46s ease-in-out infinite;
 }
 .aurora .b2 {
-	background: radial-gradient(circle, #d9c6ff, transparent 70%);
+	background: radial-gradient(circle, #c7adff, transparent 70%);
 	top: -22vmax;
 	right: -18vmax;
+	opacity: 0.9;
 	animation: aurora-drift-2 55s ease-in-out infinite;
 }
 .aurora .b3 {
@@ -200,7 +202,7 @@
 	inset: 0;
 	background: radial-gradient(
 		ellipse at 50% 0%,
-		rgba(255, 255, 255, 0.5),
+		rgba(255, 255, 255, 0.35),
 		transparent 60%
 	);
 }
