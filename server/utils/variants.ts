@@ -8,13 +8,18 @@
 // viewports. Under-sizing here is what makes tiles look fuzzy on retina, so
 // `thumb` covers a 2x tile and `lg` covers a 2x full view.
 //
-// Unlike the old width-only resize, the transform bounds the *longest* side with
-// `fit: "scale-down"` (fits within N×N preserving aspect ratio, never upscales).
-// A longest-side box gives portrait, landscape, and square originals an equal
-// pixel budget, so a tall portrait is no longer forced wider (and heavier) than a
-// landscape at the same tier. The grid tile still does its own square crop via CSS
-// object-cover, so we never ask the binding for a square (its `fit: cover` pads to
-// black in local dev instead of cropping).
+// The transform bounds the *longest* side to N with `fit: "scale-down"` (never
+// upscales). A longest-side bound gives portrait, landscape, and square originals
+// an equal pixel budget, so a tall portrait is no longer forced wider (and
+// heavier) than a landscape at the same tier. The grid tile does its own square
+// crop via CSS object-cover, so the variant keeps the original aspect ratio.
+//
+// IMPORTANT: we constrain a *single* dimension (width for landscape, height for
+// portrait), NOT both. Passing both width and height with scale-down/contain pads
+// the output to the full N×N box (with a black background) in the Images runtime,
+// which then shows as letterboxing under object-cover. Constraining one dimension
+// per orientation bounds the longest side with no padding. `generateVariants`
+// reads the orientation once via `images.info()` and reuses it for all sizes.
 export const VARIANT_SIZES = { thumb: 800, md: 1280, lg: 2560 } as const;
 export type VariantSize = keyof typeof VARIANT_SIZES;
 
@@ -34,13 +39,16 @@ async function transformVariant(
 	images: ImagesBinding,
 	original: ArrayBuffer,
 	size: VariantSize,
+	portrait: boolean,
 ): Promise<ArrayBuffer> {
 	const n = VARIANT_SIZES[size];
-	// Fresh stream per size — the binding consumes its input stream, so a single
-	// stream can't be reused across the three transforms.
+	// Bound only the longest side — a single dimension, or the binding pads to an
+	// N×N black box (see the VARIANT_SIZES comment). Fresh stream per size: the
+	// binding consumes its input stream, so it can't be reused across transforms.
+	const bound = portrait ? { height: n } : { width: n };
 	const result = await images
 		.input(new Response(original).body as ReadableStream<Uint8Array>)
-		.transform({ width: n, height: n, fit: "scale-down" })
+		.transform({ ...bound, fit: "scale-down" })
 		.output({ format: "image/webp", quality: 88 });
 	// R2 put needs a known length, and image() returns a stream — buffer it.
 	return await new Response(result.image()).arrayBuffer();
@@ -57,8 +65,22 @@ export async function generateVariants(
 	photoId: string,
 	original: ArrayBuffer,
 ): Promise<void> {
+	// Read orientation once and reuse for every size. On anything without pixel
+	// dimensions (e.g. SVG) or an info failure, fall back to width-bound (landscape).
+	let portrait = false;
+	try {
+		const info = await images.info(
+			new Response(original).body as ReadableStream<Uint8Array>,
+		);
+		if ("width" in info && "height" in info) {
+			portrait = info.height > info.width;
+		}
+	} catch {
+		portrait = false;
+	}
+
 	for (const size of Object.keys(VARIANT_SIZES) as VariantSize[]) {
-		const bytes = await transformVariant(images, original, size);
+		const bytes = await transformVariant(images, original, size, portrait);
 		await bucket.put(variantKey(photoId, size), bytes, {
 			httpMetadata: { contentType: "image/webp" },
 		});
