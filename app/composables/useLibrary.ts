@@ -18,10 +18,24 @@ export function useLibrary() {
 		"library:selected",
 		() => null,
 	);
+	// Favorites is an orthogonal view: when on, the gallery filters to hearted
+	// photos regardless of folder. Picking any folder view turns it back off.
+	const favoritesOnly = useState("library:favorites", () => false);
 	const expanded = useState<Set<string>>("library:expanded", () => new Set());
 	const search = useState("library:search", () => "");
 
+	// Pick a folder view (All / Uncategorized / a folder id) and leave Favorites.
+	function selectFolder(id: string | null) {
+		favoritesOnly.value = false;
+		selectedFolderId.value = id;
+	}
+
+	function selectFavorites() {
+		favoritesOnly.value = true;
+	}
+
 	const currentTitle = computed(() => {
+		if (favoritesOnly.value) return "Favorites";
 		if (selectedFolderId.value === null) return "All photos";
 		if (selectedFolderId.value === "none") return "Uncategorized";
 		return (
@@ -258,6 +272,24 @@ export function useLibrary() {
 		}
 	}
 
+	// ── Favorite toggle ─────────────────────────────────────────────────────────
+	// Flip the heart on a photo. Optimistically mutate the row for instant UI, then
+	// refresh the list (drops it from the Favorites view when un-hearted).
+	async function toggleFavorite(photo: Photo): Promise<void> {
+		try {
+			const res = await $fetch<{ id: string; is_favorite: number }>(
+				`/api/photos/${photo.id}/favorite`,
+				{ method: "POST" },
+			);
+			photo.is_favorite = res.is_favorite;
+			await refreshNuxtData(["photos"]);
+		} catch (err) {
+			toast.error(
+				(err as { statusMessage?: string })?.statusMessage ?? "Update failed",
+			);
+		}
+	}
+
 	async function logout() {
 		await $fetch("/api/auth/logout", { method: "POST" });
 		await navigateTo("/login");
@@ -266,6 +298,9 @@ export function useLibrary() {
 	return {
 		folders,
 		selectedFolderId,
+		favoritesOnly,
+		selectFolder,
+		selectFavorites,
 		expanded,
 		search,
 		currentTitle,
@@ -289,6 +324,7 @@ export function useLibrary() {
 		removePhotosFromFolder,
 		deletePhoto,
 		bulkDelete,
+		toggleFavorite,
 		logout,
 	};
 }

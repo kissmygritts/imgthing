@@ -5,6 +5,7 @@ import {
 	ChevronDown,
 	FolderMinus,
 	FolderPlus,
+	Heart,
 	ImageOff,
 	Loader2,
 	MoreVertical,
@@ -45,10 +46,12 @@ interface PhotosResponse {
 const {
 	folders,
 	selectedFolderId,
+	favoritesOnly,
 	search,
 	currentTitle,
 	foldersOf,
 	toggleMembership,
+	toggleFavorite,
 	addPhotosToFolder,
 	removePhotosFromFolder,
 	deletePhoto,
@@ -78,7 +81,9 @@ const listQuery = computed(() => {
 		sort: sortMode.value,
 		limit: String(PAGE_SIZE),
 	};
-	if (selectedFolderId.value !== null) query.folderId = selectedFolderId.value;
+	if (favoritesOnly.value) query.favorite = "1";
+	else if (selectedFolderId.value !== null)
+		query.folderId = selectedFolderId.value;
 	if (activeSearch.value) query.q = activeSearch.value;
 	return query;
 });
@@ -209,6 +214,13 @@ function openViewer(i: number) {
 	viewerIndex.value = i;
 }
 
+// Heart toggle from inside the viewer — find the row and route through the
+// composable (optimistic flip + list refresh).
+function onViewerFavorite(id: string) {
+	const photo = photos.value.find((p) => p.id === id);
+	if (photo) toggleFavorite(photo);
+}
+
 // Delete flows through the composable (R2 + D1 + toast + list refresh). Once the
 // list shrinks, keep the viewer on the photo that slid into this slot; clamp to
 // the last one, or close if nothing is left.
@@ -317,6 +329,21 @@ async function onViewerDelete(id: string) {
 					<Check class="size-3.5" />
 				</button>
 
+				<!-- favorite heart — always shown when hearted, else on hover -->
+				<button
+					v-if="!selectMode"
+					class="absolute left-2 top-2 z-10 flex size-7 items-center justify-center rounded-full border border-white/70 bg-white/40 backdrop-blur transition hover:bg-white/60"
+					:class="
+						photo.is_favorite
+							? 'text-rose-500 opacity-100'
+							: 'text-white opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100'
+					"
+					:title="photo.is_favorite ? 'Remove from favorites' : 'Add to favorites'"
+					@click.stop="toggleFavorite(photo)"
+				>
+					<Heart class="size-4" :class="photo.is_favorite ? 'fill-current' : ''" />
+				</button>
+
 				<!-- signature prism rim (direct child of .group) -->
 				<span class="prism-edge" />
 				<span
@@ -400,6 +427,7 @@ async function onViewerDelete(id: string) {
 			@update:index="viewerIndex = $event"
 			@close="viewerIndex = null"
 			@delete="onViewerDelete"
+			@favorite="onViewerFavorite"
 		/>
 
 		<!-- Contextual bulk-action bar — only present once photos are selected.

@@ -6,6 +6,7 @@
 //   from/to   inclusive date range over COALESCE(taken_at, uploaded_at)
 //   sort      newest | oldest | name | size_desc | size_asc  (default newest)
 //   folderId  a folder id, or "none" for photos in no folder
+//   favorite  "1" to return only favorited photos
 //   limit     1..200 (default 50)   offset  >= 0 (default 0)
 //
 // Response: { photos, total, limit, offset } — `total` is the full match count
@@ -63,6 +64,10 @@ function buildFilter(q: Record<string, unknown>) {
 		binds.push(to);
 	}
 
+	if (q.favorite === "1" || q.favorite === 1 || q.favorite === true) {
+		conditions.push("p.is_favorite = 1");
+	}
+
 	const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
 	return { where, binds };
 }
@@ -93,7 +98,7 @@ export default defineEventHandler(async (event) => {
 		.prepare(
 			`SELECT
 				p.id, p.original_filename, p.content_type, p.file_size,
-				p.uploaded_at,
+				p.uploaded_at, p.is_favorite,
 				e.camera_make, e.camera_model, e.lens_info, e.exposure,
 				e.aperture, e.iso, e.focal_length, e.taken_at,
 				e.gps_latitude, e.gps_longitude,

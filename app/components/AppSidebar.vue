@@ -2,6 +2,7 @@
 import {
 	ChevronsUpDown,
 	FolderPlus,
+	Heart,
 	Images,
 	Layers,
 	Loader2,
@@ -45,6 +46,9 @@ import {
 const {
 	folders,
 	selectedFolderId,
+	favoritesOnly,
+	selectFolder,
+	selectFavorites,
 	expanded,
 	search,
 	toggleExpand,
@@ -130,8 +134,8 @@ async function onFilesSelected(event: Event) {
 						<SidebarMenuItem>
 							<SidebarMenuButton
 								tooltip="All photos"
-								:is-active="selectedFolderId === null"
-								@click="selectedFolderId = null"
+								:is-active="!favoritesOnly && selectedFolderId === null"
+								@click="selectFolder(null)"
 							>
 								<Images />
 								<span>All photos</span>
@@ -139,9 +143,19 @@ async function onFilesSelected(event: Event) {
 						</SidebarMenuItem>
 						<SidebarMenuItem>
 							<SidebarMenuButton
+								tooltip="Favorites"
+								:is-active="favoritesOnly"
+								@click="selectFavorites()"
+							>
+								<Heart />
+								<span>Favorites</span>
+							</SidebarMenuButton>
+						</SidebarMenuItem>
+						<SidebarMenuItem>
+							<SidebarMenuButton
 								tooltip="Uncategorized"
-								:is-active="selectedFolderId === 'none'"
-								@click="selectedFolderId = 'none'"
+								:is-active="!favoritesOnly && selectedFolderId === 'none'"
+								@click="selectFolder('none')"
 							>
 								<Layers />
 								<span>Uncategorized</span>
@@ -162,9 +176,9 @@ async function onFilesSelected(event: Event) {
 						:folders="folders"
 						:parent-id="null"
 						:depth="0"
-						:selected-id="selectedFolderId"
+						:selected-id="favoritesOnly ? null : selectedFolderId"
 						:expanded="expanded"
-						@select="selectedFolderId = $event"
+						@select="selectFolder($event)"
 						@action="onTreeAction"
 						@toggle="toggleExpand"
 					/>

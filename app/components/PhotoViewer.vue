@@ -4,6 +4,7 @@ import {
 	ChevronLeft,
 	ChevronRight,
 	Download,
+	Heart,
 	PanelRightClose,
 	PanelRightOpen,
 	Pencil,
@@ -39,6 +40,7 @@ export interface Photo {
 	gps_latitude: number | null;
 	gps_longitude: number | null;
 	folder_ids: string | null;
+	is_favorite: number;
 }
 
 const props = defineProps<{
@@ -55,6 +57,8 @@ const emit = defineEmits<{
 	// Emitted (after confirm) to delete a photo. The parent performs the request,
 	// refreshes the list, and advances nav / closes the viewer.
 	delete: [id: string];
+	// Emitted to toggle the favorite flag. The parent persists + refreshes.
+	favorite: [id: string];
 }>();
 
 const photo = computed(() => props.photos[props.index] ?? null);
@@ -301,6 +305,21 @@ watch(
 						</div>
 
 						<div class="flex shrink-0 items-center gap-1.5">
+							<button
+								v-if="mode === 'view'"
+								class="flex size-8 items-center justify-center rounded-full border border-white/85 bg-white/55 backdrop-blur transition hover:bg-white/85"
+								:class="
+									photo.is_favorite
+										? 'text-rose-500'
+										: 'text-muted-foreground hover:text-foreground'
+								"
+								:aria-label="
+									photo.is_favorite ? 'Remove from favorites' : 'Add to favorites'
+								"
+								@click="emit('favorite', photo.id)"
+							>
+								<Heart class="size-4" :class="photo.is_favorite ? 'fill-current' : ''" />
+							</button>
 							<button
 								v-if="mode === 'view'"
 								class="flex size-8 items-center justify-center rounded-full border border-white/85 bg-white/55 text-muted-foreground backdrop-blur transition hover:bg-white/85 hover:text-foreground"

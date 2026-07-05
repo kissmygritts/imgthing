@@ -12,6 +12,7 @@ interface PhotoRow {
 	original_filename: string;
 	content_type: string;
 	file_size: number;
+	is_favorite: number;
 }
 
 interface ListResponse {
@@ -277,6 +278,57 @@ describe("photos: search / sort / range / paging", () => {
 		// A future lower bound excludes them.
 		const excludedFrom = await list(cookie, `?q=${tok}&from=2999-01-01`);
 		expect(excludedFrom.total).toBe(0);
+	});
+
+	it("toggles the favorite flag and filters via ?favorite=1", async () => {
+		const cookie = await login();
+		const tok = `ftok${Date.now()}`;
+		const { uploaded } = await upload(cookie, `${tok}-fav.png`);
+		await upload(cookie, `${tok}-plain.png`);
+		const id = uploaded[0].id;
+
+		// Freshly uploaded photos are not favorited.
+		const before = await list(cookie, `?q=${tok}`);
+		expect(before.total).toBe(2);
+		expect(before.photos.every((p) => p.is_favorite === 0)).toBe(true);
+
+		// Toggle on → returns the new state.
+		const on = await SELF.fetch(url(`/api/photos/${id}/favorite`), {
+			method: "POST",
+			headers: { cookie },
+		});
+		expect(on.status).toBe(200);
+		expect((await on.json()) as { id: string; is_favorite: number }).toEqual({
+			id,
+			is_favorite: 1,
+		});
+
+		// ?favorite=1 now returns only the hearted photo.
+		const favs = await list(cookie, `?q=${tok}&favorite=1`);
+		expect(favs.total).toBe(1);
+		expect(favs.photos[0].id).toBe(id);
+		expect(favs.photos[0].is_favorite).toBe(1);
+
+		// Toggle off → back to 0 and out of the favorites filter.
+		const off = await SELF.fetch(url(`/api/photos/${id}/favorite`), {
+			method: "POST",
+			headers: { cookie },
+		});
+		expect(off.status).toBe(200);
+		expect((await off.json()) as { is_favorite: number }).toMatchObject({
+			is_favorite: 0,
+		});
+		const favsAfter = await list(cookie, `?q=${tok}&favorite=1`);
+		expect(favsAfter.total).toBe(0);
+	});
+
+	it("returns 404 when favoriting an unknown photo id", async () => {
+		const cookie = await login();
+		const res = await SELF.fetch(url("/api/photos/does-not-exist/favorite"), {
+			method: "POST",
+			headers: { cookie },
+		});
+		expect(res.status).toBe(404);
 	});
 
 	it("pages with limit/offset and reports the full total", async () => {
