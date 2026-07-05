@@ -86,8 +86,8 @@ Statuses: `todo` · `in_progress` · `done` · `blocked`. Edit in place as the l
 | T3 | Server-side search + pagination        | done   | buildFilter() query builder; q/from/to/sort params; {photos,total,...}; infinite scroll; 25 integ |
 | T4 | Sort by image size                     | done   | size_asc/size_desc sorts; Largest/Smallest dropdown; 26 integ |
 | T5 | Multi-select → organize into folders   | done   | selection model + contextual action bar; bulk add/remove/delete; folder endpoints already batched; 27 integ. NOTE: pre-existing T3 SSR quirk — empty grid on first load until a query change (revisit) |
-| T6 | Favorites / hearting                   | in_progress |             |
-| T7 | Tags                                   | todo   |             |
+| T6 | Favorites / hearting                   | done   | 0003 migration is_favorite col; POST /favorite toggle; ?favorite=1 filter; sidebar Favorites; 29 integ |
+| T7 | Tags                                   | in_progress |             |
 | T8 | Dedicated upload page (drag-and-drop)  | todo   |             |
 | T9 | Map view (MapLibre + OpenFreeMap)      | todo   |             |
 | T10| Dark mode (initial pass)               | todo   |             |
