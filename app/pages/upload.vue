@@ -64,6 +64,11 @@ interface QueueItem {
 	error?: string;
 }
 
+// Mirror the server's per-file ceiling (server/api/photos/index.post.ts) so we can
+// flag over-size files before wasting an upload round-trip.
+const MAX_FILE_MB = 25;
+const MAX_FILE_BYTES = MAX_FILE_MB * 1024 * 1024;
+
 const queue = ref<QueueItem[]>([]);
 const isUploading = ref(false);
 const dragging = ref(false);
@@ -90,14 +95,18 @@ function formatSize(bytes: number): string {
 function enqueue(files: File[]) {
 	for (const file of files) {
 		const isImage = file.type.startsWith("image/");
+		const tooBig = file.size > MAX_FILE_BYTES;
+		let error: string | undefined;
+		if (!isImage) error = "Not an image";
+		else if (tooBig) error = `Too large — over ${MAX_FILE_MB} MB`;
 		queue.value.push({
 			id: crypto.randomUUID(),
 			file,
 			name: file.name,
 			size: file.size,
-			status: isImage ? "pending" : "rejected",
+			status: error ? "rejected" : "pending",
 			progress: 0,
-			error: isImage ? undefined : "Not an image",
+			error,
 		});
 	}
 }
@@ -349,9 +358,9 @@ async function startUpload() {
 						</p>
 						<p
 							v-else-if="item.status === 'rejected'"
-							class="mt-0.5 text-xs text-amber-600"
+							class="mt-0.5 truncate text-xs text-amber-600"
 						>
-							Not an image — won't be uploaded
+							{{ item.error }} — won't be uploaded
 						</p>
 						<p
 							v-else-if="item.status === 'done'"

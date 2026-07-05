@@ -1,6 +1,26 @@
+// Upload limits — guard Worker memory against a runaway batch. A single request
+// can pressure memory both by one huge file and by sheer file count, so we cap
+// per-file size, file count, and the total batch bytes.
+const MB = 1024 * 1024;
+const MAX_FILE_BYTES = 25 * MB; // per-file ceiling
+const MAX_FILE_COUNT = 50; // files per request
+const MAX_TOTAL_BYTES = 200 * MB; // whole-batch ceiling
+
+const mb = (bytes: number) => (bytes / MB).toFixed(1);
+
 // Upload one or more images: original bytes stream to R2, metadata + EXIF to D1.
 // An optional `folderId` text field assigns every uploaded photo to that folder.
 export default defineEventHandler(async (event) => {
+	// Cheapest guard first: reject an oversized body by its declared length before
+	// readMultipartFormData buffers the whole thing into memory.
+	const contentLength = Number(getRequestHeader(event, "content-length") ?? 0);
+	if (contentLength > MAX_TOTAL_BYTES) {
+		throw createError({
+			statusCode: 413,
+			statusMessage: `Upload too large — the batch is ${mb(contentLength)} MB but the limit is ${MAX_TOTAL_BYTES / MB} MB`,
+		});
+	}
+
 	const parts = await readMultipartFormData(event);
 	const files = (parts ?? []).filter(
 		(p) => p.filename && p.data && (p.type ?? "").startsWith("image/"),
@@ -21,6 +41,14 @@ export default defineEventHandler(async (event) => {
 		});
 	}
 
+	// Guard count before any per-file work (byte copy, EXIF, R2 writes).
+	if (files.length > MAX_FILE_COUNT) {
+		throw createError({
+			statusCode: 413,
+			statusMessage: `Too many files — ${files.length} sent but the limit is ${MAX_FILE_COUNT} per upload`,
+		});
+	}
+
 	const db = useDB(event);
 	const bucket = useBucket(event);
 
@@ -29,8 +57,32 @@ export default defineEventHandler(async (event) => {
 	if (folderId) await requireFolder(db, folderId);
 
 	const uploaded: { id: string; original_filename: string }[] = [];
+	// Per-file rejections (over-size) — surfaced alongside successes so a mixed
+	// batch reports why each bad file didn't land, mirroring the upload page.
+	const rejected: { filename: string; reason: string }[] = [];
+	let totalBytes = 0;
 
 	for (const file of files) {
+		const name = file.filename ?? "unnamed";
+		const size = file.data.byteLength;
+
+		// Skip (don't process) an over-size file, but tell the caller which and why.
+		if (size > MAX_FILE_BYTES) {
+			rejected.push({
+				filename: name,
+				reason: `${name} is ${mb(size)} MB — exceeds the ${MAX_FILE_BYTES / MB} MB per-file limit`,
+			});
+			continue;
+		}
+		totalBytes += size;
+		if (totalBytes > MAX_TOTAL_BYTES) {
+			rejected.push({
+				filename: name,
+				reason: `${name} skipped — the batch exceeds the ${MAX_TOTAL_BYTES / MB} MB total limit`,
+			});
+			continue;
+		}
+
 		const id = crypto.randomUUID();
 		const r2Key = `originals/${id}`;
 		const contentType = file.type ?? "application/octet-stream";
@@ -87,6 +139,16 @@ export default defineEventHandler(async (event) => {
 		uploaded.push({ id, original_filename: file.filename ?? id });
 	}
 
+	// Nothing landed — every file was over-limit. Surface a 4xx (naming the first
+	// offender + limit) so callers don't mistake an empty 200 for success.
+	if (uploaded.length === 0) {
+		throw createError({
+			statusCode: 413,
+			statusMessage:
+				rejected[0]?.reason ?? "No files were within the upload limits",
+		});
+	}
+
 	// Assign every freshly uploaded photo to the target folder (idempotent).
 	if (folderId && uploaded.length > 0) {
 		await db.batch(
@@ -100,5 +162,5 @@ export default defineEventHandler(async (event) => {
 		);
 	}
 
-	return { ok: true, uploaded };
+	return { ok: true, uploaded, rejected };
 });

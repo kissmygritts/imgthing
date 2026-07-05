@@ -255,6 +255,67 @@ describe("photos", () => {
 	});
 });
 
+describe("photos: upload limits", () => {
+	it("rejects an over-size file with a 413 naming the file and limit", async () => {
+		const cookie = await login();
+		// 26 MB > the 25 MB per-file ceiling. Valid PNG bytes + padding after IEND.
+		const png = pngBytes();
+		const big = new Uint8Array([...png, ...new Uint8Array(26 * 1024 * 1024)]);
+		const form = new FormData();
+		form.append("files", new File([big], "huge.png", { type: "image/png" }));
+		const res = await SELF.fetch(url("/api/photos"), {
+			method: "POST",
+			headers: { cookie },
+			body: form,
+		});
+		expect(res.status).toBe(413);
+		const body = (await res.json()) as { statusMessage?: string };
+		expect(body.statusMessage).toContain("huge.png");
+		expect(body.statusMessage).toContain("25 MB");
+	});
+
+	it("keeps valid files and reports over-size ones in a mixed batch", async () => {
+		const cookie = await login();
+		const png = pngBytes();
+		const big = new Uint8Array([...png, ...new Uint8Array(26 * 1024 * 1024)]);
+		const form = new FormData();
+		form.append("files", new File([png], "ok.png", { type: "image/png" }));
+		form.append("files", new File([big], "toobig.png", { type: "image/png" }));
+		const res = await SELF.fetch(url("/api/photos"), {
+			method: "POST",
+			headers: { cookie },
+			body: form,
+		});
+		expect(res.status).toBe(200);
+		const body = (await res.json()) as {
+			uploaded: { original_filename: string }[];
+			rejected: { filename: string; reason: string }[];
+		};
+		expect(body.uploaded).toHaveLength(1);
+		expect(body.uploaded[0].original_filename).toBe("ok.png");
+		expect(body.rejected).toHaveLength(1);
+		expect(body.rejected[0].filename).toBe("toobig.png");
+	});
+
+	it("rejects a request with too many files (over the count cap) with 413", async () => {
+		const cookie = await login();
+		const png = pngBytes();
+		const form = new FormData();
+		// 51 tiny parts — the count guard should fire before any EXIF/R2 work.
+		for (let i = 0; i < 51; i++) {
+			form.append("files", new File([png], `n${i}.png`, { type: "image/png" }));
+		}
+		const res = await SELF.fetch(url("/api/photos"), {
+			method: "POST",
+			headers: { cookie },
+			body: form,
+		});
+		expect(res.status).toBe(413);
+		const body = (await res.json()) as { statusMessage?: string };
+		expect(body.statusMessage).toContain("50");
+	});
+});
+
 describe("photos: search / sort / range / paging", () => {
 	it("filters by filename via ?q (case-insensitive substring)", async () => {
 		const cookie = await login();
