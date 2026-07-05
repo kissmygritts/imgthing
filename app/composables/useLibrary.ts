@@ -297,22 +297,22 @@ export function useLibrary() {
 		}
 	}
 
-	// Bulk (soft) delete: no batch endpoint exists, so reuse the per-photo DELETE
-	// tombstone but fire them in parallel and finish with a single list refresh and
-	// one toast. Returns true if every delete succeeded.
+	// Bulk (soft) delete: one batch request tombstones every id in a single D1
+	// write (ids ride the query string — DELETE bodies are dropped in the CF build).
+	// No partial-failure mixed state, then one list refresh and one toast.
 	async function bulkDelete(photoIds: string[]): Promise<boolean> {
 		if (photoIds.length === 0) return false;
 		try {
-			await Promise.all(
-				photoIds.map((id) => $fetch(`/api/photos/${id}`, { method: "DELETE" })),
-			);
+			await $fetch("/api/photos", {
+				method: "DELETE",
+				query: { ids: photoIds.join(",") },
+			});
 			await refreshNuxtData(["photos"]);
 			toast.success(
 				`Moved ${photoIds.length} photo${photoIds.length === 1 ? "" : "s"} to Trash`,
 			);
 			return true;
 		} catch (err) {
-			// Some may have gone through; refresh so the grid reflects reality.
 			await refreshNuxtData(["photos"]);
 			toast.error(
 				(err as { statusMessage?: string })?.statusMessage ?? "Delete failed",

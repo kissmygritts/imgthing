@@ -250,3 +250,92 @@ describe("trash: soft delete / restore / purge", () => {
 		}
 	});
 });
+
+describe("batch delete: DELETE /api/photos?ids=…", () => {
+	it("soft-deletes every given id in one request and ignores unknown ids", async () => {
+		const cookie = await login();
+		const tok = `batch${Date.now()}`;
+		const a = await upload(cookie, `${tok}-a.png`);
+		const b = await upload(cookie, `${tok}-b.png`);
+		const c = await upload(cookie, `${tok}-c.png`);
+
+		// Three uploaded, all live.
+		expect((await list(cookie, `?q=${tok}`)).total).toBe(3);
+
+		// Batch-delete two of them + one id that doesn't exist (should be ignored).
+		const ids = [a, b, "does-not-exist"].join(",");
+		const res = await SELF.fetch(url(`/api/photos?ids=${ids}`), {
+			method: "DELETE",
+			headers: { cookie },
+		});
+		expect(res.status).toBe(200);
+		const body = (await res.json()) as {
+			ok: boolean;
+			deleted: number;
+			ids: string[];
+		};
+		expect(body.ok).toBe(true);
+		// Only the two real, live ids are tombstoned; the unknown id drops out.
+		expect(body.deleted).toBe(2);
+		expect(body.ids.sort()).toEqual([a, b].sort());
+
+		// a + b gone from the live list, still present in Trash; c untouched.
+		const live = await list(cookie, `?q=${tok}`);
+		expect(live.total).toBe(1);
+		expect(live.photos[0].id).toBe(c);
+		const trash = await list(cookie, `?q=${tok}&deleted=1`);
+		expect(trash.total).toBe(2);
+
+		// Both rows carry a tombstone; the surviving row does not.
+		for (const id of [a, b]) {
+			const row = await env.DB.prepare(
+				"SELECT deleted_at FROM photos WHERE id = ?",
+			)
+				.bind(id)
+				.first<{ deleted_at: string | null }>();
+			expect(row?.deleted_at).toBeTruthy();
+		}
+		const keptRow = await env.DB.prepare(
+			"SELECT deleted_at FROM photos WHERE id = ?",
+		)
+			.bind(c)
+			.first<{ deleted_at: string | null }>();
+		expect(keptRow?.deleted_at).toBeNull();
+	});
+
+	it("is idempotent: re-deleting already-tombstoned ids reports zero newly deleted", async () => {
+		const cookie = await login();
+		const tok = `batchidem${Date.now()}`;
+		const id = await upload(cookie, `${tok}.png`);
+
+		const first = await SELF.fetch(url(`/api/photos?ids=${id}`), {
+			method: "DELETE",
+			headers: { cookie },
+		});
+		expect(((await first.json()) as { deleted: number }).deleted).toBe(1);
+
+		// Second call touches no live rows → deleted: 0, and the timestamp is unchanged.
+		const second = await SELF.fetch(url(`/api/photos?ids=${id}`), {
+			method: "DELETE",
+			headers: { cookie },
+		});
+		expect(second.status).toBe(200);
+		expect(((await second.json()) as { deleted: number }).deleted).toBe(0);
+	});
+
+	it("400s when no ids are supplied", async () => {
+		const cookie = await login();
+		const res = await SELF.fetch(url("/api/photos?ids="), {
+			method: "DELETE",
+			headers: { cookie },
+		});
+		expect(res.status).toBe(400);
+	});
+
+	it("requires auth (401 without a session cookie)", async () => {
+		const res = await SELF.fetch(url("/api/photos?ids=whatever"), {
+			method: "DELETE",
+		});
+		expect(res.status).toBe(401);
+	});
+});
