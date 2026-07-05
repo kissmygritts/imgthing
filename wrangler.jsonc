@@ -1,0 +1,41 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "imgthing",
+	"main": "./.output/server/index.mjs",
+	"compatibility_date": "2026-06-30",
+	"compatibility_flags": ["nodejs_compat"],
+
+	// Nuxt builds the static client into .output/public; serve it as assets.
+	"assets": {
+		"binding": "ASSETS",
+		"directory": "./.output/public"
+	},
+
+	"observability": {
+		"enabled": true
+	},
+
+	// D1 — photo/folder/exif metadata. Fill database_id after
+	// `wrangler d1 create imgthing`.
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "imgthing",
+			"database_id": "REPLACE_WITH_D1_DATABASE_ID",
+			"migrations_dir": "server/db/migrations"
+		}
+	],
+
+	// R2 — original photo objects, one per photo.
+	"r2_buckets": [
+		{
+			"binding": "BUCKET",
+			"bucket_name": "imgthing-photos"
+		}
+	],
+
+	// Cloudflare Images binding — on-the-fly variant transforms.
+	"images": {
+		"binding": "IMAGES"
+	}
+}
