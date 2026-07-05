@@ -89,7 +89,7 @@ Statuses: `todo` · `in_progress` · `done` · `blocked`. Edit in place as the l
 
 | #  | Task                                   | Status | Result note |
 |----|----------------------------------------|--------|-------------|
-| S1 | Soft delete / trash                    | in_progress |             |
+| S1 | Soft delete / trash                    | done   | 139da58 — tombstone+Trash view+restore+purge/empty-trash; geo & list exclude tombstones; trash.test.ts added |
 | S2 | Batch delete endpoint                  | todo   |             |
 | S3 | Camera & lens filters                  | todo   |             |
 | S4 | Upload limits                          | todo   |             |
