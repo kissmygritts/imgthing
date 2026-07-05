@@ -119,8 +119,8 @@ Edit in place as the loop runs.
 | P2   | Variant utility (`server/utils/variants.ts`)  | done   | variants.ts: sizes/keys/generate/self-heal; longest-side scale-down webp q88; WebP output strips EXIF natively (no metadata opt) |
 | P3   | Upload generates variants                     | done   | index.post.ts: per-file generateVariants + stamp, try/catch non-fatal; bytes already ArrayBuffer |
 | P4   | Serving rewrite + publish/unpublish + public routes | done | private variant from R2; publish mints 32-hex token; /p/{token}/{size}+meta unauth; uniform bare-404s; GPS opt-in gated |
-| P5   | Trash/delete interplay                        | in_progress |        |
-| P8   | Integration tests (public suite + updates)    | todo   |             |
+| P5   | Trash/delete interplay                        | done   | both soft-delete UPDATEs clear token+visibility; purgePhotos deletes 3 variantKeys; restore untouched |
+| P8   | Integration tests (public suite + updates)    | in_progress |        |
 | P9   | Docs                                          | todo   |             |
 | P7a  | Functional share UI (autonomous)              | todo   |             |
 | P7b  | **Design pass — HUMAN, loop stops here**      | hold   | Awaiting user design review; never delegate |
