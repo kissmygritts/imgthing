@@ -118,8 +118,8 @@ Edit in place as the loop runs.
 | P1   | Migration 0006 (public sharing columns)       | done   | 0006: 5 additive cols + unique token index; migration-only, no TS schema to sync |
 | P2   | Variant utility (`server/utils/variants.ts`)  | done   | variants.ts: sizes/keys/generate/self-heal; longest-side scale-down webp q88; WebP output strips EXIF natively (no metadata opt) |
 | P3   | Upload generates variants                     | done   | index.post.ts: per-file generateVariants + stamp, try/catch non-fatal; bytes already ArrayBuffer |
-| P4   | Serving rewrite + publish/unpublish + public routes | in_progress |    |
-| P5   | Trash/delete interplay                        | todo   |             |
+| P4   | Serving rewrite + publish/unpublish + public routes | done | private variant from R2; publish mints 32-hex token; /p/{token}/{size}+meta unauth; uniform bare-404s; GPS opt-in gated |
+| P5   | Trash/delete interplay                        | in_progress |        |
 | P8   | Integration tests (public suite + updates)    | todo   |             |
 | P9   | Docs                                          | todo   |             |
 | P7a  | Functional share UI (autonomous)              | todo   |             |
