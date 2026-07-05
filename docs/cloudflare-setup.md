@@ -143,3 +143,16 @@ Custom Domains work on the free DNS plan — no paid zone needed.
 
 That's the full provisioning path. Development continues in parallel on local dev — next up is
 **Milestone 3 (upload + storage + EXIF)**.
+
+---
+
+## Deployment: public photo serving
+
+Public sharing (the `/p/{token}/{size}` route) needs **no new infrastructure**. It runs on the
+`*.workers.dev` URL as-is — no custom domain, no cache-purge API token, and no per-zone
+transformation settings. Variants are precomputed WebP objects stored in R2 (`variants/{id}/{size}`)
+and served straight from the bucket, so they don't touch the URL-based transform path from step 4.
+
+Variant generation still uses the `IMAGES` binding, which counts against the free tier's 5,000
+transforms/month. At 3 variants per upload that's roughly **1,600 uploads/month** before you'd need a
+paid Images plan.

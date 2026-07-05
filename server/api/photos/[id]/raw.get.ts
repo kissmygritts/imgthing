@@ -1,5 +1,6 @@
-// Stream a photo's original bytes from R2. Cloudflare Images variants come in M6;
-// for now this serves the untransformed original.
+// Stream a photo's original bytes from R2 — the full, untransformed original.
+// Precomputed WebP variants (thumbnail/medium/large) live in R2 at variants/{id}/{size}
+// and are served by variant.get.ts and the public /p/{token}/{size} route.
 export default defineEventHandler(async (event) => {
 	const id = getRouterParam(event, "id");
 	if (!id) throw createError({ statusCode: 400, statusMessage: "Missing id" });
