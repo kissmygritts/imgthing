@@ -7,8 +7,18 @@ import {
 	PanelRightClose,
 	PanelRightOpen,
 	Pencil,
+	Trash2,
 	X,
 } from "@lucide/vue";
+import { Button } from "@/components/ui/button";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
 // Mirrors the row shape returned by GET /api/photos.
@@ -42,6 +52,9 @@ const emit = defineEmits<{
 	// Emitted when the metadata drawer saves an edit. No PATCH endpoint exists
 	// yet — the parent is responsible for persisting the patch.
 	save: [id: string, patch: Partial<Photo>];
+	// Emitted (after confirm) to delete a photo. The parent performs the request,
+	// refreshes the list, and advances nav / closes the viewer.
+	delete: [id: string];
 }>();
 
 const photo = computed(() => props.photos[props.index] ?? null);
@@ -179,12 +192,27 @@ function saveEdit() {
 	mode.value = "view";
 }
 
+// --- Delete --------------------------------------------------------------
+const confirmDeleteOpen = ref(false);
+
+function requestDelete() {
+	confirmDeleteOpen.value = true;
+}
+
+function confirmDelete() {
+	const p = photo.value;
+	if (!p) return;
+	confirmDeleteOpen.value = false;
+	emit("delete", p.id);
+}
+
 // Re-entering a photo while editing would show a stale draft, so drop back to
 // view mode whenever the visible photo changes.
 watch(
 	() => photo.value?.id,
 	() => {
 		mode.value = "view";
+		confirmDeleteOpen.value = false;
 	},
 );
 </script>
@@ -282,6 +310,14 @@ watch(
 								<Pencil class="size-4" />
 							</button>
 							<button
+								v-if="mode === 'view'"
+								class="flex size-8 items-center justify-center rounded-full border border-white/85 bg-white/55 text-muted-foreground backdrop-blur transition hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
+								aria-label="Delete photo"
+								@click="requestDelete"
+							>
+								<Trash2 class="size-4" />
+							</button>
+							<button
 								class="flex size-8 items-center justify-center rounded-full border border-white/85 bg-white/55 text-muted-foreground backdrop-blur transition hover:bg-white/85 hover:text-foreground"
 								aria-label="Collapse details"
 								@click="drawerOpen = false"
@@ -374,6 +410,25 @@ watch(
 					</footer>
 				</aside>
 			</Transition>
+
+			<!-- Delete confirm — floats above the viewer (z-[110] > viewer z-[100]) -->
+			<Dialog v-model:open="confirmDeleteOpen">
+				<DialogContent class="z-[110]">
+					<DialogHeader>
+						<DialogTitle>Delete this photo?</DialogTitle>
+						<DialogDescription>
+							“{{ photo.original_filename }}” and its metadata will be permanently
+							removed. This can’t be undone.
+						</DialogDescription>
+					</DialogHeader>
+					<DialogFooter>
+						<Button variant="outline" @click="confirmDeleteOpen = false">
+							Cancel
+						</Button>
+						<Button variant="destructive" @click="confirmDelete">Delete</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 		</div>
 	</Teleport>
 </template>

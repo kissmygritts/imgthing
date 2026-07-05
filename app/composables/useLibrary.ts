@@ -189,6 +189,23 @@ export function useLibrary() {
 		}
 	}
 
+	// ── Photo delete ───────────────────────────────────────────────────────────
+	// Deletes the R2 object + all D1 rows for a photo. Returns true on success so
+	// the caller (the viewer) can advance nav / close after refreshing the list.
+	async function deletePhoto(photo: Photo): Promise<boolean> {
+		try {
+			await $fetch(`/api/photos/${photo.id}`, { method: "DELETE" });
+			await refreshNuxtData(["photos"]);
+			toast.success("Photo deleted");
+			return true;
+		} catch (err) {
+			toast.error(
+				(err as { statusMessage?: string })?.statusMessage ?? "Delete failed",
+			);
+			return false;
+		}
+	}
+
 	async function logout() {
 		await $fetch("/api/auth/logout", { method: "POST" });
 		await navigateTo("/login");
@@ -216,6 +233,7 @@ export function useLibrary() {
 		// membership
 		foldersOf,
 		toggleMembership,
+		deletePhoto,
 		logout,
 	};
 }

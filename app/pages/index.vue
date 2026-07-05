@@ -20,6 +20,7 @@ const {
 	currentTitle,
 	foldersOf,
 	toggleMembership,
+	deletePhoto,
 } = useLibrary();
 
 // Photos are the page's primary (SSR-critical) content, so fetch + await here.
@@ -59,6 +60,23 @@ const visiblePhotos = computed(() => {
 const viewerIndex = ref<number | null>(null);
 function openViewer(i: number) {
 	viewerIndex.value = i;
+}
+
+// Delete flows through the composable (R2 + D1 + toast + list refresh). Once the
+// list shrinks, keep the viewer on the photo that slid into this slot; clamp to
+// the last one, or close if nothing is left.
+async function onViewerDelete(id: string) {
+	const photo = visiblePhotos.value.find((p) => p.id === id);
+	if (!photo) return;
+	const ok = await deletePhoto(photo);
+	if (!ok) return;
+	await nextTick();
+	const count = visiblePhotos.value.length;
+	if (count === 0 || viewerIndex.value === null) {
+		viewerIndex.value = null;
+	} else if (viewerIndex.value > count - 1) {
+		viewerIndex.value = count - 1;
+	}
 }
 </script>
 
@@ -186,6 +204,7 @@ function openViewer(i: number) {
 			:index="viewerIndex"
 			@update:index="viewerIndex = $event"
 			@close="viewerIndex = null"
+			@delete="onViewerDelete"
 		/>
 	</div>
 </template>

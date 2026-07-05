@@ -117,4 +117,58 @@ describe("photos", () => {
 		);
 		expect(res.status).toBe(404);
 	});
+
+	it("deletes a photo, its bytes, and all D1 rows", async () => {
+		const cookie = await login();
+		const { uploaded } = await upload(cookie, "trash-me.png");
+		const id = uploaded[0].id;
+
+		// Put it in a folder so a folder_photos membership exists to clean up.
+		const folderRes = await SELF.fetch(url("/api/folders"), {
+			method: "POST",
+			headers: { cookie, "content-type": "application/json" },
+			body: JSON.stringify({ name: "delete-test", parentFolderId: null }),
+		});
+		expect(folderRes.status).toBe(200);
+		const folder = (await folderRes.json()) as { id: string };
+		const memberRes = await SELF.fetch(
+			url(`/api/folders/${folder.id}/photos`),
+			{
+				method: "POST",
+				headers: { cookie, "content-type": "application/json" },
+				body: JSON.stringify({ photoIds: [id] }),
+			},
+		);
+		expect(memberRes.status).toBe(200);
+
+		// Delete succeeds.
+		const delRes = await SELF.fetch(url(`/api/photos/${id}`), {
+			method: "DELETE",
+			headers: { cookie },
+		});
+		expect(delRes.status).toBe(200);
+		expect((await delRes.json()) as { ok: boolean }).toEqual({ ok: true });
+
+		// Gone from the listing.
+		const listRes = await SELF.fetch(url("/api/photos"), {
+			headers: { cookie },
+		});
+		const { photos } = (await listRes.json()) as { photos: PhotoRow[] };
+		expect(photos.find((p) => p.id === id)).toBeUndefined();
+
+		// Bytes gone: raw now 404s.
+		const rawRes = await SELF.fetch(url(`/api/photos/${id}/raw`), {
+			headers: { cookie },
+		});
+		expect(rawRes.status).toBe(404);
+	});
+
+	it("returns 404 when deleting an unknown photo id", async () => {
+		const cookie = await login();
+		const res = await SELF.fetch(url("/api/photos/does-not-exist"), {
+			method: "DELETE",
+			headers: { cookie },
+		});
+		expect(res.status).toBe(404);
+	});
 });
