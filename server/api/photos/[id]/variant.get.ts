@@ -2,7 +2,15 @@
 // so grid tiles and the lightbox don't pull full-size originals. The R2
 // original is loaded, transformed to the requested width, and streamed back
 // with a long cache lifetime. The untransformed original stays on `raw`.
-const SIZES = { thumb: 320, md: 1024, lg: 1600 } as const;
+// Widths are sized for 2x (retina) rendering: grid tiles are ~260-300 CSS px,
+// the lightbox fills large viewports. Under-sizing here is what makes tiles look
+// fuzzy on retina, so thumb covers a 2x tile and lg covers a 2x full view.
+// Width-only, aspect-preserving resize (the binding never upscales past the
+// original). The grid tile does its own square crop via CSS object-cover, so we
+// must NOT ask the binding for a square here — its `fit: cover` pads to black in
+// local dev instead of cropping. `thumb` is wide enough that a landscape crop
+// still lands ~540px on the short side, i.e. crisp on a 2x retina tile.
+const SIZES = { thumb: 800, md: 1280, lg: 2560 } as const;
 type Size = keyof typeof SIZES;
 
 function isSize(value: string | undefined): value is Size {
@@ -33,7 +41,7 @@ export default defineEventHandler(async (event) => {
 	const result = await useImages(event)
 		.input(object.body)
 		.transform({ width: SIZES[sizeKey] })
-		.output({ format: "image/webp" });
+		.output({ format: "image/webp", quality: 88 });
 
 	setHeader(event, "content-type", "image/webp");
 	setHeader(event, "cache-control", "private, max-age=31536000, immutable");
