@@ -15,30 +15,30 @@ export interface ExifRecord {
 	other_data: string | null; // JSON of everything parsed
 }
 
-function str(v: unknown): string | null {
+export function str(v: unknown): string | null {
 	if (v == null) return null;
 	const s = String(v).trim();
 	return s.length ? s : null;
 }
 
 /** ExposureTime is seconds as a float; render as a shutter fraction like "1/200". */
-function formatExposure(v: unknown): string | null {
+export function formatExposure(v: unknown): string | null {
 	if (typeof v !== "number" || !Number.isFinite(v) || v <= 0) return null;
 	if (v >= 1) return `${Math.round(v * 10) / 10}s`;
 	return `1/${Math.round(1 / v)}`;
 }
 
-function formatAperture(v: unknown): string | null {
+export function formatAperture(v: unknown): string | null {
 	if (typeof v !== "number" || !Number.isFinite(v)) return null;
 	return `f/${v}`;
 }
 
-function formatFocalLength(v: unknown): string | null {
+export function formatFocalLength(v: unknown): string | null {
 	if (typeof v !== "number" || !Number.isFinite(v)) return null;
 	return `${Math.round(v)}mm`;
 }
 
-function toIso(v: unknown): string | null {
+export function toIso(v: unknown): string | null {
 	if (v instanceof Date && !Number.isNaN(v.getTime())) return v.toISOString();
 	return null;
 }
@@ -64,9 +64,9 @@ export async function extractExif(bytes: ArrayBuffer): Promise<ExifRecord> {
 
 	let output: Record<string, unknown> | undefined;
 	try {
+		// `ifd0` is always parsed as part of the TIFF block, so it isn't listed here.
 		output = await exifr.parse(bytes, {
 			tiff: true,
-			ifd0: true,
 			exif: true,
 			gps: true,
 			mergeOutput: true,

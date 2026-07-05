@@ -3,7 +3,7 @@
 const PUBLIC_API = ["/api/auth/", "/api/health"];
 
 export default defineEventHandler(async (event) => {
-	const path = event.path.split("?")[0];
+	const path = event.path.split("?")[0] ?? event.path;
 	if (!path.startsWith("/api/")) return;
 	if (PUBLIC_API.some((p) => path === p || path.startsWith(p))) return;
 

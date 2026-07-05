@@ -1,11 +1,26 @@
 import type { H3Event } from "h3";
 
 /**
+ * The Worker env: wrangler-generated bindings (`Env`) plus the app secrets
+ * injected at runtime (`.dev.vars` locally, `wrangler secret put` in prod).
+ * Declared explicitly here rather than via ambient `interface Env` merging,
+ * which vue-tsc doesn't apply across files under Nuxt's server tsconfig.
+ */
+export interface AppEnv extends Env {
+	/** The single owner's login passphrase. */
+	APP_PASSPHRASE: string;
+	/** HMAC key used to sign session cookies. */
+	SESSION_SECRET: string;
+}
+
+/**
  * Cloudflare Worker bindings (D1, R2, Images) for the current request.
  * In dev these are provided by nitro-cloudflare-dev via miniflare.
  */
-export function cf(event: H3Event): Env {
-	const env = (event.context.cloudflare as { env?: Env } | undefined)?.env;
+export function cf(event: H3Event): AppEnv {
+	const env = (
+		event.context.cloudflare as unknown as { env?: AppEnv } | undefined
+	)?.env;
 	if (!env) {
 		throw createError({
 			statusCode: 500,

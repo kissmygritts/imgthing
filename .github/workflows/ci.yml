@@ -22,5 +22,11 @@ jobs:
       - name: Lint & format check
         run: npx biome ci
 
+      - name: Unit tests
+        run: npm run test:unit
+
+      - name: Integration tests
+        run: npm run test:integration
+
       - name: Typecheck
         run: npm run typecheck

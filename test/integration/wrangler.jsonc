@@ -1,0 +1,40 @@
+{
+	// Test-only Worker config for @cloudflare/vitest-pool-workers. Points at the
+	// built nitro output and declares the bindings the API routes touch. Secrets
+	// are injected as plain vars here (the real ones come from .dev.vars / secrets).
+	"$schema": "../../node_modules/wrangler/config-schema.json",
+	"name": "imgthing-test",
+	"main": "../../.output/server/index.mjs",
+	"compatibility_date": "2026-06-30",
+	"compatibility_flags": ["nodejs_compat"],
+
+	"assets": {
+		"binding": "ASSETS",
+		"directory": "../../.output/public"
+	},
+
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "imgthing-test",
+			"database_id": "test",
+			"migrations_dir": "../../server/db/migrations"
+		}
+	],
+
+	"r2_buckets": [
+		{
+			"binding": "BUCKET",
+			"bucket_name": "imgthing-test-photos"
+		}
+	],
+
+	"images": {
+		"binding": "IMAGES"
+	},
+
+	"vars": {
+		"APP_PASSPHRASE": "test-pass",
+		"SESSION_SECRET": "test-secret-000000000000000000000000000000000000000000000000000000"
+	}
+}

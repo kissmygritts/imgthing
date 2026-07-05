@@ -1,12 +1,5 @@
-// App secrets (from .dev.vars in dev, `wrangler secret put` in prod), merged
-// into the generated Cloudflare `Env` interface so `cf(event)` types them.
-export {};
-
-declare global {
-	interface Env {
-		/** The single owner's login passphrase. */
-		APP_PASSPHRASE: string;
-		/** HMAC key used to sign session cookies. */
-		SESSION_SECRET: string;
-	}
-}
+// Pull the wrangler-generated binding types (Env, D1Database, R2Bucket,
+// ImagesBinding, ...) into the server compilation. Nuxt's server tsconfig only
+// includes `server/**/*`, so this root-level file needs an explicit reference
+// for those globals to resolve in server routes/utils.
+/// <reference path="../../worker-configuration.d.ts" />

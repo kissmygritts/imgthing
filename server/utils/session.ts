@@ -16,7 +16,7 @@ function b64urlFromBytes(bytes: ArrayBuffer | Uint8Array): string {
 	return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-function bytesFromB64url(str: string): Uint8Array {
+function bytesFromB64url(str: string): Uint8Array<ArrayBuffer> {
 	const bin = atob(str.replace(/-/g, "+").replace(/_/g, "/"));
 	const out = new Uint8Array(bin.length);
 	for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
@@ -52,14 +52,16 @@ async function verifyToken(
 ): Promise<SessionPayload | null> {
 	const [data, sig] = token.split(".");
 	if (!data || !sig) return null;
-	const ok = await crypto.subtle.verify(
-		"HMAC",
-		await hmacKey(secret),
-		bytesFromB64url(sig),
-		encoder.encode(data),
-	);
-	if (!ok) return null;
+	// A malformed cookie must read as "not logged in", never crash — bytesFromB64url
+	// (atob) and JSON.parse both throw on garbage input.
 	try {
+		const ok = await crypto.subtle.verify(
+			"HMAC",
+			await hmacKey(secret),
+			bytesFromB64url(sig),
+			encoder.encode(data),
+		);
+		if (!ok) return null;
 		const payload = JSON.parse(
 			new TextDecoder().decode(bytesFromB64url(data)),
 		) as SessionPayload;
@@ -78,7 +80,7 @@ export function timingSafeEqual(a: string, b: string): boolean {
 	// Always compare a fixed number of bytes to avoid leaking length.
 	let mismatch = ab.length ^ bb.length;
 	for (let i = 0; i < ab.length; i++) {
-		mismatch |= ab[i] ^ (bb[i] ?? 0);
+		mismatch |= (ab[i] ?? 0) ^ (bb[i] ?? 0);
 	}
 	return mismatch === 0;
 }
