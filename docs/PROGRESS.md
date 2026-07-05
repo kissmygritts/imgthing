@@ -48,7 +48,23 @@ zero Node deps, ~27 kB gzip in the Worker bundle).
 - Verified end-to-end in dev: login → upload → R2 stored → D1 row → list → raw serve returns
   byte-identical original; EXIF-bearing JPEG populates camera_make/model/iso/aperture/exposure.
 
-## Milestones 4–8 · ⚪ not started
+## Milestone 4 — Folder Management · ✅ done
 
-**Next: M4 Folder Management** (CRUD, nesting, move-between-folders). Then Gallery · Viewer ·
-Search/Polish · Hardening.
+Photos belong to **many** folders (many-to-many), folders nest into a tree.
+
+- Migration `0002_folder_photos.sql` — `folder_photos` junction (cascading FKs); migrates and
+  drops the old single `photos.folder_id`.
+- `server/utils/folders.ts` — `wouldCycle()` (re-parent guard) + `requireFolder()` (404 helper).
+- Routes: `GET/POST /api/folders`, `PATCH/DELETE /api/folders/[id]` (rename/move with cycle guard;
+  delete cascades subfolders, photos survive), `POST /api/folders/[id]/photos` (add, body),
+  `DELETE /api/folders/[id]/photos?photoIds=` (remove — query, not body: DELETE-with-body hangs
+  under the Workers runtime). `GET /api/photos?folderId=<id|none>` filters; each row carries
+  `folder_ids` (GROUP_CONCAT) for the membership UI.
+- UI: `app/components/FolderTree.vue` (recursive, expand/collapse, per-folder menu) + sidebar with
+  All / Uncategorized; create/rename/delete via Dialog; per-photo dropdown with folder checkboxes.
+- Tests: `test/integration/folders.test.ts` (6 cases — create/nest/rename, cycle guard,
+  add/remove + filter, cascade delete keeps photos, 404). Verified end-to-end in dev.
+
+## Milestones 5–8 · ⚪ not started
+
+Next: Gallery · Viewer · Search/Polish · Hardening.
