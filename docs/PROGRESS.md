@@ -8,6 +8,29 @@ The next sprint is about making it **real and safe to run** — it has never bee
 single passphrase on the open internet, and photo deletes are currently irreversible. Ranked by
 risk × value.
 
+## Shipped this sprint (autonomous S1–S6)
+
+Driven unattended by [next-sprint-autonomous.md](./plans/next-sprint-autonomous.md). All six tasks
+landed with the gate green (`check` + `typecheck` + `test:all`; integration suite now 63 tests).
+
+- **S1 — Soft delete / trash** (`139da58`): `photos.deleted_at` tombstone (migration `0005`),
+  `DELETE /api/photos/[id]` now soft-deletes, `POST …/restore`, `?purge=1` + `DELETE /api/photos/trash`
+  for permanent removal via shared `purgePhotos` helper; all listings + geo exclude tombstones; Trash
+  sidebar view with Restore / Delete-forever / Empty-trash.
+- **S2 — Batch delete** (`ecf3a49`): collection-level `DELETE /api/photos?ids=` single-D1-write soft
+  delete (+ `?purge=1`); `bulkDelete` is now one request instead of N.
+- **S3 — Camera & lens filters** (`1d27aeb`): `GET /api/cameras` + `/api/lenses` facets (live-only
+  counts), `camera`/`lens` params in `buildFilter` (AND-combine), Cameras/Lenses sidebar groups.
+- **S4 — Upload limits** (`981cf9b`): 25 MB/file, 50 files, 200 MB batch caps; early `content-length`
+  413; partial-batch `rejected[]` reporting.
+- **S5 — Test coverage audit** (`469301c`): full route audit (no bugs found); closed real gaps
+  (cameras/lenses/trash auth guards, folder 404s).
+- **S6 — Mobile / responsive pass** (`44dab60`): icon-only action bar on phones, phone-friendly
+  viewer drawer, offcanvas sidebar closes on nav select, `SidebarEntry` menu gated to `#menu` slot.
+
+**Still open from the list below:** deploy/provision (P0), login brute-force protection (P0),
+backups (P1), bulk download/export (P2) — intentionally out of this autonomous sprint's scope.
+
 ## Next sprint
 
 ### P0 — Ship it
