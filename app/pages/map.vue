@@ -16,8 +16,8 @@ const { tags, toggleFavorite, deletePhoto, attachTag, detachTag } =
 const colorMode = useColorMode();
 const mapStyle = computed(() =>
 	colorMode.value === "dark"
-		? "https://tiles.openfreemap.org/styles/dark"
-		: "https://tiles.openfreemap.org/styles/liberty",
+		? "https://tiles.openfreemap.org/styles/fiord"
+		: "https://tiles.openfreemap.org/styles/positron",
 );
 
 const photos = ref<Photo[]>([]);
@@ -66,19 +66,11 @@ async function renderMarkers(): Promise<void> {
 			openViewer(i);
 		});
 
-		// Popup shows the filename on hover — a light touch over the thumb pin.
-		const popup = new maplibregl.Popup({
-			offset: 28,
-			closeButton: false,
-			closeOnClick: false,
-		}).setText(photo.original_filename);
-
+		// No hover popup — the cursor change signals it's clickable; click opens
+		// the full details in the viewer.
 		const marker = new maplibregl.Marker({ element: el })
 			.setLngLat([lng, lat])
-			.setPopup(popup)
 			.addTo(map as import("maplibre-gl").Map);
-		el.addEventListener("mouseenter", () => marker.togglePopup());
-		el.addEventListener("mouseleave", () => popup.remove());
 
 		markers.push(marker);
 		bounds.extend([lng, lat]);
@@ -113,7 +105,6 @@ onMounted(async () => {
 	watch(mapStyle, (style) => {
 		map?.setStyle(style);
 	});
-	map.addControl(new maplibregl.NavigationControl({ showCompass: false }));
 	map.on("load", () => {
 		renderMarkers();
 	});
