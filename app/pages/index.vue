@@ -276,7 +276,7 @@ async function onViewerDelete(id: string) {
 					:class="
 						selectMode
 							? 'border-primary/40 bg-primary/15 text-accent-foreground'
-							: 'border-white/70 bg-white/55 text-muted-foreground hover:text-foreground'
+							: 'border-white/70 dark:border-white/12 bg-white/55 dark:bg-white/12 text-muted-foreground hover:text-foreground'
 					"
 					@click="selectMode ? exitSelect() : (selectMode = true)"
 				>
@@ -287,7 +287,7 @@ async function onViewerDelete(id: string) {
 				<DropdownMenu>
 					<DropdownMenuTrigger as-child>
 						<button
-							class="flex items-center gap-2 rounded-full border border-white/70 bg-white/55 px-4 py-2 text-xs font-semibold text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] transition-colors hover:text-foreground"
+							class="flex items-center gap-2 rounded-full border border-white/70 dark:border-white/12 bg-white/55 dark:bg-white/12 px-4 py-2 text-xs font-semibold text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] transition-colors hover:text-foreground"
 						>
 							{{ sortLabels[sortMode] }}
 							<ChevronDown class="size-3 opacity-70" />
@@ -337,7 +337,7 @@ async function onViewerDelete(id: string) {
 					:class="
 						isSelected(photo.id)
 							? 'border-primary bg-primary text-primary-foreground'
-							: 'border-white/80 bg-white/50 text-transparent backdrop-blur'
+							: 'border-white/80 dark:border-white/15 bg-white/50 dark:bg-white/10 text-transparent backdrop-blur'
 					"
 					:title="isSelected(photo.id) ? 'Deselect' : 'Select'"
 					@click.stop="toggleSelect(i, $event)"
@@ -348,7 +348,7 @@ async function onViewerDelete(id: string) {
 				<!-- favorite heart — always shown when hearted, else on hover -->
 				<button
 					v-if="!selectMode"
-					class="absolute left-2 top-2 z-10 flex size-7 items-center justify-center rounded-full border border-white/70 bg-white/40 backdrop-blur transition hover:bg-white/60"
+					class="absolute left-2 top-2 z-10 flex size-7 items-center justify-center rounded-full border border-white/70 dark:border-white/12 bg-white/40 dark:bg-white/8 backdrop-blur transition hover:bg-white/60 dark:hover:bg-white/15"
 					:class="
 						photo.is_favorite
 							? 'text-rose-500 opacity-100'
@@ -380,7 +380,7 @@ async function onViewerDelete(id: string) {
 				<DropdownMenu v-if="!selectMode">
 					<DropdownMenuTrigger as-child>
 						<button
-							class="absolute right-2 top-2 z-10 flex size-7 items-center justify-center rounded-full border border-white/70 bg-white/40 text-white opacity-0 backdrop-blur transition hover:bg-white/60 group-hover:opacity-100 data-[state=open]:opacity-100"
+							class="absolute right-2 top-2 z-10 flex size-7 items-center justify-center rounded-full border border-white/70 dark:border-white/12 bg-white/40 dark:bg-white/8 text-white opacity-0 backdrop-blur transition hover:bg-white/60 dark:hover:bg-white/15 group-hover:opacity-100 data-[state=open]:opacity-100"
 							title="Add to folder"
 						>
 							<MoreVertical class="size-4" />
@@ -486,7 +486,7 @@ async function onViewerDelete(id: string) {
 				<DropdownMenu>
 					<DropdownMenuTrigger as-child>
 						<button
-							class="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-white/50"
+							class="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-white/50 dark:hover:bg-white/10"
 						>
 							<FolderPlus class="size-4" />Add to
 						</button>
@@ -513,7 +513,7 @@ async function onViewerDelete(id: string) {
 				<DropdownMenu>
 					<DropdownMenuTrigger as-child>
 						<button
-							class="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-white/50"
+							class="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-white/50 dark:hover:bg-white/10"
 						>
 							<FolderMinus class="size-4" />Remove from
 						</button>
@@ -544,7 +544,7 @@ async function onViewerDelete(id: string) {
 				</button>
 
 				<button
-					class="ml-0.5 flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-white/50 hover:text-foreground"
+					class="ml-0.5 flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-white/50 dark:hover:bg-white/10 hover:text-foreground"
 					title="Clear selection"
 					@click="exitSelect"
 				>

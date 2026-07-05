@@ -84,7 +84,7 @@ const {
 
 			<!-- Search (root-plane field) -->
 			<div
-				class="flex items-center gap-2 rounded-xl border border-white/60 bg-white/35 px-3 py-2 transition-colors focus-within:border-primary/40 focus-within:bg-white/60"
+				class="flex items-center gap-2 rounded-xl border border-white/60 dark:border-white/12 bg-white/35 dark:bg-white/8 px-3 py-2 transition-colors focus-within:border-primary/40 focus-within:bg-white/60 dark:focus-within:bg-white/15"
 			>
 				<Search class="size-4 shrink-0 text-muted-foreground" />
 				<input
@@ -209,6 +209,9 @@ const {
 		</SidebarContent>
 
 		<SidebarFooter>
+			<div class="px-1 pb-1">
+				<ThemeToggle />
+			</div>
 			<SidebarMenu>
 				<SidebarMenuItem>
 					<DropdownMenu>

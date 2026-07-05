@@ -306,7 +306,7 @@ watch(
 
 				<button
 					v-if="index > 0"
-					class="absolute left-4 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 bg-white/45 text-white backdrop-blur transition hover:bg-white/70 sm:left-6"
+					class="absolute left-4 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 dark:border-white/12 bg-white/45 dark:bg-white/10 text-white backdrop-blur transition hover:bg-white/70 dark:hover:bg-white/18 sm:left-6"
 					aria-label="Previous photo"
 					@click="prev"
 				>
@@ -314,7 +314,7 @@ watch(
 				</button>
 				<button
 					v-if="index < photos.length - 1"
-					class="absolute right-4 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 bg-white/45 text-white backdrop-blur transition hover:bg-white/70 sm:right-6"
+					class="absolute right-4 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 dark:border-white/12 bg-white/45 dark:bg-white/10 text-white backdrop-blur transition hover:bg-white/70 dark:hover:bg-white/18 sm:right-6"
 					aria-label="Next photo"
 					@click="next"
 				>
@@ -324,7 +324,7 @@ watch(
 				<!-- Reopen affordance when the drawer is collapsed -->
 				<button
 					v-if="!drawerOpen"
-					class="absolute right-4 top-4 flex size-9 items-center justify-center rounded-full border border-white/70 bg-white/45 text-white backdrop-blur transition hover:bg-white/70 sm:right-6 sm:top-6"
+					class="absolute right-4 top-4 flex size-9 items-center justify-center rounded-full border border-white/70 dark:border-white/12 bg-white/45 dark:bg-white/10 text-white backdrop-blur transition hover:bg-white/70 dark:hover:bg-white/18 sm:right-6 sm:top-6"
 					aria-label="Show details"
 					@click="drawerOpen = true"
 				>
@@ -341,7 +341,7 @@ watch(
 			>
 				<aside
 					v-if="drawerOpen"
-					class="absolute inset-y-0 right-0 flex w-[min(380px,100%)] flex-col border-l border-white/40 bg-white/40 shadow-[0_0_80px_-10px_rgba(90,70,160,0.5)] backdrop-blur-xl"
+					class="absolute inset-y-0 right-0 flex w-[min(380px,100%)] flex-col border-l border-white/40 dark:border-white/8 bg-white/40 dark:bg-white/8 shadow-[0_0_80px_-10px_rgba(90,70,160,0.5)] backdrop-blur-xl"
 				>
 					<!-- Header: plate + title + actions (view ⇄ edit) -->
 					<header class="flex items-start gap-2 p-7 pb-4">
@@ -361,7 +361,7 @@ watch(
 						<div class="flex shrink-0 items-center gap-1.5">
 							<button
 								v-if="mode === 'view'"
-								class="flex size-8 items-center justify-center rounded-full border border-white/85 bg-white/55 backdrop-blur transition hover:bg-white/85"
+								class="flex size-8 items-center justify-center rounded-full border border-white/85 dark:border-white/15 bg-white/55 dark:bg-white/12 backdrop-blur transition hover:bg-white/85 dark:hover:bg-white/20"
 								:class="
 									photo.is_favorite
 										? 'text-rose-500'
@@ -376,7 +376,7 @@ watch(
 							</button>
 							<button
 								v-if="mode === 'view'"
-								class="flex size-8 items-center justify-center rounded-full border border-white/85 bg-white/55 text-muted-foreground backdrop-blur transition hover:bg-white/85 hover:text-foreground"
+								class="flex size-8 items-center justify-center rounded-full border border-white/85 dark:border-white/15 bg-white/55 dark:bg-white/12 text-muted-foreground backdrop-blur transition hover:bg-white/85 dark:hover:bg-white/20 hover:text-foreground"
 								aria-label="Edit details"
 								@click="startEdit"
 							>
@@ -384,21 +384,21 @@ watch(
 							</button>
 							<button
 								v-if="mode === 'view'"
-								class="flex size-8 items-center justify-center rounded-full border border-white/85 bg-white/55 text-muted-foreground backdrop-blur transition hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
+								class="flex size-8 items-center justify-center rounded-full border border-white/85 dark:border-white/15 bg-white/55 dark:bg-white/12 text-muted-foreground backdrop-blur transition hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
 								aria-label="Delete photo"
 								@click="requestDelete"
 							>
 								<Trash2 class="size-4" />
 							</button>
 							<button
-								class="flex size-8 items-center justify-center rounded-full border border-white/85 bg-white/55 text-muted-foreground backdrop-blur transition hover:bg-white/85 hover:text-foreground"
+								class="flex size-8 items-center justify-center rounded-full border border-white/85 dark:border-white/15 bg-white/55 dark:bg-white/12 text-muted-foreground backdrop-blur transition hover:bg-white/85 dark:hover:bg-white/20 hover:text-foreground"
 								aria-label="Collapse details"
 								@click="drawerOpen = false"
 							>
 								<PanelRightClose class="size-4" />
 							</button>
 							<button
-								class="flex size-8 items-center justify-center rounded-full border border-white/85 bg-white/55 text-muted-foreground backdrop-blur transition hover:bg-white/85 hover:text-foreground"
+								class="flex size-8 items-center justify-center rounded-full border border-white/85 dark:border-white/15 bg-white/55 dark:bg-white/12 text-muted-foreground backdrop-blur transition hover:bg-white/85 dark:hover:bg-white/20 hover:text-foreground"
 								aria-label="Close photo viewer"
 								@click="emit('close')"
 							>
@@ -438,7 +438,7 @@ watch(
 									<span
 										v-for="tag in photoTags"
 										:key="tag.id"
-										class="group/tag flex items-center gap-1 rounded-full border border-white/70 bg-white/55 py-1 pl-2.5 pr-1 text-[12px] font-medium text-foreground backdrop-blur"
+										class="group/tag flex items-center gap-1 rounded-full border border-white/70 dark:border-white/12 bg-white/55 dark:bg-white/12 py-1 pl-2.5 pr-1 text-[12px] font-medium text-foreground backdrop-blur"
 									>
 										{{ tag.name }}
 										<button
@@ -456,14 +456,14 @@ watch(
 										list="tag-suggestions"
 										placeholder="Add a tag"
 										aria-label="Add a tag"
-										class="h-8 flex-1 border-white/70 bg-white/50 text-[13px] backdrop-blur"
+										class="h-8 flex-1 border-white/70 dark:border-white/12 bg-white/50 dark:bg-white/10 text-[13px] backdrop-blur"
 									/>
 									<datalist id="tag-suggestions">
 										<option v-for="s in tagSuggestions" :key="s" :value="s" />
 									</datalist>
 									<button
 										type="submit"
-										class="flex size-8 shrink-0 items-center justify-center rounded-full border border-white/85 bg-white/55 text-muted-foreground backdrop-blur transition hover:bg-white/85 hover:text-foreground disabled:opacity-40"
+										class="flex size-8 shrink-0 items-center justify-center rounded-full border border-white/85 dark:border-white/15 bg-white/55 dark:bg-white/12 text-muted-foreground backdrop-blur transition hover:bg-white/85 dark:hover:bg-white/20 hover:text-foreground disabled:opacity-40"
 										:disabled="!tagDraft.trim()"
 										aria-label="Add tag"
 									>
@@ -485,7 +485,7 @@ watch(
 									:id="`edit-${f.key}`"
 									v-model="draft[f.key]"
 									:type="f.numeric ? 'number' : 'text'"
-									class="border-white/70 bg-white/50 font-mono text-[13px] backdrop-blur"
+									class="border-white/70 dark:border-white/12 bg-white/50 dark:bg-white/10 font-mono text-[13px] backdrop-blur"
 								/>
 							</div>
 						</div>
@@ -499,7 +499,7 @@ watch(
 								:href="gpsUrl"
 								target="_blank"
 								rel="noopener"
-								class="flex-1 rounded-xl border border-white/85 bg-white/50 px-3 py-2.5 text-center text-xs font-semibold text-muted-foreground transition hover:bg-white/75 hover:text-foreground"
+								class="flex-1 rounded-xl border border-white/85 dark:border-white/15 bg-white/50 dark:bg-white/10 px-3 py-2.5 text-center text-xs font-semibold text-muted-foreground transition hover:bg-white/75 dark:hover:bg-white/18 hover:text-foreground"
 							>
 								View location
 							</a>
@@ -514,7 +514,7 @@ watch(
 						</template>
 						<template v-else>
 							<button
-								class="flex-1 rounded-xl border border-white/85 bg-white/50 px-3 py-2.5 text-center text-xs font-semibold text-muted-foreground transition hover:bg-white/75 hover:text-foreground"
+								class="flex-1 rounded-xl border border-white/85 dark:border-white/15 bg-white/50 dark:bg-white/10 px-3 py-2.5 text-center text-xs font-semibold text-muted-foreground transition hover:bg-white/75 dark:hover:bg-white/18 hover:text-foreground"
 								@click="cancelEdit"
 							>
 								Cancel

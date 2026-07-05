@@ -11,6 +11,15 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 const { tags, toggleFavorite, deletePhoto, attachTag, detachTag } =
 	useLibrary();
 
+// Swap the basemap to match the app theme so the map isn't a bright slab in
+// dark mode. OpenFreeMap ships matching light/dark styles (no API key).
+const colorMode = useColorMode();
+const mapStyle = computed(() =>
+	colorMode.value === "dark"
+		? "https://tiles.openfreemap.org/styles/dark"
+		: "https://tiles.openfreemap.org/styles/liberty",
+);
+
 const photos = ref<Photo[]>([]);
 const loading = ref(true);
 const viewerIndex = ref<number | null>(null);
@@ -93,10 +102,16 @@ onMounted(async () => {
 	if (!mapEl.value) return;
 	map = new maplibregl.Map({
 		container: mapEl.value,
-		style: "https://tiles.openfreemap.org/styles/liberty",
+		style: mapStyle.value,
 		center: [0, 20],
 		zoom: 1.5,
 		attributionControl: { compact: true },
+	});
+
+	// Re-skin the basemap when the theme flips. Markers are DOM elements, not
+	// style layers, so they survive setStyle and don't need re-adding.
+	watch(mapStyle, (style) => {
+		map?.setStyle(style);
 	});
 	map.addControl(new maplibregl.NavigationControl({ showCompass: false }));
 	map.on("load", () => {
@@ -150,7 +165,7 @@ async function onViewerDelete(id: string) {
 	<!-- Full-bleed: break out of the layout's padded panel to fill the glass. -->
 	<div class="absolute inset-0">
 		<SidebarTrigger
-			class="absolute left-3 top-3 z-20 border border-white/70 bg-white/60 backdrop-blur md:hidden"
+			class="absolute left-3 top-3 z-20 border border-white/70 dark:border-white/12 bg-white/60 dark:bg-white/15 backdrop-blur md:hidden"
 		/>
 
 		<div ref="mapEl" class="size-full" />

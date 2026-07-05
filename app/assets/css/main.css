@@ -59,6 +59,7 @@
 
 :root {
 	--radius: 0.75rem;
+	color-scheme: light;
 
 	/* Bright Studio Glass — aurora canvas, iris accent, ink text.
 	 * The sidebar is a translucent "root plane" tint so the aurora shows
@@ -100,40 +101,47 @@
 }
 
 .dark {
-	--background: oklch(0.17 0.005 265);
-	--foreground: oklch(0.95 0.004 265);
-	--card: oklch(0.2 0.006 265);
-	--card-foreground: oklch(0.95 0.004 265);
-	--popover: oklch(0.2 0.006 265);
-	--popover-foreground: oklch(0.95 0.004 265);
-	--primary: oklch(0.62 0.17 255);
-	--primary-foreground: oklch(0.16 0.01 265);
-	--secondary: oklch(0.25 0.006 265);
-	--secondary-foreground: oklch(0.95 0.004 265);
-	--muted: oklch(0.25 0.006 265);
-	--muted-foreground: oklch(0.68 0.01 265);
-	--accent: oklch(0.3 0.03 255);
-	--accent-foreground: oklch(0.95 0.004 265);
-	--destructive: oklch(0.62 0.22 25);
+	color-scheme: dark;
+
+	/* Bright Studio Glass, after hours — a deep violet-charcoal studio lit by
+	 * the same iris/aurora. Neutrals carry a faint violet (hue 300) so the
+	 * chrome stays cool, and the iris accent brightens to pop against the dark.
+	 * Glass surfaces (bg-white/N chips) get their dark values inline in the
+	 * components; these tokens cover solid chrome, cards, dialogs, borders. */
+	--background: oklch(0.165 0.014 300); /* deep aubergine-charcoal */
+	--foreground: oklch(0.93 0.008 300); /* soft near-white */
+	--card: oklch(0.215 0.016 300 / 88%);
+	--card-foreground: oklch(0.93 0.008 300);
+	--popover: oklch(0.205 0.016 300);
+	--popover-foreground: oklch(0.93 0.008 300);
+	--primary: oklch(0.66 0.16 293); /* brightened iris */
+	--primary-foreground: oklch(0.16 0.02 293);
+	--secondary: oklch(0.26 0.016 300 / 60%);
+	--secondary-foreground: oklch(0.93 0.008 300);
+	--muted: oklch(0.26 0.014 300 / 55%);
+	--muted-foreground: oklch(0.71 0.02 300); /* legible ink-soft */
+	--accent: oklch(0.66 0.16 293 / 22%);
+	--accent-foreground: oklch(0.82 0.11 293);
+	--destructive: oklch(0.64 0.2 25);
 	--destructive-foreground: oklch(0.98 0 0);
-	--border: oklch(0.27 0.006 265);
-	--input: oklch(0.3 0.006 265);
-	--ring: oklch(0.62 0.17 255 / 60%);
+	--border: oklch(0.86 0.02 300 / 12%); /* light glass edge */
+	--input: oklch(0.86 0.02 300 / 16%);
+	--ring: oklch(0.66 0.16 293 / 60%);
 
-	--chart-1: oklch(0.62 0.17 255);
-	--chart-2: oklch(0.66 0.13 200);
-	--chart-3: oklch(0.68 0.15 150);
-	--chart-4: oklch(0.7 0.16 90);
-	--chart-5: oklch(0.66 0.2 20);
+	--chart-1: oklch(0.66 0.16 293); /* iris */
+	--chart-2: oklch(0.75 0.11 60); /* peach */
+	--chart-3: oklch(0.8 0.11 160); /* mint */
+	--chart-4: oklch(0.78 0.1 250); /* sky */
+	--chart-5: oklch(0.74 0.13 330); /* lilac */
 
-	--sidebar: oklch(0.19 0.006 265);
-	--sidebar-foreground: oklch(0.95 0.004 265);
-	--sidebar-primary: oklch(0.62 0.17 255);
-	--sidebar-primary-foreground: oklch(0.16 0.01 265);
-	--sidebar-accent: oklch(0.3 0.03 255);
-	--sidebar-accent-foreground: oklch(0.95 0.004 265);
-	--sidebar-border: oklch(0.27 0.006 265);
-	--sidebar-ring: oklch(0.62 0.17 255 / 60%);
+	--sidebar: oklch(0.92 0.02 300 / 6%); /* faint lightening over dark aurora */
+	--sidebar-foreground: oklch(0.82 0.015 300);
+	--sidebar-primary: oklch(0.66 0.16 293);
+	--sidebar-primary-foreground: oklch(0.16 0.02 293);
+	--sidebar-accent: oklch(0.66 0.16 293 / 22%);
+	--sidebar-accent-foreground: oklch(0.85 0.1 293);
+	--sidebar-border: oklch(1 0 0 / 10%);
+	--sidebar-ring: oklch(0.66 0.16 293 / 60%);
 }
 
 @layer base {
@@ -324,6 +332,64 @@
 	box-shadow:
 		inset 0 0 0 5px rgba(255, 255, 255, 0.78),
 		inset 0 0 0 6px rgba(255, 255, 255, 0.4);
+}
+
+/* ============================================================================
+ * Dark theme — Bright Studio Glass, after hours. The aurora goes to deep
+ * jewel tones and the floating panel becomes a dark frosted plane. Unlayered
+ * and more specific than the light rules above, so these win when `.dark` is
+ * on <html>.
+ * ========================================================================== */
+
+/* Aurora: deep iris/plum blobs, dimmed, over the near-black canvas. */
+.dark .aurora .b1 {
+	background: radial-gradient(circle, #4a2f42, transparent 70%);
+	opacity: 0.5;
+}
+.dark .aurora .b2 {
+	background: radial-gradient(circle, #3a2c6e, transparent 70%);
+	opacity: 0.8;
+}
+.dark .aurora .b3 {
+	background: radial-gradient(circle, #1e4a45, transparent 70%);
+	opacity: 0.5;
+}
+.dark .aurora .b4 {
+	background: radial-gradient(circle, #23395e, transparent 70%);
+	opacity: 0.55;
+}
+/* Swap the bright top-wash for a faint iris glow so the top doesn't blow out. */
+.dark .aurora::after {
+	background: radial-gradient(
+		ellipse at 50% 0%,
+		rgba(150, 128, 214, 0.12),
+		transparent 60%
+	);
+}
+
+/* Floating panel: dark frosted glass instead of white; deeper drop shadow,
+ * softened highlight, and a dimmer prism rim so the edge glows subtly. */
+.dark .glass-panel {
+	background: linear-gradient(
+		165deg,
+		rgba(255, 255, 255, 0.07),
+		rgba(255, 255, 255, 0.03)
+	);
+	box-shadow:
+		inset 0 1px 0 rgba(255, 255, 255, 0.1),
+		0 1px 1px rgba(0, 0, 0, 0.45),
+		0 44px 90px -32px rgba(0, 0, 0, 0.75),
+		0 20px 46px -22px rgba(50, 30, 90, 0.55);
+}
+.dark .glass-panel::before {
+	opacity: 0.22;
+}
+.dark .prism-edge {
+	opacity: 0;
+}
+.dark .group:hover > .prism-edge,
+.dark .group:focus-within > .prism-edge {
+	opacity: 0.65;
 }
 
 @media (prefers-reduced-motion: reduce) {

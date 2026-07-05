@@ -216,7 +216,7 @@ async function startUpload() {
 			<DropdownMenu>
 				<DropdownMenuTrigger as-child>
 					<button
-						class="flex items-center gap-2 rounded-full border border-white/70 bg-white/55 px-4 py-2 text-sm font-semibold text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] transition-colors hover:bg-white/70"
+						class="flex items-center gap-2 rounded-full border border-white/70 dark:border-white/12 bg-white/55 dark:bg-white/12 px-4 py-2 text-sm font-semibold text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] transition-colors hover:bg-white/70 dark:hover:bg-white/18"
 					>
 						<Folder class="size-4 text-primary" />
 						{{ targetFolderName ?? "No folder" }}
@@ -248,7 +248,7 @@ async function startUpload() {
 			:class="
 				dragging
 					? 'border-primary bg-primary/10'
-					: 'border-border bg-white/30 hover:border-primary/50 hover:bg-white/40'
+					: 'border-border bg-white/30 dark:bg-white/10 hover:border-primary/50 hover:bg-white/40 dark:hover:bg-white/8'
 			"
 			@click="fileInput?.click()"
 			@dragover.prevent="dragging = true"
@@ -303,7 +303,7 @@ async function startUpload() {
 				<li
 					v-for="item in queue"
 					:key="item.id"
-					class="flex items-center gap-3 rounded-2xl border border-white/60 bg-white/45 px-3 py-2.5"
+					class="flex items-center gap-3 rounded-2xl border border-white/60 dark:border-white/12 bg-white/45 dark:bg-white/10 px-3 py-2.5"
 				>
 					<span
 						class="flex size-9 shrink-0 items-center justify-center rounded-xl"

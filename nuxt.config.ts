@@ -7,11 +7,22 @@ export default defineNuxtConfig({
 
 	css: ["~/assets/css/main.css", "maplibre-gl/dist/maplibre-gl.css"],
 
-	modules: ["shadcn-nuxt", "nitro-cloudflare-dev"],
+	modules: ["shadcn-nuxt", "nitro-cloudflare-dev", "@nuxtjs/color-mode"],
 
 	shadcn: {
 		prefix: "",
 		componentDir: "@/components/ui",
+	},
+
+	// Toggle `.dark` on <html> to match the `dark (&:is(.dark *))` variant.
+	// The module injects an inline head script so the class is set before
+	// paint (no flash), defaults to the system preference, and persists the
+	// choice in localStorage.
+	colorMode: {
+		classSuffix: "",
+		preference: "system",
+		fallback: "light",
+		storageKey: "imgthing-color-mode",
 	},
 
 	vite: {
