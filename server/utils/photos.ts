@@ -38,7 +38,16 @@ export async function purgePhotos(
 
 	// R2 first. delete() is idempotent (no error if the key is already gone), but
 	// guard each one so a transient R2 error still lets the D1 cleanup proceed.
-	await Promise.all(rows.map((r) => bucket.delete(r.r2_key).catch(() => {})));
+	// Drop the original bytes plus every precomputed variant object.
+	const sizes = Object.keys(VARIANT_SIZES) as VariantSize[];
+	await Promise.all(
+		rows.flatMap((r) => [
+			bucket.delete(r.r2_key).catch(() => {}),
+			...sizes.map((size) =>
+				bucket.delete(variantKey(r.id, size)).catch(() => {}),
+			),
+		]),
+	);
 
 	const statements = rows.flatMap((r) => [
 		db.prepare("DELETE FROM exif_data WHERE photo_id = ?").bind(r.id),

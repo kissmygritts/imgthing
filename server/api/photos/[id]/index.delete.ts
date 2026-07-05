@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
 		// doesn't reset the timestamp, but still 404 a genuinely missing photo.
 		const row = await db
 			.prepare(
-				"UPDATE photos SET deleted_at = datetime('now') WHERE id = ? AND deleted_at IS NULL RETURNING id",
+				"UPDATE photos SET deleted_at = datetime('now'), visibility = 'private', public_token = NULL, published_at = NULL WHERE id = ? AND deleted_at IS NULL RETURNING id",
 			)
 			.bind(id)
 			.first<{ id: string }>();

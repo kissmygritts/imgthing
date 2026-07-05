@@ -44,7 +44,8 @@ export default defineEventHandler(async (event) => {
 	// RETURNING gives the actually-affected ids (unknown ids simply drop out).
 	const { results } = await db
 		.prepare(
-			`UPDATE photos SET deleted_at = datetime('now')
+			`UPDATE photos SET deleted_at = datetime('now'),
+			 visibility = 'private', public_token = NULL, published_at = NULL
 			 WHERE deleted_at IS NULL AND id IN (${placeholders})
 			 RETURNING id`,
 		)
