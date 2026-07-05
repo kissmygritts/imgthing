@@ -35,6 +35,24 @@ risk × value.
   toggle, `variant`, photo delete, `geo`, and upload-with-`folderId`. Add these before deploy so
   the migration to remote doesn't regress them silently.
 
+### P2 — Filter by equipment (Cameras / Lenses)
+
+- **Camera & lens filters.** User story: *filter images by camera, lens, or a camera+lens
+  combination.* Add "Cameras" and "Lenses" sidebar sections alongside Folders and Tags. The EXIF
+  data already exists (`exif_data.camera_model`, `lens_info` are extracted on upload and stored),
+  so **no migration and no EXIF work** — this is aggregation + filter param + sidebar UI only.
+  Cheapest item in this list relative to its value. Steps:
+  - Aggregation routes `GET /api/cameras` and `GET /api/lenses`, modeled on `tags/index.get.ts`:
+    `SELECT camera_model, COUNT(*) FROM exif_data WHERE camera_model IS NOT NULL GROUP BY …`
+    (same for `lens_info`), returning name + `photo_count`.
+  - Extend `buildFilter` in `server/api/photos/index.get.ts` with `camera` / `lens` params
+    (the `LEFT JOIN exif_data e` is already in the query — add `e.camera_model = ?` /
+    `e.lens_info = ?`). Supporting both at once gives the camera+lens combination for free.
+  - `useLibrary.ts`: keyed fetches for the two lists, `selectedCamera` / `selectedLens` state with
+    exclusive `select*` actions (clear-others-then-set, like tags), extend `currentTitle` +
+    `refreshAll`. `index.vue`: add `else if` branches in `listQuery`.
+  - `AppSidebar.vue`: two new `SidebarGroup`s reusing `<SidebarEntry>` exactly like Tags.
+
 ### P2 — Polish
 
 - **Upload limits.** `POST /api/photos` reads each file fully into an ArrayBuffer with no max size
