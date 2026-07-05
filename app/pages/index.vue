@@ -45,8 +45,10 @@ interface PhotosResponse {
 
 const {
 	folders,
+	tags,
 	selectedFolderId,
 	favoritesOnly,
+	selectedTagId,
 	search,
 	currentTitle,
 	foldersOf,
@@ -56,6 +58,8 @@ const {
 	removePhotosFromFolder,
 	deletePhoto,
 	bulkDelete,
+	attachTag,
+	detachTag,
 } = useLibrary();
 
 // ── Search + sort now drive the server query ──────────────────────────────
@@ -82,6 +86,7 @@ const listQuery = computed(() => {
 		limit: String(PAGE_SIZE),
 	};
 	if (favoritesOnly.value) query.favorite = "1";
+	else if (selectedTagId.value) query.tag = selectedTagId.value;
 	else if (selectedFolderId.value !== null)
 		query.folderId = selectedFolderId.value;
 	if (activeSearch.value) query.q = activeSearch.value;
@@ -219,6 +224,17 @@ function openViewer(i: number) {
 function onViewerFavorite(id: string) {
 	const photo = photos.value.find((p) => p.id === id);
 	if (photo) toggleFavorite(photo);
+}
+
+// Tag attach/detach from the viewer drawer — route through the composable, which
+// persists and refreshes the photo list (updating this row's tag_ids).
+function onViewerAttachTag(id: string, name: string) {
+	const photo = photos.value.find((p) => p.id === id);
+	if (photo) attachTag(photo, name);
+}
+function onViewerDetachTag(id: string, tagId: string) {
+	const photo = photos.value.find((p) => p.id === id);
+	if (photo) detachTag(photo, tagId);
 }
 
 // Delete flows through the composable (R2 + D1 + toast + list refresh). Once the
@@ -424,10 +440,13 @@ async function onViewerDelete(id: string) {
 			v-if="viewerIndex !== null"
 			:photos="photos"
 			:index="viewerIndex"
+			:all-tags="tags"
 			@update:index="viewerIndex = $event"
 			@close="viewerIndex = null"
 			@delete="onViewerDelete"
 			@favorite="onViewerFavorite"
+			@attach-tag="onViewerAttachTag"
+			@detach-tag="onViewerDetachTag"
 		/>
 
 		<!-- Contextual bulk-action bar — only present once photos are selected.

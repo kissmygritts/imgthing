@@ -2,6 +2,7 @@
 import {
 	ChevronsUpDown,
 	FolderPlus,
+	Hash,
 	Heart,
 	Images,
 	Layers,
@@ -9,6 +10,7 @@ import {
 	LogOut,
 	Search,
 	Upload,
+	X,
 } from "@lucide/vue";
 import FolderTree from "@/components/FolderTree.vue";
 import { Button } from "@/components/ui/button";
@@ -45,10 +47,14 @@ import {
 
 const {
 	folders,
+	tags,
 	selectedFolderId,
 	favoritesOnly,
+	selectedTagId,
 	selectFolder,
 	selectFavorites,
+	selectTag,
+	deleteTag,
 	expanded,
 	search,
 	toggleExpand,
@@ -176,7 +182,7 @@ async function onFilesSelected(event: Event) {
 						:folders="folders"
 						:parent-id="null"
 						:depth="0"
-						:selected-id="favoritesOnly ? null : selectedFolderId"
+						:selected-id="favoritesOnly || selectedTagId ? null : selectedFolderId"
 						:expanded="expanded"
 						@select="selectFolder($event)"
 						@action="onTreeAction"
@@ -184,6 +190,37 @@ async function onFilesSelected(event: Event) {
 					/>
 					<p v-else class="px-2 py-1 text-xs text-muted-foreground">
 						No folders yet
+					</p>
+				</SidebarGroupContent>
+			</SidebarGroup>
+
+			<SidebarGroup>
+				<SidebarGroupLabel>Tags</SidebarGroupLabel>
+				<SidebarGroupContent>
+					<SidebarMenu v-if="tags.length">
+						<SidebarMenuItem v-for="tag in tags" :key="tag.id" class="group/tag">
+							<SidebarMenuButton
+								:tooltip="tag.name"
+								:is-active="selectedTagId === tag.id"
+								@click="selectTag(tag.id)"
+							>
+								<Hash />
+								<span class="truncate">{{ tag.name }}</span>
+								<span class="ml-auto text-xs text-muted-foreground">
+									{{ tag.photo_count }}
+								</span>
+							</SidebarMenuButton>
+							<button
+								class="absolute right-1.5 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground opacity-0 transition hover:bg-destructive/15 hover:text-destructive group-hover/tag:opacity-100"
+								:aria-label="`Delete tag ${tag.name}`"
+								@click.stop="deleteTag(tag)"
+							>
+								<X class="size-3.5" />
+							</button>
+						</SidebarMenuItem>
+					</SidebarMenu>
+					<p v-else class="px-2 py-1 text-xs text-muted-foreground">
+						No tags yet
 					</p>
 				</SidebarGroupContent>
 			</SidebarGroup>

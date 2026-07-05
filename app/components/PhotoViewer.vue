@@ -8,6 +8,7 @@ import {
 	PanelRightClose,
 	PanelRightOpen,
 	Pencil,
+	Plus,
 	Trash2,
 	X,
 } from "@lucide/vue";
@@ -40,12 +41,24 @@ export interface Photo {
 	gps_latitude: number | null;
 	gps_longitude: number | null;
 	folder_ids: string | null;
+	// Comma-joined tag ids the photo carries (GROUP_CONCAT), resolved to names
+	// via the `allTags` list. Null when the photo has no tags.
+	tag_ids: string | null;
 	is_favorite: number;
+}
+
+// A tag as returned by GET /api/tags.
+export interface Tag {
+	id: string;
+	name: string;
+	photo_count?: number;
 }
 
 const props = defineProps<{
 	photos: Photo[];
 	index: number;
+	// The full tag list, for rendering chips + autocompleting the add field.
+	allTags: Tag[];
 }>();
 
 const emit = defineEmits<{
@@ -59,6 +72,10 @@ const emit = defineEmits<{
 	delete: [id: string];
 	// Emitted to toggle the favorite flag. The parent persists + refreshes.
 	favorite: [id: string];
+	// Emitted to attach a tag (by name — reused or created) to a photo.
+	"attach-tag": [id: string, name: string];
+	// Emitted to detach a tag (by id) from a photo.
+	"detach-tag": [id: string, tagId: string];
 }>();
 
 const photo = computed(() => props.photos[props.index] ?? null);
@@ -210,6 +227,42 @@ function confirmDelete() {
 	emit("delete", p.id);
 }
 
+// --- Tags ----------------------------------------------------------------
+// Resolve the photo's tag_ids against the full tag list into {id, name} chips.
+const nameById = computed(
+	() => new Map(props.allTags.map((t) => [t.id, t.name])),
+);
+const photoTags = computed(() => {
+	const p = photo.value;
+	if (!p?.tag_ids) return [];
+	return p.tag_ids
+		.split(",")
+		.map((id) => ({ id, name: nameById.value.get(id) ?? id }))
+		.sort((a, b) => a.name.localeCompare(b.name));
+});
+
+// Autocomplete options: every existing tag not already on this photo.
+const tagDraft = ref("");
+const tagSuggestions = computed(() => {
+	const attached = new Set(photoTags.value.map((t) => t.id));
+	return props.allTags.filter((t) => !attached.has(t.id)).map((t) => t.name);
+});
+
+function addTag() {
+	const p = photo.value;
+	const name = tagDraft.value.trim();
+	if (!p || !name) return;
+	// Ignore a no-op re-add of a tag already on the photo.
+	if (!photoTags.value.some((t) => t.name.toLowerCase() === name.toLowerCase()))
+		emit("attach-tag", p.id, name);
+	tagDraft.value = "";
+}
+
+function removeTag(tagId: string) {
+	const p = photo.value;
+	if (p) emit("detach-tag", p.id, tagId);
+}
+
 // Re-entering a photo while editing would show a stale draft, so drop back to
 // view mode whenever the visible photo changes.
 watch(
@@ -217,6 +270,7 @@ watch(
 	() => {
 		mode.value = "view";
 		confirmDeleteOpen.value = false;
+		tagDraft.value = "";
 	},
 );
 </script>
@@ -355,22 +409,69 @@ watch(
 
 					<!-- Body: fact list (view) or editable fields (edit) -->
 					<div class="flex-1 overflow-y-auto px-7">
-						<dl v-if="mode === 'view'" class="grid gap-3">
-							<div
-								v-for="[label, value] in facts"
-								:key="label"
-								class="border-t border-border pt-2"
-							>
-								<dt
-									class="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground"
+						<template v-if="mode === 'view'">
+							<dl class="grid gap-3">
+								<div
+									v-for="[label, value] in facts"
+									:key="label"
+									class="border-t border-border pt-2"
 								>
-									{{ label }}
-								</dt>
-								<dd class="font-mono text-[13px] text-foreground">
-									{{ value ?? "—" }}
-								</dd>
-							</div>
-						</dl>
+									<dt
+										class="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground"
+									>
+										{{ label }}
+									</dt>
+									<dd class="font-mono text-[13px] text-foreground">
+										{{ value ?? "—" }}
+									</dd>
+								</div>
+							</dl>
+
+							<!-- Tags: chips + free-form add with autocomplete -->
+							<section class="mt-4 border-t border-border pt-3">
+								<p
+									class="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground"
+								>
+									Tags
+								</p>
+								<div v-if="photoTags.length" class="mb-2.5 flex flex-wrap gap-1.5">
+									<span
+										v-for="tag in photoTags"
+										:key="tag.id"
+										class="group/tag flex items-center gap-1 rounded-full border border-white/70 bg-white/55 py-1 pl-2.5 pr-1 text-[12px] font-medium text-foreground backdrop-blur"
+									>
+										{{ tag.name }}
+										<button
+											class="flex size-4 items-center justify-center rounded-full text-muted-foreground transition hover:bg-destructive/15 hover:text-destructive"
+											:aria-label="`Remove tag ${tag.name}`"
+											@click="removeTag(tag.id)"
+										>
+											<X class="size-3" />
+										</button>
+									</span>
+								</div>
+								<form class="flex items-center gap-1.5" @submit.prevent="addTag">
+									<Input
+										v-model="tagDraft"
+										list="tag-suggestions"
+										placeholder="Add a tag"
+										aria-label="Add a tag"
+										class="h-8 flex-1 border-white/70 bg-white/50 text-[13px] backdrop-blur"
+									/>
+									<datalist id="tag-suggestions">
+										<option v-for="s in tagSuggestions" :key="s" :value="s" />
+									</datalist>
+									<button
+										type="submit"
+										class="flex size-8 shrink-0 items-center justify-center rounded-full border border-white/85 bg-white/55 text-muted-foreground backdrop-blur transition hover:bg-white/85 hover:text-foreground disabled:opacity-40"
+										:disabled="!tagDraft.trim()"
+										aria-label="Add tag"
+									>
+										<Plus class="size-4" />
+									</button>
+								</form>
+							</section>
+						</template>
 
 						<div v-else class="grid gap-3.5 pb-2">
 							<div v-for="f in editFields" :key="f.key" class="grid gap-1">

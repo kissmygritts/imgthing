@@ -1,6 +1,7 @@
 // Fully delete a photo: drop the R2 object first, then clear all D1 rows
-// (exif_data, folder_photos memberships, and the photos row itself). Resilient
-// to a missing R2 object — if the bytes are already gone we still clean up D1.
+// (exif_data, folder_photos memberships, photo_tags memberships, and the photos
+// row itself). Resilient to a missing R2 object — if the bytes are already gone
+// we still clean up D1.
 export default defineEventHandler(async (event) => {
 	const id = getRouterParam(event, "id");
 	if (!id) throw createError({ statusCode: 400, statusMessage: "Missing id" });
@@ -21,6 +22,7 @@ export default defineEventHandler(async (event) => {
 	await db.batch([
 		db.prepare("DELETE FROM exif_data WHERE photo_id = ?").bind(id),
 		db.prepare("DELETE FROM folder_photos WHERE photo_id = ?").bind(id),
+		db.prepare("DELETE FROM photo_tags WHERE photo_id = ?").bind(id),
 		db.prepare("DELETE FROM photos WHERE id = ?").bind(id),
 	]);
 

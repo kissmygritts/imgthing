@@ -1,6 +1,6 @@
 import { toast } from "vue-sonner";
 import type { FolderAction, FolderNode } from "@/components/FolderTree.vue";
-import type { Photo } from "@/components/PhotoViewer.vue";
+import type { Photo, Tag } from "@/components/PhotoViewer.vue";
 
 // Shared library state + actions, consumed by both the sidebar (chrome) and the
 // gallery page. Folder data is fetched here; photo data is fetched in the page
@@ -13,6 +13,12 @@ export function useLibrary() {
 	);
 	const folders = computed(() => foldersData.value?.folders ?? []);
 
+	// ── Tag data ─────────────────────────────────────────────────────────────
+	const { data: tagsData } = useFetch<{ tags: Tag[] }>("/api/tags", {
+		key: "tags",
+	});
+	const tags = computed(() => tagsData.value?.tags ?? []);
+
 	// null = all photos · "none" = uncategorized · otherwise a folder id
 	const selectedFolderId = useState<string | null>(
 		"library:selected",
@@ -21,21 +27,36 @@ export function useLibrary() {
 	// Favorites is an orthogonal view: when on, the gallery filters to hearted
 	// photos regardless of folder. Picking any folder view turns it back off.
 	const favoritesOnly = useState("library:favorites", () => false);
+	// Tag filter: when set, the gallery shows only photos carrying this tag id.
+	// Exclusive with the folder / favorites views (picking one clears the others).
+	const selectedTagId = useState<string | null>("library:tag", () => null);
 	const expanded = useState<Set<string>>("library:expanded", () => new Set());
 	const search = useState("library:search", () => "");
 
-	// Pick a folder view (All / Uncategorized / a folder id) and leave Favorites.
+	// Pick a folder view (All / Uncategorized / a folder id) and leave the other
+	// exclusive views (Favorites / Tag).
 	function selectFolder(id: string | null) {
 		favoritesOnly.value = false;
+		selectedTagId.value = null;
 		selectedFolderId.value = id;
 	}
 
 	function selectFavorites() {
+		selectedTagId.value = null;
 		favoritesOnly.value = true;
+	}
+
+	// Filter the gallery by a tag. Clears the folder / favorites views.
+	function selectTag(id: string) {
+		favoritesOnly.value = false;
+		selectedFolderId.value = null;
+		selectedTagId.value = id;
 	}
 
 	const currentTitle = computed(() => {
 		if (favoritesOnly.value) return "Favorites";
+		if (selectedTagId.value)
+			return `#${tags.value.find((t) => t.id === selectedTagId.value)?.name ?? "Tag"}`;
 		if (selectedFolderId.value === null) return "All photos";
 		if (selectedFolderId.value === "none") return "Uncategorized";
 		return (
@@ -51,7 +72,7 @@ export function useLibrary() {
 	}
 
 	async function refreshAll() {
-		await refreshNuxtData(["folders", "photos"]);
+		await refreshNuxtData(["folders", "photos", "tags"]);
 	}
 
 	// ── Upload ─────────────────────────────────────────────────────────────────
@@ -290,6 +311,62 @@ export function useLibrary() {
 		}
 	}
 
+	// ── Tags ─────────────────────────────────────────────────────────────────────
+	// Resolve a photo's tag_ids into {id, name} pairs via the loaded tag list.
+	function tagsOf(photo: Photo): { id: string; name: string }[] {
+		if (!photo.tag_ids) return [];
+		const byId = new Map(tags.value.map((t) => [t.id, t.name]));
+		return photo.tag_ids
+			.split(",")
+			.map((id) => ({ id, name: byId.get(id) ?? id }));
+	}
+
+	// Attach a tag by name (reused if it exists, created otherwise). Refreshes the
+	// photo list (so the row's tag_ids updates) and the tag list (counts / new tag).
+	async function attachTag(photo: Photo, name: string): Promise<void> {
+		try {
+			await $fetch(`/api/photos/${photo.id}/tags`, {
+				method: "POST",
+				body: { names: [name] },
+			});
+			await refreshNuxtData(["photos", "tags"]);
+		} catch (err) {
+			toast.error(
+				(err as { statusMessage?: string })?.statusMessage ?? "Update failed",
+			);
+		}
+	}
+
+	// Detach a tag by id. Ids ride the query string (DELETE bodies are dropped in
+	// the CF build), mirroring folder photo removal.
+	async function detachTag(photo: Photo, tagId: string): Promise<void> {
+		try {
+			await $fetch(`/api/photos/${photo.id}/tags`, {
+				method: "DELETE",
+				query: { tagIds: tagId },
+			});
+			await refreshNuxtData(["photos", "tags"]);
+		} catch (err) {
+			toast.error(
+				(err as { statusMessage?: string })?.statusMessage ?? "Update failed",
+			);
+		}
+	}
+
+	// Delete a tag entirely (its junction rows cascade). If it was the active
+	// filter, fall back to All photos.
+	async function deleteTag(tag: Tag): Promise<void> {
+		try {
+			await $fetch(`/api/tags/${tag.id}`, { method: "DELETE" });
+			if (selectedTagId.value === tag.id) selectFolder(null);
+			await refreshAll();
+		} catch (err) {
+			toast.error(
+				(err as { statusMessage?: string })?.statusMessage ?? "Delete failed",
+			);
+		}
+	}
+
 	async function logout() {
 		await $fetch("/api/auth/logout", { method: "POST" });
 		await navigateTo("/login");
@@ -297,10 +374,13 @@ export function useLibrary() {
 
 	return {
 		folders,
+		tags,
 		selectedFolderId,
 		favoritesOnly,
+		selectedTagId,
 		selectFolder,
 		selectFavorites,
+		selectTag,
 		expanded,
 		search,
 		currentTitle,
@@ -325,6 +405,11 @@ export function useLibrary() {
 		deletePhoto,
 		bulkDelete,
 		toggleFavorite,
+		// tags
+		tagsOf,
+		attachTag,
+		detachTag,
+		deleteTag,
 		logout,
 	};
 }

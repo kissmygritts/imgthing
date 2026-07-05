@@ -7,6 +7,7 @@
 //   sort      newest | oldest | name | size_desc | size_asc  (default newest)
 //   folderId  a folder id, or "none" for photos in no folder
 //   favorite  "1" to return only favorited photos
+//   tag       a tag id or (case-insensitive) tag name — only photos carrying it
 //   limit     1..200 (default 50)   offset  >= 0 (default 0)
 //
 // Response: { photos, total, limit, offset } — `total` is the full match count
@@ -68,6 +69,17 @@ function buildFilter(q: Record<string, unknown>) {
 		conditions.push("p.is_favorite = 1");
 	}
 
+	// ?tag accepts either a tag id or a tag name (case-insensitive), so the
+	// sidebar can filter by id while a URL/search can filter by a human name.
+	const tag = typeof q.tag === "string" ? q.tag.trim() : "";
+	if (tag) {
+		conditions.push(
+			`EXISTS (SELECT 1 FROM photo_tags pt JOIN tags t ON t.id = pt.tag_id
+			         WHERE pt.photo_id = p.id AND (t.id = ? OR t.name = ? COLLATE NOCASE))`,
+		);
+		binds.push(tag, tag);
+	}
+
 	const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
 	return { where, binds };
 }
@@ -103,7 +115,9 @@ export default defineEventHandler(async (event) => {
 				e.aperture, e.iso, e.focal_length, e.taken_at,
 				e.gps_latitude, e.gps_longitude,
 				(SELECT GROUP_CONCAT(fp.folder_id)
-				 FROM folder_photos fp WHERE fp.photo_id = p.id) AS folder_ids
+				 FROM folder_photos fp WHERE fp.photo_id = p.id) AS folder_ids,
+				(SELECT GROUP_CONCAT(pt.tag_id)
+				 FROM photo_tags pt WHERE pt.photo_id = p.id) AS tag_ids
 			 FROM photos p
 			 LEFT JOIN exif_data e ON e.photo_id = p.id
 			 ${where}
