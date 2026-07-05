@@ -83,8 +83,8 @@ Statuses: `todo` · `in_progress` · `done` · `blocked`. Edit in place as the l
 |----|----------------------------------------|--------|-------------|
 | T1 | Cloudflare Images variants             | done   | variant endpoint (thumb/md/lg webp); grid→thumb, viewer→lg; 19 integ tests green |
 | T2 | Photo delete                           | done   | DELETE /api/photos/[id] (R2+D1 batch); confirm dialog in viewer; 21 integ tests |
-| T3 | Server-side search + pagination        | in_progress |             |
-| T4 | Sort by image size                     | todo   |             |
+| T3 | Server-side search + pagination        | done   | buildFilter() query builder; q/from/to/sort params; {photos,total,...}; infinite scroll; 25 integ |
+| T4 | Sort by image size                     | in_progress |             |
 | T5 | Multi-select → organize into folders   | todo   |             |
 | T6 | Favorites / hearting                   | todo   |             |
 | T7 | Tags                                   | todo   |             |
