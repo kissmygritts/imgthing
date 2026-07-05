@@ -2,10 +2,12 @@
 // server/routes/ (not /api) so server/middleware/auth.ts never gates it.
 //
 // SECURITY: same uniform-404 discipline as the variant route — bad token shape
-// or no matching row both return a bare 404. GPS is opt-in: coordinates appear
-// ONLY when the owner set show_location AND the photo actually has coordinates.
-// Never select or return id/r2_key or other_data (the raw EXIF blob can itself
-// carry GPS/serials) — only the whitelisted display fields below.
+// or no matching row both return a bare 404. Returns a bare Response (via
+// publicNotFound) rather than throwing: a thrown createError renders the SPA HTML
+// shell with a 200, which would make a revoked token look alive. GPS is opt-in:
+// coordinates appear ONLY when the owner set show_location AND the photo actually
+// has coordinates. Never select or return id/r2_key or other_data (the raw EXIF
+// blob can itself carry GPS/serials) — only the whitelisted display fields below.
 const TOKEN_RE = /^[0-9a-f]{32}$/;
 
 interface MetaRow {
@@ -26,7 +28,7 @@ interface MetaRow {
 
 export default defineEventHandler(async (event) => {
 	const token = getRouterParam(event, "token") ?? "";
-	if (!TOKEN_RE.test(token)) throw createError({ statusCode: 404 });
+	if (!TOKEN_RE.test(token)) return publicNotFound();
 
 	const row = await useDB(event)
 		.prepare(
@@ -39,7 +41,7 @@ export default defineEventHandler(async (event) => {
 		)
 		.bind(token)
 		.first<MetaRow>();
-	if (!row) throw createError({ statusCode: 404 });
+	if (!row) return publicNotFound();
 
 	const gps =
 		row.show_location === 1 &&
