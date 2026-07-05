@@ -157,4 +157,14 @@ describe("cameras & lenses", () => {
 		expect(bothIds).not.toContain(p2);
 		expect(bothIds).not.toContain(p3);
 	});
+
+	it("guards the cameras aggregation behind auth (401)", async () => {
+		const res = await SELF.fetch(url("/api/cameras"));
+		expect(res.status).toBe(401);
+	});
+
+	it("guards the lenses aggregation behind auth (401)", async () => {
+		const res = await SELF.fetch(url("/api/lenses"));
+		expect(res.status).toBe(401);
+	});
 });

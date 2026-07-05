@@ -198,6 +198,25 @@ describe("folders", () => {
 		});
 		expect(res.status).toBe(404);
 	});
+
+	it("returns 404 when deleting an unknown folder", async () => {
+		const cookie = await login();
+		const res = await SELF.fetch(url("/api/folders/does-not-exist"), {
+			method: "DELETE",
+			headers: { cookie },
+		});
+		expect(res.status).toBe(404);
+	});
+
+	it("returns 404 when renaming an unknown folder", async () => {
+		const cookie = await login();
+		const res = await SELF.fetch(url("/api/folders/does-not-exist"), {
+			method: "PATCH",
+			headers: { cookie, "content-type": "application/json" },
+			body: JSON.stringify({ name: "Renamed" }),
+		});
+		expect(res.status).toBe(404);
+	});
 });
 
 function listCount(folders: Folder[], id: string): number {

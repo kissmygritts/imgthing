@@ -249,6 +249,13 @@ describe("trash: soft delete / restore / purge", () => {
 			expect(gone).toBeNull();
 		}
 	});
+
+	it("requires auth to empty the trash (401 without a session cookie)", async () => {
+		const res = await SELF.fetch(url("/api/photos/trash"), {
+			method: "DELETE",
+		});
+		expect(res.status).toBe(401);
+	});
 });
 
 describe("batch delete: DELETE /api/photos?ids=…", () => {
