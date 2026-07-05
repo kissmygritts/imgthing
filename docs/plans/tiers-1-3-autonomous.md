@@ -90,14 +90,17 @@ Statuses: `todo` · `in_progress` · `done` · `blocked`. Edit in place as the l
 | T7 | Tags                                   | todo   |             |
 | T8 | Dedicated upload page (drag-and-drop)  | todo   |             |
 | T9 | Map view (MapLibre + OpenFreeMap)      | todo   |             |
+| T10| Dark mode (initial pass)               | todo   |             |
 
 **Why this order (efficiency / dependencies):** T1–T2 are isolated Tier-1 wins with no schema
 churn. T3 rebuilds `GET /api/photos` into a real server-side query (search + paging + server sort) —
 it is the **backbone** that T4/T6/T7 all extend, so it must land before them. T4 then adds `size` as
 one more server sort option (clean extension, no rework). T5 adds a gallery selection model. T6/T7
 add schema + filters on top of the T3 query builder. T8/T9 are mostly-new standalone pages and go
-last (T9 pulls a new dependency). Sequential execution means migration numbers stay deterministic
-and no two tasks touch `index.vue` / `useLibrary.ts` / `/api/photos` at the same time.
+last (T9 pulls a new dependency). **T10 (dark mode) is dead last on purpose** — it themes every
+surface, so all surfaces (including the T8 upload page and T9 map view) must exist first, or they'd
+need re-theming afterward. Sequential execution means migration numbers stay deterministic and no
+two tasks touch `index.vue` / `useLibrary.ts` / `/api/photos` at the same time.
 
 ---
 
@@ -253,6 +256,36 @@ tiles load from OpenFreeMap (works in local dev — it's a public tile server); 
 gate green. If no photos have GPS in the local DB, verify with a seeded/geotagged test image.
 
 ---
+
+### T10 — Dark mode (initial pass)
+
+**Goal:** a working light/dark toggle. Groundwork already exists — `app/assets/css/main.css` has a
+`.dark { … }` token block (line ~102), the `@custom-variant dark (&:is(.dark *))` directive, and
+dark-specific aurora tweaks. What's missing is anything that **applies** the `.dark` class: there's
+no color-mode module, no `useColorMode`, no persistence, no toggle UI. This task wires that up and
+completes the dark token set — it is not a from-scratch redesign.
+
+- **Toggle mechanism (SSR-safe):** prefer `@nuxtjs/color-mode` (Nuxt-native — handles the SSR class,
+  system-preference default, and no flash-of-wrong-theme via its inline script; `classSuffix: ''`
+  so it toggles `.dark` to match the existing variant). Acceptable alternative: `useColorMode` from
+  `@vueuse/core` (already a dependency) — but if you use it, you **must** prevent the SSR
+  flash-of-unstyled-theme (inline head script setting the class before paint). Persist the choice
+  and honor `prefers-color-scheme` on first visit.
+- **Toggle UI:** a light/dark (and ideally "system") switch in `AppSidebar.vue`, styled with the
+  existing shadcn components and Bright Studio Glass tokens. Use a lucide sun/moon icon.
+- **Complete the token audit:** go through every custom token and surface — `--background`,
+  glass panels, `--sidebar`, prism edge, aurora blobs, borders, text/ink, muted, accents — and make
+  sure each has a correct `.dark` value so dark mode looks intentional, not just an inverted
+  background. The aurora already has dark tweaks; verify they read well. Set `color-scheme` so
+  native form controls/scrollbars match.
+- **Scope:** "initial pass" = the toggle works, persists, no flash, and every existing surface
+  (gallery, viewer, folders, favorites, tags, upload page, map) is legible and on-brand in dark. Fine
+  detail polish can come in a later design pass.
+
+**Acceptance:** toggling flips the whole app between light and dark and persists across reloads;
+first visit respects system preference; no flash-of-wrong-theme on SSR load; every surface is
+legible in both modes; gate green. Verify visually across the main routes (use the run/verify
+skill).
 
 ## How to run
 
