@@ -1,5 +1,10 @@
 <script setup lang="ts">
 import { Button } from "@/components/ui/button";
+
+async function logout() {
+	await $fetch("/api/auth/logout", { method: "POST" });
+	await navigateTo("/login");
+}
 </script>
 
 <template>
@@ -8,6 +13,6 @@ import { Button } from "@/components/ui/button";
 			<h1 class="font-sans text-4xl font-semibold tracking-tight">imgthing</h1>
 			<p class="text-muted-foreground">A personal photo library, self-hosted on Cloudflare.</p>
 		</div>
-		<Button>Get started</Button>
+		<Button variant="outline" @click="logout">Sign out</Button>
 	</main>
 </template>

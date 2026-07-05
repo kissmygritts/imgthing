@@ -19,10 +19,19 @@
 - Add `gritts.net` + Workers Custom Domain.
 - Deploy (⚠️ hold until auth — Milestone 2).
 
-## Milestone 2 — Auth · ⚪ not started
+## Milestone 2 — Auth · ✅ done
 
-Decision needed: hand-rolled single-owner login vs. Cloudflare Access.
+Hand-rolled single-owner login (see ADR 0003).
+
+- `server/utils/session.ts` — HMAC-signed cookie via Web Crypto, constant-time passphrase compare.
+- Routes: `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/session`.
+- Guards: `server/middleware/auth.ts` (401 for protected `/api/**`), `app/middleware/auth.global.ts`
+  (redirect pages to `/login`).
+- `app/pages/login.vue` passphrase form (shadcn Card/Input/Button).
+- Secrets: `APP_PASSPHRASE`, `SESSION_SECRET` in `.dev.vars` (dev) / `wrangler secret put` (prod).
+- Verified end-to-end in dev: wrong passphrase → 401, correct → signed cookie, protected API 401
+  without cookie / passes with it, page redirect to `/login` when unauthenticated.
 
 ## Milestones 3–8 · ⚪ not started
 
-Upload+EXIF · Folders · Gallery · Viewer · Search/Polish · Hardening.
+**Next: M3 Upload + Storage + EXIF.** Then Folders · Gallery · Viewer · Search/Polish · Hardening.

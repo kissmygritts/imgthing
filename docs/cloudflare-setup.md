@@ -93,29 +93,39 @@ app generate thumbnail/medium/large variants from R2 originals on the fly.
 
 ---
 
-## 5. Deploy — ⚠️ hold until auth exists
+## 5. Set production secrets (auth)
+
+Auth is built (hand-rolled single-owner login). It reads two secrets from the Worker env — in
+dev these live in `.dev.vars`; in prod you set them with `wrangler secret put`:
+
+```bash
+# Your login passphrase — pick a strong one; this is the app password.
+npx wrangler secret put APP_PASSPHRASE
+
+# HMAC key that signs session cookies — use a long random value, e.g.:
+openssl rand -hex 32   # copy the output, then:
+npx wrangler secret put SESSION_SECRET
+```
+
+- [ ] `APP_PASSPHRASE` set in prod
+- [ ] `SESSION_SECRET` set in prod (long random)
+
+---
+
+## 6. Deploy
 
 ```bash
 npm run deploy   # nuxt build && wrangler deploy
 ```
 
-This publishes to a `*.workers.dev` URL. **The app currently has no login** (Milestone 2), so
-deploying now puts an open, writable photo app on the public internet.
+Publishes to a `*.workers.dev` URL. The app is gated by the login now, so this is safe to expose.
+First visit → `/login`; enter your `APP_PASSPHRASE`.
 
-**Pick one before deploying publicly:**
-- **A)** Wait until Milestone 2 (single-owner auth) is built, then deploy. _(recommended)_
-- **B)** Deploy now but immediately put **Cloudflare Access** in front of the Worker (Zero Trust
-  → Access → Applications), gating it to your email. This also happens to be option B for auth
-  in the plan — it could replace Milestone 2 entirely.
-
-If you just want to smoke-test the deploy privately, you can deploy and then delete the worker,
-or gate it with Access first.
-
-- [ ] Decided A or B (tell me which and I'll wire auth accordingly)
+- [ ] Deployed and login works
 
 ---
 
-## 6. Domain: gritts.net
+## 7. Domain: gritts.net
 
 1. Add `gritts.net` as a zone in Cloudflare (Websites → Add a site; free plan is fine) and update
    the nameservers at your registrar.
@@ -131,5 +141,5 @@ Custom Domains work on the free DNS plan — no paid zone needed.
 
 ## After you finish
 
-Ping me and I'll pick up **Milestone 2 (auth)**. The one decision I need from you: **hand-rolled
-single-owner login vs. Cloudflare Access** (see step 5B) — Access removes most of Milestone 2.
+That's the full provisioning path. Development continues in parallel on local dev — next up is
+**Milestone 3 (upload + storage + EXIF)**.
