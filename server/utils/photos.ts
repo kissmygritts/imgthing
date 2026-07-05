@@ -1,3 +1,13 @@
+/**
+ * Mint a fresh public-share token: 16 random bytes (128 bits) hex-encoded to a
+ * 32-char string. Rotation is the revocation primitive — every publish mints a
+ * new token, so an old URL stops resolving the moment a photo is re-published.
+ */
+export function generatePublicToken(): string {
+	const bytes = crypto.getRandomValues(new Uint8Array(16));
+	return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 /** Assert a photo row exists or throw a 404. */
 export async function requirePhoto(
 	db: D1Database,
