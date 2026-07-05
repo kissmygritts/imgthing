@@ -103,7 +103,7 @@ function openViewer(i: number) {
 			<figure
 				v-for="(photo, i) in visiblePhotos"
 				:key="photo.id"
-				class="group relative aspect-[4/5] overflow-hidden rounded-[20px] shadow-[0_1px_2px_rgba(51,43,73,0.06),0_14px_30px_-16px_rgba(51,43,73,0.35)] transition-transform duration-300 hover:-translate-y-1"
+				class="group relative aspect-square overflow-hidden rounded-[20px] shadow-[0_1px_2px_rgba(51,43,73,0.06),0_14px_30px_-16px_rgba(51,43,73,0.35)] transition-transform duration-300 hover:-translate-y-1"
 			>
 				<img
 					:src="`/api/photos/${photo.id}/raw`"
