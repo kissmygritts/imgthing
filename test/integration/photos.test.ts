@@ -54,6 +54,16 @@ async function upload(
 	return (await res.json()) as UploadResponse;
 }
 
+async function createFolder(cookie: string, name: string): Promise<string> {
+	const res = await SELF.fetch(url("/api/folders"), {
+		method: "POST",
+		headers: { cookie, "content-type": "application/json" },
+		body: JSON.stringify({ name, parentFolderId: null }),
+	});
+	expect(res.status, "create folder should succeed").toBe(200);
+	return ((await res.json()) as { id: string }).id;
+}
+
 describe("photos", () => {
 	it("rejects an upload with no image files", async () => {
 		const cookie = await login();
@@ -100,6 +110,46 @@ describe("photos", () => {
 		const cookie = await login();
 		const res = await SELF.fetch(url("/api/photos/does-not-exist/raw"), {
 			headers: { cookie },
+		});
+		expect(res.status).toBe(404);
+	});
+
+	it("assigns uploads to a folder when folderId is provided", async () => {
+		const cookie = await login();
+		const folderId = await createFolder(cookie, `upload-target-${Date.now()}`);
+
+		// Upload two files straight into the folder via the multipart folderId field.
+		const png = pngBytes();
+		const form = new FormData();
+		form.append("files", new File([png], "in-a.png", { type: "image/png" }));
+		form.append("files", new File([png], "in-b.png", { type: "image/png" }));
+		form.append("folderId", folderId);
+		const res = await SELF.fetch(url("/api/photos"), {
+			method: "POST",
+			headers: { cookie },
+			body: form,
+		});
+		expect(res.status).toBe(200);
+		const { uploaded } = (await res.json()) as UploadResponse;
+		expect(uploaded).toHaveLength(2);
+		const ids = new Set(uploaded.map((u) => u.id));
+
+		// Both show up when the listing is filtered to that folder.
+		const inFolder = await list(cookie, `?folderId=${folderId}`);
+		const found = inFolder.photos.filter((p) => ids.has(p.id));
+		expect(found).toHaveLength(2);
+	});
+
+	it("rejects an upload targeting a nonexistent folder with 404", async () => {
+		const cookie = await login();
+		const png = pngBytes();
+		const form = new FormData();
+		form.append("files", new File([png], "orphan.png", { type: "image/png" }));
+		form.append("folderId", "does-not-exist");
+		const res = await SELF.fetch(url("/api/photos"), {
+			method: "POST",
+			headers: { cookie },
+			body: form,
 		});
 		expect(res.status).toBe(404);
 	});

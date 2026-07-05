@@ -6,7 +6,6 @@ import {
 	Heart,
 	Images,
 	Layers,
-	Loader2,
 	LogOut,
 	Search,
 	Upload,
@@ -58,8 +57,6 @@ const {
 	expanded,
 	search,
 	toggleExpand,
-	uploading,
-	upload,
 	openCreate,
 	onTreeAction,
 	dialogOpen,
@@ -71,19 +68,6 @@ const {
 	confirmDelete,
 	logout,
 } = useLibrary();
-
-const fileInput = ref<HTMLInputElement | null>(null);
-
-function pickFiles() {
-	fileInput.value?.click();
-}
-
-async function onFilesSelected(event: Event) {
-	const input = event.target as HTMLInputElement;
-	const files = Array.from(input.files ?? []);
-	input.value = "";
-	await upload(files);
-}
 </script>
 
 <template>
@@ -112,24 +96,13 @@ async function onFilesSelected(event: Event) {
 			</div>
 
 			<!-- Upload -->
-			<input
-				ref="fileInput"
-				type="file"
-				accept="image/*"
-				multiple
-				class="hidden"
-				@change="onFilesSelected"
-			/>
-			<button
-				type="button"
-				:disabled="uploading"
-				class="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-b from-primary to-[#5a41b8] px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary/40 transition-transform hover:-translate-y-px active:translate-y-0 disabled:opacity-70"
-				@click="pickFiles"
+			<NuxtLink
+				to="/upload"
+				class="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-b from-primary to-[#5a41b8] px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary/40 transition-transform hover:-translate-y-px active:translate-y-0"
 			>
-				<Loader2 v-if="uploading" class="size-4 animate-spin" />
-				<Upload v-else class="size-4" />
-				{{ uploading ? "Uploading…" : "Upload photos" }}
-			</button>
+				<Upload class="size-4" />
+				Upload photos
+			</NuxtLink>
 		</SidebarHeader>
 
 		<SidebarContent class="px-1">

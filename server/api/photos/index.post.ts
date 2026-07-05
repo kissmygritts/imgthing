@@ -1,9 +1,18 @@
 // Upload one or more images: original bytes stream to R2, metadata + EXIF to D1.
+// An optional `folderId` text field assigns every uploaded photo to that folder.
 export default defineEventHandler(async (event) => {
 	const parts = await readMultipartFormData(event);
 	const files = (parts ?? []).filter(
 		(p) => p.filename && p.data && (p.type ?? "").startsWith("image/"),
 	);
+
+	// Optional target folder: a non-file text part carrying an existing folder id.
+	const folderPart = (parts ?? []).find(
+		(p) => p.name === "folderId" && !p.filename,
+	);
+	const folderId = folderPart?.data
+		? new TextDecoder().decode(folderPart.data).trim()
+		: "";
 
 	if (files.length === 0) {
 		throw createError({
@@ -14,6 +23,11 @@ export default defineEventHandler(async (event) => {
 
 	const db = useDB(event);
 	const bucket = useBucket(event);
+
+	// Validate the target folder up front so we never upload bytes to R2 only to
+	// discover the folder doesn't exist (requireFolder throws a 404).
+	if (folderId) await requireFolder(db, folderId);
+
 	const uploaded: { id: string; original_filename: string }[] = [];
 
 	for (const file of files) {
@@ -71,6 +85,19 @@ export default defineEventHandler(async (event) => {
 		}
 
 		uploaded.push({ id, original_filename: file.filename ?? id });
+	}
+
+	// Assign every freshly uploaded photo to the target folder (idempotent).
+	if (folderId && uploaded.length > 0) {
+		await db.batch(
+			uploaded.map((p) =>
+				db
+					.prepare(
+						"INSERT OR IGNORE INTO folder_photos (folder_id, photo_id) VALUES (?, ?)",
+					)
+					.bind(folderId, p.id),
+			),
+		);
 	}
 
 	return { ok: true, uploaded };
