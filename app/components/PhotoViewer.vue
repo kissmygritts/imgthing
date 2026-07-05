@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { ChevronLeft, ChevronRight, Download, Info, X } from "@lucide/vue";
-import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight, Download, X } from "@lucide/vue";
 
 // Mirrors the row shape returned by GET /api/photos.
 export interface Photo {
@@ -33,7 +32,6 @@ const emit = defineEmits<{
 }>();
 
 const photo = computed(() => props.photos[props.index] ?? null);
-const showInfo = ref(true);
 
 function prev() {
 	if (props.index > 0) emit("update:index", props.index - 1);
@@ -47,44 +45,47 @@ function onKeydown(e: KeyboardEvent) {
 	if (e.key === "Escape") emit("close");
 	else if (e.key === "ArrowLeft") prev();
 	else if (e.key === "ArrowRight") next();
-	else if (e.key === "i" || e.key === "I") showInfo.value = !showInfo.value;
 }
 
-onMounted(() => window.addEventListener("keydown", onKeydown));
-onUnmounted(() => window.removeEventListener("keydown", onKeydown));
-
-function formatBytes(n: number | null): string | null {
-	if (!n) return null;
-	if (n < 1024) return `${n} B`;
-	if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-	return `${(n / (1024 * 1024)).toFixed(1)} MB`;
-}
+onMounted(() => {
+	window.addEventListener("keydown", onKeydown);
+	document.body.style.overflow = "hidden";
+});
+onUnmounted(() => {
+	window.removeEventListener("keydown", onKeydown);
+	document.body.style.overflow = "";
+});
 
 function formatDate(iso: string | null): string | null {
 	if (!iso) return null;
 	const d = new Date(iso);
-	return Number.isNaN(d.getTime()) ? null : d.toLocaleString();
+	return Number.isNaN(d.getTime())
+		? null
+		: d.toLocaleDateString(undefined, {
+				year: "numeric",
+				month: "short",
+				day: "numeric",
+			});
 }
 
-// [label, value] rows for the info panel, skipping empty values.
-const details = computed(() => {
+const plate = computed(() => String(props.index + 1).padStart(3, "0"));
+
+// [label, value] rows for the editorial fact list, in a fixed order. Missing
+// values render as an em dash so the panel keeps its instrument-panel rhythm.
+const facts = computed(() => {
 	const p = photo.value;
 	if (!p) return [];
 	const camera = [p.camera_make, p.camera_model].filter(Boolean).join(" ");
 	const rows: [string, string | null][] = [
-		["Filename", p.original_filename],
-		["Type", p.content_type],
-		["Size", formatBytes(p.file_size)],
-		["Uploaded", formatDate(p.uploaded_at)],
-		["Taken", formatDate(p.taken_at)],
 		["Camera", camera || null],
 		["Lens", p.lens_info],
-		["Exposure", p.exposure],
-		["Aperture", p.aperture],
-		["ISO", p.iso != null ? String(p.iso) : null],
 		["Focal length", p.focal_length],
+		["ISO", p.iso != null ? `ISO ${p.iso}` : null],
+		["Shutter", p.exposure],
+		["Aperture", p.aperture],
+		["Date", formatDate(p.taken_at) ?? formatDate(p.uploaded_at)],
 	];
-	return rows.filter(([, v]) => v);
+	return rows;
 });
 
 const gpsUrl = computed(() =>
@@ -98,81 +99,110 @@ const gpsUrl = computed(() =>
 	<Teleport to="body">
 		<div
 			v-if="photo"
-			class="fixed inset-0 z-50 flex bg-black/90"
-			@click.self="emit('close')"
+			class="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-8"
+			role="dialog"
+			aria-modal="true"
+			aria-label="Photo viewer"
 		>
-			<!-- Image stage -->
-			<div class="relative flex min-w-0 flex-1 items-center justify-center">
-				<img
-					:key="photo.id"
-					:src="`/api/photos/${photo.id}/raw`"
-					:alt="photo.original_filename"
-					class="max-h-full max-w-full object-contain"
-				/>
+			<!-- Blurred backdrop -->
+			<button
+				class="absolute inset-0 cursor-default bg-[rgba(60,45,80,0.28)] backdrop-blur-sm"
+				aria-label="Close photo viewer"
+				@click="emit('close')"
+			/>
 
-				<!-- Prev / next -->
-				<Button
-					v-if="index > 0"
-					variant="secondary"
-					size="icon"
-					class="absolute left-3 top-1/2 -translate-y-1/2"
-					@click="prev"
-				>
-					<ChevronLeft class="size-5" />
-				</Button>
-				<Button
-					v-if="index < photos.length - 1"
-					variant="secondary"
-					size="icon"
-					class="absolute right-3 top-1/2 -translate-y-1/2"
-					@click="next"
-				>
-					<ChevronRight class="size-5" />
-				</Button>
-
-				<!-- Top-left counter -->
-				<div class="absolute left-3 top-3 rounded bg-black/50 px-2 py-1 text-xs text-white">
-					{{ index + 1 }} / {{ photos.length }}
-				</div>
-
-				<!-- Top-right controls -->
-				<div class="absolute right-3 top-3 flex gap-2">
-					<Button variant="secondary" size="icon" title="Info (i)" @click="showInfo = !showInfo">
-						<Info class="size-4" />
-					</Button>
-					<Button variant="secondary" size="icon" title="Download" as-child>
-						<a :href="`/api/photos/${photo.id}/raw`" :download="photo.original_filename">
-							<Download class="size-4" />
-						</a>
-					</Button>
-					<Button variant="secondary" size="icon" title="Close (Esc)" @click="emit('close')">
-						<X class="size-4" />
-					</Button>
-				</div>
-			</div>
-
-			<!-- Info panel -->
-			<aside
-				v-if="showInfo"
-				class="w-72 shrink-0 overflow-y-auto border-l border-white/10 bg-background p-4 text-sm"
+			<!-- Stage -->
+			<div
+				class="glass-panel relative z-[2] grid max-h-[88vh] w-[min(1120px,100%)] overflow-hidden rounded-[28px] md:grid-cols-[1fr_320px]"
 			>
-				<h2 class="mb-3 font-medium">Details</h2>
-				<dl class="space-y-2">
-					<div v-for="[label, value] in details" :key="label" class="flex flex-col">
-						<dt class="text-xs text-muted-foreground">{{ label }}</dt>
-						<dd class="break-words">{{ value }}</dd>
-					</div>
-				</dl>
-				<a
-					v-if="gpsUrl"
-					:href="gpsUrl"
-					target="_blank"
-					rel="noopener"
-					class="mt-3 inline-block text-xs underline"
+				<!-- Image -->
+				<div class="relative flex min-h-[300px] items-center justify-center bg-black/5">
+					<img
+						:key="photo.id"
+						:src="`/api/photos/${photo.id}/raw`"
+						:alt="photo.original_filename"
+						class="max-h-[88vh] w-full object-contain md:max-h-none"
+					/>
+
+					<button
+						v-if="index > 0"
+						class="absolute left-4 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 bg-white/45 text-white backdrop-blur transition hover:bg-white/70"
+						aria-label="Previous photo"
+						@click="prev"
+					>
+						<ChevronLeft class="size-5" />
+					</button>
+					<button
+						v-if="index < photos.length - 1"
+						class="absolute right-4 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 bg-white/45 text-white backdrop-blur transition hover:bg-white/70"
+						aria-label="Next photo"
+						@click="next"
+					>
+						<ChevronRight class="size-5" />
+					</button>
+				</div>
+
+				<!-- Editorial metadata panel -->
+				<aside
+					class="relative flex flex-col overflow-y-auto bg-gradient-to-b from-white/80 to-white/55 p-7"
 				>
-					View location on map
-				</a>
-			</aside>
+					<button
+						class="absolute right-4 top-4 flex size-8 items-center justify-center rounded-full border border-white/85 bg-white/55 text-muted-foreground backdrop-blur transition hover:bg-white/85 hover:text-foreground"
+						aria-label="Close photo viewer"
+						@click="emit('close')"
+					>
+						<X class="size-4" />
+					</button>
+
+					<p
+						class="mb-3 mr-9 font-mono text-[10.5px] font-semibold tracking-[0.14em] text-primary"
+					>
+						PLATE {{ plate }} / {{ photos.length }}
+					</p>
+					<h2
+						class="mb-6 break-words font-serif text-[22px] italic leading-tight text-foreground"
+					>
+						{{ photo.original_filename }}
+					</h2>
+
+					<dl class="mb-auto grid gap-3">
+						<div
+							v-for="[label, value] in facts"
+							:key="label"
+							class="border-t border-border pt-2"
+						>
+							<dt
+								class="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground"
+							>
+								{{ label }}
+							</dt>
+							<dd class="font-mono text-[13px] text-foreground">
+								{{ value ?? "—" }}
+							</dd>
+						</div>
+					</dl>
+
+					<div class="mt-6 flex gap-2.5 border-t border-border pt-5">
+						<a
+							v-if="gpsUrl"
+							:href="gpsUrl"
+							target="_blank"
+							rel="noopener"
+							class="flex-1 rounded-xl border border-white/85 bg-white/50 px-3 py-2.5 text-center text-xs font-semibold text-muted-foreground transition hover:bg-white/75 hover:text-foreground"
+						>
+							View location
+						</a>
+						<a
+							:href="`/api/photos/${photo.id}/raw`"
+							:download="photo.original_filename"
+							class="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-b from-primary to-[#5a41b8] px-3 py-2.5 text-xs font-semibold text-white transition hover:brightness-105"
+						>
+							<Download class="size-3.5" />
+							Download
+						</a>
+					</div>
+				</aside>
+			</div>
 		</div>
 	</Teleport>
 </template>

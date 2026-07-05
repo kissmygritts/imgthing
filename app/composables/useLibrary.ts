@@ -19,6 +19,7 @@ export function useLibrary() {
 		() => null,
 	);
 	const expanded = useState<Set<string>>("library:expanded", () => new Set());
+	const search = useState("library:search", () => "");
 
 	const currentTitle = computed(() => {
 		if (selectedFolderId.value === null) return "All photos";
@@ -197,6 +198,7 @@ export function useLibrary() {
 		folders,
 		selectedFolderId,
 		expanded,
+		search,
 		currentTitle,
 		toggleExpand,
 		uploading,

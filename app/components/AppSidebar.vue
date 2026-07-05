@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import {
-	Aperture,
 	ChevronsUpDown,
 	FolderPlus,
 	Images,
 	Layers,
+	Loader2,
 	LogOut,
+	Search,
+	Upload,
 } from "@lucide/vue";
 import FolderTree from "@/components/FolderTree.vue";
 import { Button } from "@/components/ui/button";
@@ -38,14 +40,16 @@ import {
 	SidebarMenu,
 	SidebarMenuButton,
 	SidebarMenuItem,
-	SidebarRail,
 } from "@/components/ui/sidebar";
 
 const {
 	folders,
 	selectedFolderId,
 	expanded,
+	search,
 	toggleExpand,
+	uploading,
+	upload,
 	openCreate,
 	onTreeAction,
 	dialogOpen,
@@ -57,29 +61,68 @@ const {
 	confirmDelete,
 	logout,
 } = useLibrary();
+
+const fileInput = ref<HTMLInputElement | null>(null);
+
+function pickFiles() {
+	fileInput.value?.click();
+}
+
+async function onFilesSelected(event: Event) {
+	const input = event.target as HTMLInputElement;
+	const files = Array.from(input.files ?? []);
+	input.value = "";
+	await upload(files);
+}
 </script>
 
 <template>
-	<Sidebar collapsible="icon">
-		<SidebarHeader>
-			<SidebarMenu>
-				<SidebarMenuItem>
-					<SidebarMenuButton size="lg" class="cursor-default hover:bg-transparent active:bg-transparent">
-						<div
-							class="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground"
-						>
-							<Aperture class="size-4" />
-						</div>
-						<div class="grid flex-1 text-left leading-tight">
-							<span class="truncate font-semibold">imgthing</span>
-							<span class="truncate text-xs text-muted-foreground">Photo library</span>
-						</div>
-					</SidebarMenuButton>
-				</SidebarMenuItem>
-			</SidebarMenu>
+	<Sidebar collapsible="offcanvas" class="border-none">
+		<SidebarHeader class="gap-3 px-3 pt-4">
+			<!-- Brand -->
+			<div class="flex items-center gap-2.5 px-1">
+				<span class="brand-mark size-7 shrink-0 rounded-full" aria-hidden="true" />
+				<span class="font-serif text-xl italic tracking-tight text-foreground">
+					imgthing
+				</span>
+			</div>
+
+			<!-- Search (root-plane field) -->
+			<div
+				class="flex items-center gap-2 rounded-xl border border-white/60 bg-white/35 px-3 py-2 transition-colors focus-within:border-primary/40 focus-within:bg-white/60"
+			>
+				<Search class="size-4 shrink-0 text-muted-foreground" />
+				<input
+					v-model="search"
+					type="search"
+					placeholder="Search photos"
+					aria-label="Search photos"
+					class="w-full min-w-0 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+				/>
+			</div>
+
+			<!-- Upload -->
+			<input
+				ref="fileInput"
+				type="file"
+				accept="image/*"
+				multiple
+				class="hidden"
+				@change="onFilesSelected"
+			/>
+			<button
+				type="button"
+				:disabled="uploading"
+				class="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-b from-primary to-[#5a41b8] px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary/40 transition-transform hover:-translate-y-px active:translate-y-0 disabled:opacity-70"
+				@click="pickFiles"
+			>
+				<Loader2 v-if="uploading" class="size-4 animate-spin" />
+				<Upload v-else class="size-4" />
+				{{ uploading ? "Uploading…" : "Upload photos" }}
+			</button>
 		</SidebarHeader>
 
-		<SidebarContent>
+		<SidebarContent class="px-1">
 			<SidebarGroup>
 				<SidebarGroupLabel>Library</SidebarGroupLabel>
 				<SidebarGroupContent>
@@ -108,7 +151,7 @@ const {
 				</SidebarGroupContent>
 			</SidebarGroup>
 
-			<SidebarGroup class="group-data-[collapsible=icon]:hidden">
+			<SidebarGroup>
 				<SidebarGroupLabel>Folders</SidebarGroupLabel>
 				<SidebarGroupAction title="New folder" @click="openCreate(null)">
 					<FolderPlus /> <span class="sr-only">New folder</span>
@@ -142,7 +185,7 @@ const {
 								class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
 							>
 								<div
-									class="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-accent text-sidebar-accent-foreground"
+									class="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary/15 text-primary"
 								>
 									<span class="text-xs font-medium">ME</span>
 								</div>
@@ -172,8 +215,6 @@ const {
 				</SidebarMenuItem>
 			</SidebarMenu>
 		</SidebarFooter>
-
-		<SidebarRail />
 	</Sidebar>
 
 	<!-- Create / rename dialog -->
