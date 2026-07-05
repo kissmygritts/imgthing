@@ -14,6 +14,21 @@ interface PhotoRow {
 	file_size: number;
 }
 
+interface ListResponse {
+	photos: PhotoRow[];
+	total: number;
+	limit: number;
+	offset: number;
+}
+
+async function list(cookie: string, query = ""): Promise<ListResponse> {
+	const res = await SELF.fetch(url(`/api/photos${query}`), {
+		headers: { cookie },
+	});
+	expect(res.status, "list should succeed").toBe(200);
+	return (await res.json()) as ListResponse;
+}
+
 async function upload(
 	cookie: string,
 	filename: string,
@@ -170,5 +185,93 @@ describe("photos", () => {
 			headers: { cookie },
 		});
 		expect(res.status).toBe(404);
+	});
+});
+
+describe("photos: search / sort / range / paging", () => {
+	it("filters by filename via ?q (case-insensitive substring)", async () => {
+		const cookie = await login();
+		// Unique token so this test is isolated from other rows in the shared DB.
+		const tok = `qtok${Date.now()}`;
+		await upload(cookie, `${tok}-Alpha.png`);
+		await upload(cookie, `${tok}-Beta.png`);
+		await upload(cookie, "unrelated-Gamma.png");
+
+		const res = await list(cookie, `?q=${tok}`);
+		expect(res.total).toBe(2);
+		expect(res.photos).toHaveLength(2);
+		expect(res.photos.every((p) => p.original_filename.startsWith(tok))).toBe(
+			true,
+		);
+
+		// Case-insensitive: uppercasing the token still matches.
+		const upper = await list(cookie, `?q=${tok.toUpperCase()}-ALPHA`);
+		expect(upper.total).toBe(1);
+	});
+
+	it("sorts by name and reverses newest<->oldest server-side", async () => {
+		const cookie = await login();
+		const tok = `stok${Date.now()}`;
+		await upload(cookie, `${tok}-c.png`);
+		await upload(cookie, `${tok}-a.png`);
+		await upload(cookie, `${tok}-b.png`);
+
+		const byName = await list(cookie, `?q=${tok}&sort=name`);
+		expect(byName.photos.map((p) => p.original_filename)).toEqual([
+			`${tok}-a.png`,
+			`${tok}-b.png`,
+			`${tok}-c.png`,
+		]);
+
+		// newest is always the exact reverse of oldest for the same result set.
+		const newest = await list(cookie, `?q=${tok}&sort=newest`);
+		const oldest = await list(cookie, `?q=${tok}&sort=oldest`);
+		expect(newest.photos.map((p) => p.id)).toEqual(
+			oldest.photos.map((p) => p.id).reverse(),
+		);
+	});
+
+	it("filters by taken_at/uploaded_at date range via ?from/?to", async () => {
+		const cookie = await login();
+		const tok = `rtok${Date.now()}`;
+		await upload(cookie, `${tok}-one.png`);
+		await upload(cookie, `${tok}-two.png`);
+
+		// Wide-open past bound includes today's uploads.
+		const included = await list(cookie, `?q=${tok}&from=2000-01-01`);
+		expect(included.total).toBe(2);
+
+		// An upper bound before today excludes them.
+		const excludedTo = await list(cookie, `?q=${tok}&to=2000-01-02`);
+		expect(excludedTo.total).toBe(0);
+
+		// A future lower bound excludes them.
+		const excludedFrom = await list(cookie, `?q=${tok}&from=2999-01-01`);
+		expect(excludedFrom.total).toBe(0);
+	});
+
+	it("pages with limit/offset and reports the full total", async () => {
+		const cookie = await login();
+		const tok = `ptok${Date.now()}`;
+		await upload(cookie, `${tok}-1.png`);
+		await upload(cookie, `${tok}-2.png`);
+		await upload(cookie, `${tok}-3.png`);
+
+		const page1 = await list(cookie, `?q=${tok}&sort=name&limit=2&offset=0`);
+		expect(page1.total).toBe(3);
+		expect(page1.photos).toHaveLength(2);
+		expect(page1.photos.map((p) => p.original_filename)).toEqual([
+			`${tok}-1.png`,
+			`${tok}-2.png`,
+		]);
+
+		const page2 = await list(cookie, `?q=${tok}&sort=name&limit=2&offset=2`);
+		expect(page2.total).toBe(3);
+		expect(page2.photos).toHaveLength(1);
+		expect(page2.photos[0].original_filename).toBe(`${tok}-3.png`);
+
+		// No overlap between pages.
+		const ids = new Set(page1.photos.map((p) => p.id));
+		expect(ids.has(page2.photos[0].id)).toBe(false);
 	});
 });

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ChevronDown, ImageOff, MoreVertical } from "@lucide/vue";
+import { ChevronDown, ImageOff, Loader2, MoreVertical } from "@lucide/vue";
+import { refDebounced, useIntersectionObserver } from "@vueuse/core";
 import PhotoViewer, { type Photo } from "@/components/PhotoViewer.vue";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +14,13 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+interface PhotosResponse {
+	photos: Photo[];
+	total: number;
+	limit: number;
+	offset: number;
+}
+
 const {
 	folders,
 	selectedFolderId,
@@ -23,18 +31,7 @@ const {
 	deletePhoto,
 } = useLibrary();
 
-// Photos are the page's primary (SSR-critical) content, so fetch + await here.
-// The keyed request lets mutations elsewhere refresh it via refreshNuxtData.
-const photoQuery = computed(() =>
-	selectedFolderId.value === null ? {} : { folderId: selectedFolderId.value },
-);
-const { data } = await useFetch<{ photos: Photo[] }>("/api/photos", {
-	key: "photos",
-	query: photoQuery,
-});
-const photos = computed(() => data.value?.photos ?? []);
-
-// ── Search + sort (client-side over the fetched set) ──────────────────────
+// ── Search + sort now drive the server query ──────────────────────────────
 type SortMode = "newest" | "oldest" | "name";
 const sortMode = ref<SortMode>("newest");
 const sortLabels: Record<SortMode, string> = {
@@ -43,18 +40,69 @@ const sortLabels: Record<SortMode, string> = {
 	name: "Filename A–Z",
 };
 
-const visiblePhotos = computed(() => {
-	const q = search.value.trim().toLowerCase();
-	const list = q
-		? photos.value.filter((p) => p.original_filename.toLowerCase().includes(q))
-		: photos.value.slice();
-	list.sort((a, b) => {
-		if (sortMode.value === "name")
-			return a.original_filename.localeCompare(b.original_filename);
-		const cmp = a.uploaded_at.localeCompare(b.uploaded_at);
-		return sortMode.value === "oldest" ? cmp : -cmp;
-	});
-	return list;
+const PAGE_SIZE = 50;
+// Debounce the search box so keystrokes don't hammer the endpoint.
+const debouncedSearch = refDebounced(search, 300);
+const activeSearch = computed(() => debouncedSearch.value.trim());
+
+// The reactive query for the *first* page. Changing folder/search/sort refetches
+// from offset 0; infinite scroll then appends further pages with the same query.
+const listQuery = computed(() => {
+	const query: Record<string, string> = {
+		sort: sortMode.value,
+		limit: String(PAGE_SIZE),
+	};
+	if (selectedFolderId.value !== null) query.folderId = selectedFolderId.value;
+	if (activeSearch.value) query.q = activeSearch.value;
+	return query;
+});
+
+// Photos are the page's primary (SSR-critical) content, so fetch + await here.
+// The keyed request lets mutations elsewhere refresh page 0 via refreshNuxtData.
+const { data } = await useAsyncData(
+	"photos",
+	() =>
+		$fetch<PhotosResponse>("/api/photos", {
+			query: { ...listQuery.value, offset: 0 },
+		}),
+	{ watch: [listQuery] },
+);
+
+// Accumulated, infinite-scroll list. Whenever page 0 (re)loads — filter change or
+// a mutation refresh — reset the accumulation to it.
+const photos = ref<Photo[]>([]);
+const total = ref(0);
+watch(
+	data,
+	(d) => {
+		if (!d) return;
+		photos.value = d.photos;
+		total.value = d.total;
+	},
+	{ immediate: true },
+);
+
+const hasMore = computed(() => photos.value.length < total.value);
+const loadingMore = ref(false);
+
+async function loadMore() {
+	if (loadingMore.value || !hasMore.value) return;
+	loadingMore.value = true;
+	try {
+		const res = await $fetch<PhotosResponse>("/api/photos", {
+			query: { ...listQuery.value, offset: photos.value.length },
+		});
+		photos.value = photos.value.concat(res.photos);
+		total.value = res.total;
+	} finally {
+		loadingMore.value = false;
+	}
+}
+
+// IntersectionObserver sentinel at the end of the grid.
+const sentinel = ref<HTMLElement | null>(null);
+useIntersectionObserver(sentinel, (entries) => {
+	if (entries[0]?.isIntersecting) loadMore();
 });
 
 const viewerIndex = ref<number | null>(null);
@@ -66,12 +114,12 @@ function openViewer(i: number) {
 // list shrinks, keep the viewer on the photo that slid into this slot; clamp to
 // the last one, or close if nothing is left.
 async function onViewerDelete(id: string) {
-	const photo = visiblePhotos.value.find((p) => p.id === id);
+	const photo = photos.value.find((p) => p.id === id);
 	if (!photo) return;
 	const ok = await deletePhoto(photo);
 	if (!ok) return;
 	await nextTick();
-	const count = visiblePhotos.value.length;
+	const count = photos.value.length;
 	if (count === 0 || viewerIndex.value === null) {
 		viewerIndex.value = null;
 	} else if (viewerIndex.value > count - 1) {
@@ -90,8 +138,8 @@ async function onViewerDelete(id: string) {
 					{{ currentTitle }}
 				</h1>
 				<p class="mt-1 text-sm text-muted-foreground">
-					{{ visiblePhotos.length }} photo{{ visiblePhotos.length === 1 ? "" : "s" }}
-					<span v-if="search.trim()"> · filtered</span>
+					{{ total }} photo{{ total === 1 ? "" : "s" }}
+					<span v-if="activeSearch"> · filtered</span>
 				</p>
 			</div>
 
@@ -115,11 +163,11 @@ async function onViewerDelete(id: string) {
 		</header>
 
 		<section
-			v-if="visiblePhotos.length"
+			v-if="photos.length"
 			class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
 		>
 			<figure
-				v-for="(photo, i) in visiblePhotos"
+				v-for="(photo, i) in photos"
 				:key="photo.id"
 				class="group relative aspect-square overflow-hidden rounded-[20px] shadow-[0_1px_2px_rgba(51,43,73,0.06),0_14px_30px_-16px_rgba(51,43,73,0.35)] transition-transform duration-300 hover:-translate-y-1"
 			>
@@ -185,11 +233,11 @@ async function onViewerDelete(id: string) {
 			<ImageOff class="size-8 text-muted-foreground" />
 			<div class="space-y-1">
 				<p class="font-medium">
-					{{ search.trim() ? "No matches" : "No photos here" }}
+					{{ activeSearch ? "No matches" : "No photos here" }}
 				</p>
 				<p class="text-sm text-muted-foreground">
 					{{
-						search.trim()
+						activeSearch
 							? "Try a different search."
 							: "Upload an image or add photos to this folder."
 					}}
@@ -197,10 +245,19 @@ async function onViewerDelete(id: string) {
 			</div>
 		</section>
 
+		<!-- Infinite-scroll sentinel + loading indicator -->
+		<div
+			v-if="hasMore"
+			ref="sentinel"
+			class="flex items-center justify-center py-8 text-sm text-muted-foreground"
+		>
+			<Loader2 v-if="loadingMore" class="size-4 animate-spin" />
+		</div>
+
 		<!-- Photo viewer / lightbox -->
 		<PhotoViewer
 			v-if="viewerIndex !== null"
-			:photos="visiblePhotos"
+			:photos="photos"
 			:index="viewerIndex"
 			@update:index="viewerIndex = $event"
 			@close="viewerIndex = null"
