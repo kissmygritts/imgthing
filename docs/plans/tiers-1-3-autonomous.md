@@ -81,7 +81,7 @@ Statuses: `todo` · `in_progress` · `done` · `blocked`. Edit in place as the l
 
 | #  | Task                                   | Status | Result note |
 |----|----------------------------------------|--------|-------------|
-| T1 | Cloudflare Images variants             | todo   |             |
+| T1 | Cloudflare Images variants             | in_progress |             |
 | T2 | Photo delete                           | todo   |             |
 | T3 | Server-side search + pagination        | todo   |             |
 | T4 | Sort by image size                     | todo   |             |
