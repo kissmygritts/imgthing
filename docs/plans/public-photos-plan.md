@@ -116,7 +116,7 @@ Edit in place as the loop runs.
 | #    | Task                                          | Status | Result note |
 |------|-----------------------------------------------|--------|-------------|
 | P1   | Migration 0006 (public sharing columns)       | done   | 0006: 5 additive cols + unique token index; migration-only, no TS schema to sync |
-| P2   | Variant utility (`server/utils/variants.ts`)  | todo   |             |
+| P2   | Variant utility (`server/utils/variants.ts`)  | in_progress |        |
 | P3   | Upload generates variants                     | todo   |             |
 | P4   | Serving rewrite + publish/unpublish + public routes | todo |         |
 | P5   | Trash/delete interplay                        | todo   |             |
