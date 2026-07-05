@@ -216,7 +216,7 @@ async function startUpload() {
 			<DropdownMenu>
 				<DropdownMenuTrigger as-child>
 					<button
-						class="flex items-center gap-2 rounded-full border border-white/70 dark:border-white/12 bg-white/55 dark:bg-white/12 px-4 py-2 text-sm font-semibold text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] transition-colors hover:bg-white/70 dark:hover:bg-white/18"
+						class="flex items-center gap-2 rounded-full border border-white/70 dark:border-white/12 bg-white/55 dark:bg-white/12 px-4 py-2 text-sm font-semibold text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] transition-colors hover:bg-white/70 dark:hover:bg-white/18"
 					>
 						<Folder class="size-4 text-primary" />
 						{{ targetFolderName ?? "No folder" }}

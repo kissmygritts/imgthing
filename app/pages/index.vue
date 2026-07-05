@@ -276,7 +276,7 @@ async function onViewerDelete(id: string) {
 
 			<div class="flex items-center gap-2">
 				<button
-					class="flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] transition-colors"
+					class="flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] transition-colors"
 					:class="
 						selectMode
 							? 'border-primary/40 bg-primary/15 text-accent-foreground'
@@ -291,7 +291,7 @@ async function onViewerDelete(id: string) {
 				<DropdownMenu>
 					<DropdownMenuTrigger as-child>
 						<button
-							class="flex items-center gap-2 rounded-full border border-white/70 dark:border-white/12 bg-white/55 dark:bg-white/12 px-4 py-2 text-xs font-semibold text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] transition-colors hover:text-foreground"
+							class="flex items-center gap-2 rounded-full border border-white/70 dark:border-white/12 bg-white/55 dark:bg-white/12 px-4 py-2 text-xs font-semibold text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] transition-colors hover:text-foreground"
 						>
 							{{ sortLabels[sortMode] }}
 							<ChevronDown class="size-3 opacity-70" />
