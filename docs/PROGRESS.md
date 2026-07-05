@@ -31,6 +31,42 @@ landed with the gate green (`check` + `typecheck` + `test:all`; integration suit
 **Still open from the list below:** deploy/provision (P0), login brute-force protection (P0),
 backups (P1), bulk download/export (P2) — intentionally out of this autonomous sprint's scope.
 
+## Shipped this sprint (autonomous public-photos P1–P9, P7a)
+
+Driven unattended by [public-photos-plan.md](./plans/public-photos-plan.md), which supersedes the
+serving layer in ADR 0004. Precomputed WebP variants in R2 + tokened public/private serving with no
+new infra (no `/cdn-cgi/image/`, no purge API, no custom domain). All tasks landed with the gate
+green (`check` + `typecheck` + `test:all`; integration suite now 72 tests, 8 files). **P7b (design
+pass) is intentionally reserved for human review and was not executed.**
+
+- **P1 — Migration 0006** (`ffe1a0c`): additive `visibility`/`public_token`/`published_at`/
+  `show_location`/`variants_generated_at` columns on `photos` + unique token index.
+- **P2 — Variant utility** (`4c98119`): `server/utils/variants.ts` — sizes/keys plus
+  `generateVariants` and self-healing `getOrCreateVariant`; longest-side `scale-down` WebP q88
+  (WebP re-encode strips EXIF natively).
+- **P3 — Upload generates variants** (`3188a1c`): per-file `generateVariants` + `variants_generated_at`
+  stamp in the upload loop; non-fatal on failure (serving self-heals).
+- **P4 — Serving + sharing core** (`66cdeb7`): private variant route reads from R2; session-gated
+  publish (mints a fresh 32-hex token every call) / unpublish; unauthenticated `/p/{token}/{size}`
+  and `/p/{token}/meta` routes; uniform 404s; GPS opt-in gated behind `show_location`.
+- **P5 — Trash/delete interplay** (`5d44271`): both soft-delete handlers clear the token + visibility
+  in the same UPDATE (restore never re-publishes); `purgePhotos` also deletes the three variant objects.
+- **P8 — Public integration suite** (`cf66966`): `test/integration/public.test.ts`, all 8 scenarios
+  (auth, cookieless serving, uniform 404s, rotation, trash-unpublish, meta/GPS, self-heal, EXIF-strip).
+  Caught + fixed a real bug: `/p/**` threw `createError` which Nitro rendered as the SPA HTML shell
+  with HTTP 200 — a revoked token "looked alive"; now returns a bare 404 `Response`.
+- **P9 — Docs** (`c930b91`): deployment note in `cloudflare-setup.md` (no new infra); fixed the stale
+  "variants come in M6" comment.
+- **P7a — Functional share UI** (`e2e9941`): Share dialog in the viewer (Public switch, GPS-gated
+  "Show location" switch, md/lg copy-to-clipboard rows), globe badge on grid tiles + viewer;
+  publish/unpublish wired through `useLibrary` mirroring the favorite toggle. Taste calls left as
+  placeholders for P7b.
+
+**Reserved for human review:** **P7b — design pass** against Bright Studio Glass (badge styling +
+placement, Share dialog visual language, "toggling location rotates the link" copy, unpublish/
+re-publish warning treatment). The feature works end-to-end from a live surface; this is a taste
+judgment, not delegated.
+
 ## Next sprint
 
 ### P0 — Ship it
