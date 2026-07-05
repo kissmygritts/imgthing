@@ -91,8 +91,8 @@ Statuses: `todo` · `in_progress` · `done` · `blocked`. Edit in place as the l
 |----|----------------------------------------|--------|-------------|
 | S1 | Soft delete / trash                    | done   | 139da58 — tombstone+Trash view+restore+purge/empty-trash; geo & list exclude tombstones; trash.test.ts added |
 | S2 | Batch delete endpoint                  | done   | ecf3a49 — DELETE /api/photos single-write soft-delete (?ids=, ?purge=1); bulkDelete now one request; tests added |
-| S3 | Camera & lens filters                  | in_progress |             |
-| S4 | Upload limits                          | todo   |             |
+| S3 | Camera & lens filters                  | done   | 1d27aeb — /api/cameras + /api/lenses facets, camera/lens buildFilter (AND), sidebar groups; tests. NOTE: SidebarEntry renders empty 3-dot menu on facet rows — suppress in S6 |
+| S4 | Upload limits                          | in_progress |             |
 | S5 | Integration-test coverage audit        | todo   |             |
 | S6 | Mobile / responsive pass               | todo   |             |
 
