@@ -48,12 +48,14 @@ import {
 	SidebarMenuItem,
 	useSidebar,
 } from "@/components/ui/sidebar";
+import { humanBytes } from "@/lib/utils";
 
 const {
 	folders,
 	tags,
 	cameras,
 	lenses,
+	stats,
 	selectedFolderId,
 	favoritesOnly,
 	selectedTagId,
@@ -89,6 +91,13 @@ const {
 // /upload the nav should highlight that page instead.
 const route = useRoute();
 const onGallery = computed(() => route.path === "/");
+
+// Storage readout: "1,240 photos · 8.6 GB". Trash reclaim is shown as a hint
+// only when there's something tombstoned to reclaim.
+const storageLabel = computed(() => {
+	const n = stats.value.count;
+	return `${n.toLocaleString()} photo${n === 1 ? "" : "s"} · ${humanBytes(stats.value.totalBytes)}`;
+});
 
 // On mobile the sidebar is an offcanvas sheet. Picking a filter or following a
 // link should dismiss it so the chosen view is actually visible — otherwise the
@@ -342,6 +351,13 @@ function clearDates() {
 		</SidebarContent>
 
 		<SidebarFooter>
+			<!-- Storage-usage readout -->
+			<div class="flex flex-col gap-0.5 px-2 py-1 text-xs text-muted-foreground">
+				<span class="font-medium text-foreground/80">{{ storageLabel }}</span>
+				<span v-if="stats.trashedCount > 0">
+					{{ humanBytes(stats.trashedBytes) }} in Trash
+				</span>
+			</div>
 			<div class="px-1 pb-1">
 				<ThemeToggle />
 			</div>

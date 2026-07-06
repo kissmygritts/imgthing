@@ -40,6 +40,25 @@ export function useLibrary() {
 	);
 	const lenses = computed(() => lensesData.value?.lenses ?? []);
 
+	// ── Storage-usage stats ────────────────────────────────────────────────────
+	// Live count + summed bytes (trash excluded), plus the tombstoned figures.
+	// Refreshed via the "stats" key in refreshAll after uploads/deletes.
+	const { data: statsData } = useFetch<{
+		count: number;
+		totalBytes: number;
+		trashedCount: number;
+		trashedBytes: number;
+	}>("/api/photos/stats", { key: "stats" });
+	const stats = computed(
+		() =>
+			statsData.value ?? {
+				count: 0,
+				totalBytes: 0,
+				trashedCount: 0,
+				trashedBytes: 0,
+			},
+	);
+
 	// null = all photos · "none" = uncategorized · otherwise a folder id
 	const selectedFolderId = useState<string | null>(
 		"library:selected",
@@ -227,7 +246,14 @@ export function useLibrary() {
 	}
 
 	async function refreshAll() {
-		await refreshNuxtData(["folders", "photos", "tags", "cameras", "lenses"]);
+		await refreshNuxtData([
+			"folders",
+			"photos",
+			"tags",
+			"cameras",
+			"lenses",
+			"stats",
+		]);
 	}
 
 	// ── Upload ─────────────────────────────────────────────────────────────────
@@ -414,7 +440,7 @@ export function useLibrary() {
 	async function deletePhoto(photo: Photo): Promise<boolean> {
 		try {
 			await $fetch(`/api/photos/${photo.id}`, { method: "DELETE" });
-			await refreshNuxtData(["photos"]);
+			await refreshNuxtData(["photos", "stats"]);
 			toast.success("Moved to Trash");
 			return true;
 		} catch (err) {
@@ -435,13 +461,13 @@ export function useLibrary() {
 				method: "DELETE",
 				query: { ids: photoIds.join(",") },
 			});
-			await refreshNuxtData(["photos"]);
+			await refreshNuxtData(["photos", "stats"]);
 			toast.success(
 				`Moved ${photoIds.length} photo${photoIds.length === 1 ? "" : "s"} to Trash`,
 			);
 			return true;
 		} catch (err) {
-			await refreshNuxtData(["photos"]);
+			await refreshNuxtData(["photos", "stats"]);
 			toast.error(
 				(err as { statusMessage?: string })?.statusMessage ?? "Delete failed",
 			);
@@ -454,7 +480,7 @@ export function useLibrary() {
 	async function restorePhoto(photo: Photo): Promise<boolean> {
 		try {
 			await $fetch(`/api/photos/${photo.id}/restore`, { method: "POST" });
-			await refreshNuxtData(["photos"]);
+			await refreshNuxtData(["photos", "stats"]);
 			toast.success("Photo restored");
 			return true;
 		} catch (err) {
@@ -647,6 +673,7 @@ export function useLibrary() {
 		tags,
 		cameras,
 		lenses,
+		stats,
 		selectedFolderId,
 		favoritesOnly,
 		selectedTagId,
