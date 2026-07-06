@@ -122,8 +122,8 @@ Edit in place as the loop runs.
 | #  | Task                                          | Status | Result note |
 |----|-----------------------------------------------|--------|-------------|
 | F1 | Fix metadata editing (`PATCH` + wire `save`)  | done   | d7927d2 — PATCH endpoint (UPSERT exif, rename, 404 soft-del), `updatePhoto` + `@save` wired; 8 integ tests. Note: drawer doesn't expose `original_filename` yet (server+tests cover rename). |
-| F2 | Date / time-taken filtering                   | in_progress | |
-| F4 | Duplicate detection on upload                 | todo   | |
+| F2 | Date / time-taken filtering                   | done   | 9ead034 — `dateFrom`/`dateTo` in `buildFilter` (whole-day-inclusive end), sidebar "Date taken" group (native date inputs), `setDateRange` clears exclusive views; 4 integ tests. |
+| F4 | Duplicate detection on upload                 | in_progress | |
 | F6 | Keyboard-shortcut help overlay                | todo   | |
 | F7 | Storage-usage readout                         | todo   | |
 | F8 | **Design polish — HUMAN, loop stops here**    | hold   | Awaiting user design review; never delegate |
