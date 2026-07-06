@@ -70,6 +70,41 @@ autonomous sprints and the human design pass are now complete — the local feat
 The serving/variant architecture is now captured in
 [ADR 0005](./decisions/0005-precomputed-variants-from-r2.md) (was previously only in the plan file).
 
+## Shipped this sprint (autonomous feature-sprint F1–F7)
+
+Driven unattended by [features-sprint-autonomous.md](./plans/features-sprint-autonomous.md) — fix the
+one broken half-feature plus fill table-stakes library gaps that need no external account or product
+decision. All five functional tasks landed with the gate green (`check` + `typecheck` + `test:all`;
+integration suite now 92 tests / 13 files, unit 20 tests / 3 files). **F8 (design polish) is reserved
+for the owner** — the loop stopped there for a live-surface review.
+
+- **F1 — Fix metadata editing** (`d7927d2`): the viewer's edit drawer emitted `save` into the void —
+  no handler, no route. Added session-gated `PATCH /api/photos/[id]` (UPSERT of editable EXIF columns,
+  `iso` coerced to INTEGER, optional `original_filename` rename, `updated_at` bump), 404 on
+  missing/soft-deleted, unknown keys and `taken_at`/GPS ignored; `updatePhoto` action + `@save` wired
+  in `index.vue`. 8 integration tests.
+- **F2 — Date / time-taken filtering** (`9ead034`): `dateFrom`/`dateTo` in `buildFilter` (lexical
+  `taken_at` compare, whole-day-inclusive end) applied to COUNT + SELECT; sidebar "Date taken" group
+  with two native `<input type="date">` (no calendar dep); `setDateRange` clears other exclusive
+  views; undated photos correctly excluded from bounded ranges. 4 integration tests.
+- **F4 — Duplicate detection on upload** (`b10f708`): migration `0008` adds nullable `content_hash`
+  + index; upload computes SHA-256 of the bytes (non-fatal on failure), reports
+  `duplicateOf: { id, filename }` for a live hash match without blocking the upload; amber per-file
+  hint on the upload page. 2 integration tests. Follow-up noted: a `GET /api/photos/duplicates`
+  browse view was left unbuilt (hash + upload-time report was the must-have).
+- **F6 — Keyboard-shortcut help overlay** (`1be2893`): `?` (and a keyboard button) opens a reused
+  Dialog listing the viewer's *real* shortcuts (`←`/`→` nav, `i` details, `Esc` close, `?` help),
+  enumerated from the actual keydown handler; the overlay owns the keyboard while open so other
+  bindings stay inert.
+- **F7 — Storage-usage readout** (`c263509`): owner-only `GET /api/photos/stats` returns live
+  `count`/`totalBytes` (trash-excluded) plus separate `trashedCount`/`trashedBytes`; `humanBytes()`
+  formatter in `app/lib/utils.ts`; compact sidebar-footer readout refreshed via `"stats"` in
+  `refreshAll`. Integration + unit tests.
+
+**Reserved — F8 (design polish, HUMAN):** the new surfaces (date control, duplicate hint, keyboard
+overlay `<kbd>` styling, storage readout) are functional-but-plain out of the loop. Final visual fit
+against Bright Studio Glass (`docs/imgthing-ui.md`) is the owner's review, same split as P7a/P7b.
+
 ## Next sprint
 
 Everything the two autonomous sprints scoped (soft delete/trash, batch delete, camera/lens
