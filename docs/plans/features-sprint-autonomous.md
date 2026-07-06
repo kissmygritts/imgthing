@@ -121,7 +121,7 @@ Edit in place as the loop runs.
 
 | #  | Task                                          | Status | Result note |
 |----|-----------------------------------------------|--------|-------------|
-| F1 | Fix metadata editing (`PATCH` + wire `save`)  | todo   | |
+| F1 | Fix metadata editing (`PATCH` + wire `save`)  | in_progress | |
 | F2 | Date / time-taken filtering                   | todo   | |
 | F4 | Duplicate detection on upload                 | todo   | |
 | F6 | Keyboard-shortcut help overlay                | todo   | |
