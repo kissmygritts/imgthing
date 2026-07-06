@@ -37,7 +37,7 @@ Driven unattended by [public-photos-plan.md](./plans/public-photos-plan.md), whi
 serving layer in ADR 0004. Precomputed WebP variants in R2 + tokened public/private serving with no
 new infra (no `/cdn-cgi/image/`, no purge API, no custom domain). All tasks landed with the gate
 green (`check` + `typecheck` + `test:all`; integration suite now 72 tests, 8 files). **P7b (design
-pass) is intentionally reserved for human review and was not executed.**
+pass) has since landed by hand — see below.**
 
 - **P1 — Migration 0006** (`ffe1a0c`): additive `visibility`/`public_token`/`published_at`/
   `show_location`/`variants_generated_at` columns on `photos` + unique token index.
@@ -62,59 +62,59 @@ pass) is intentionally reserved for human review and was not executed.**
   publish/unpublish wired through `useLibrary` mirroring the favorite toggle. Taste calls left as
   placeholders for P7b.
 
-**Reserved for human review:** **P7b — design pass** against Bright Studio Glass (badge styling +
-placement, Share dialog visual language, "toggling location rotates the link" copy, unpublish/
-re-publish warning treatment). The feature works end-to-end from a live surface; this is a taste
-judgment, not delegated.
+**P7b — design pass (done, by hand 2026-07-05):** `50244f1` public badge lower-right on tiles +
+more margin on the details badge; `11e8116` merged the two share modals into one public **Share &
+embed** screen; `0f63ab8` added a cURL metadata snippet ahead of the JS embed snippet. Both
+autonomous sprints and the human design pass are now complete — the local feature set is done.
+
+The serving/variant architecture is now captured in
+[ADR 0005](./decisions/0005-precomputed-variants-from-r2.md) (was previously only in the plan file).
 
 ## Next sprint
 
-### P0 — Ship it
+Everything the two autonomous sprints scoped (soft delete/trash, batch delete, camera/lens
+filters, upload limits, test coverage, mobile pass, and the whole public-photos feature) has
+**shipped**. What remains is the deploy-and-harden work those sprints deliberately excluded.
+Re-ranked against current reality (2026-07-05):
 
-- **Provision + deploy.** `database_id` is still `REPLACE_WITH_D1_DATABASE_ID`. Create remote D1/R2,
-  enable Cloudflare Images, apply remote migrations, set secrets (`APP_PASSPHRASE`, `SESSION_SECRET`),
-  first `wrangler deploy`, add `gritts.net` + Workers Custom Domain. See
-  [cloudflare-setup.md](./cloudflare-setup.md). Nothing else in this list matters until this lands.
-- **Login brute-force protection.** `POST /api/auth/login` compares the passphrase with no rate
-  limit or lockout — once public it's an open guessing target. Add per-IP throttling (KV or D1
-  counter + backoff) before or immediately alongside deploy.
+### P0 — Ship it (blocks everything; needs the owner's Cloudflare account)
+
+- **Provision + deploy.** `database_id` is still `REPLACE_WITH_D1_DATABASE_ID` (confirmed in
+  `wrangler.jsonc`) — the app has never run outside local dev. Create remote D1/R2, enable
+  Cloudflare Images, apply remote migrations, set secrets (`APP_PASSPHRASE`, `SESSION_SECRET`),
+  first `wrangler deploy`. A custom domain is **no longer required** — ADR 0005's variants-from-R2
+  serving works on `workers.dev` (this is the big change since the deploy note was first written).
+  See [cloudflare-setup.md](./cloudflare-setup.md). **This needs the owner** — it can't be done
+  autonomously without the Cloudflare account.
+
+### P0 — Login brute-force protection (the one shippable-now security gap)
+
+- `POST /api/auth/login` (`server/api/auth/login.post.ts`) does a single `timingSafeEqual` with
+  **no rate limit or lockout** — once public it's an open guessing target for the single
+  passphrase. Add per-IP throttling. **No KV binding is configured**, so use a D1 counter table
+  keyed by `CF-Connecting-IP` with exponential backoff + lockout, cleared on success. This is the
+  highest-value item that does **not** need the owner's account, so it's the natural next build.
 
 ### P1 — Don't lose photos
 
-- **Soft delete / trash.** `DELETE /api/photos/[id]` hard-deletes the R2 object + D1 rows with no
-  recovery — the worst failure mode for a photo library. Move to a `deleted_at` tombstone + a Trash
-  view + restore, purge R2 on empty-trash only.
-- **Batch delete endpoint.** Bulk delete currently fires N parallel per-photo DELETEs (best-effort,
-  partial failure leaves mixed state). Add one `DELETE /api/photos` taking `ids`, single D1 batch.
-- **Backups.** Enable D1 Time Travel + R2 object versioning; sketch an export-everything job.
+- **Backups.** The only unaddressed durability item. Enable D1 Time Travel + R2 object versioning
+  at provision time (config/ops, not code), and sketch an export-everything job (pairs with bulk
+  export below). Soft-delete/trash already covers accidental deletion.
 
-### P1 — Cover the untested endpoints
+### P2 — Rounding out the media library
 
-- Integration tests exist for auth/folders/photos/tags but **not** for the newer routes: favorite
-  toggle, `variant`, photo delete, `geo`, and upload-with-`folderId`. Add these before deploy so
-  the migration to remote doesn't regress them silently.
+- **Bulk download / export.** Select N → download a zip; also the "export everything" escape hatch
+  (no lock-in, doubles as a backup). Highest-value net-new feature for a media library — users
+  expect to get their originals back out. Needs streaming-zip in a Worker (watch memory; stream
+  from R2, don't buffer).
+- **Keyboard-shortcut help overlay** for the viewer (arrow-key nav already exists; document it).
+- **Date / time-taken filtering** — `exif_data.taken_at` is already stored; a date-range facet or
+  a timeline scrubber is cheap relative to value (mirror the camera/lens facet pattern).
+- **Album/folder-level publishing** — publish a whole folder as a public gallery (extends the
+  per-photo token model to a folder token). Explicitly deferred in ADR 0005; revisit if wanted.
 
-### P2 — Filter by equipment (Cameras / Lenses)
+### Done since this list was first written (for the record)
 
-- **Camera & lens filters.** User story: *filter images by camera, lens, or a camera+lens
-  combination.* Add "Cameras" and "Lenses" sidebar sections alongside Folders and Tags. The EXIF
-  data already exists (`exif_data.camera_model`, `lens_info` are extracted on upload and stored),
-  so **no migration and no EXIF work** — this is aggregation + filter param + sidebar UI only.
-  Cheapest item in this list relative to its value. Steps:
-  - Aggregation routes `GET /api/cameras` and `GET /api/lenses`, modeled on `tags/index.get.ts`:
-    `SELECT camera_model, COUNT(*) FROM exif_data WHERE camera_model IS NOT NULL GROUP BY …`
-    (same for `lens_info`), returning name + `photo_count`.
-  - Extend `buildFilter` in `server/api/photos/index.get.ts` with `camera` / `lens` params
-    (the `LEFT JOIN exif_data e` is already in the query — add `e.camera_model = ?` /
-    `e.lens_info = ?`). Supporting both at once gives the camera+lens combination for free.
-  - `useLibrary.ts`: keyed fetches for the two lists, `selectedCamera` / `selectedLens` state with
-    exclusive `select*` actions (clear-others-then-set, like tags), extend `currentTitle` +
-    `refreshAll`. `index.vue`: add `else if` branches in `listQuery`.
-  - `AppSidebar.vue`: two new `SidebarGroup`s reusing `<SidebarEntry>` exactly like Tags.
-
-### P2 — Polish
-
-- **Upload limits.** `POST /api/photos` reads each file fully into an ArrayBuffer with no max size
-  or count guard — a large batch can pressure Worker memory. Add per-file size + batch-count caps.
-- **Bulk download / export.** Select N → download a zip; pairs with the export-everything job.
-- **Mobile / responsive pass** and a keyboard-shortcut help overlay for the viewer.
+Soft delete/trash + restore (S1), batch delete (S2), camera/lens filters (S3), upload limits (S4),
+test-coverage audit (S5), mobile/responsive pass (S6), and the full public-photos feature
+(P1–P9, P7a/P7b). The "untested endpoints" gap is closed (72 integration tests, 8 files).

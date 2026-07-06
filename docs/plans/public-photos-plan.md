@@ -123,7 +123,7 @@ Edit in place as the loop runs.
 | P8   | Integration tests (public suite + updates)    | done   | public.test.ts all 8 scenarios (72 int tests); caught+fixed real bug: /p/** threw createError → SPA HTML 200 instead of uniform 404, now bare Response via publicNotFound() |
 | P9   | Docs                                          | done   | cloudflare-setup.md deployment note (no new infra); fixed stale M6 variant comment in raw.get.ts |
 | P7a  | Functional share UI (autonomous)              | done   | Share dialog (Public + GPS-gated Show location switches, md/lg copy rows), globe badge on tiles+viewer; publish/unpublish via useLibrary mirroring toggleFavorite; placeholders left for P7b |
-| P7b  | **Design pass — HUMAN, loop stops here**      | hold   | Awaiting user design review; never delegate |
+| P7b  | **Design pass — HUMAN, loop stops here**      | done   | Landed by human 2026-07-05 (50244f1, 11e8116, 0f63ab8): merged the share modal into one "Share & embed" screen, cURL + JS embed snippets, badge placement (public badge lower-right on tiles) |
 
 **Why this order (dependencies):** P1 (schema) unblocks everything. P2 (util) is imported by P3/P4.
 P3 (upload path) and P4 (serving + sharing) are the backend core; P4 is the security-sensitive
