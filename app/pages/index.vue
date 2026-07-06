@@ -59,6 +59,7 @@ const {
 	foldersOf,
 	toggleMembership,
 	toggleFavorite,
+	updatePhoto,
 	addPhotosToFolder,
 	removePhotosFromFolder,
 	deletePhoto,
@@ -559,6 +560,7 @@ async function onViewerPurge(id: string) {
 			:trash="trashOnly"
 			@update:index="viewerIndex = $event"
 			@close="viewerIndex = null"
+			@save="updatePhoto"
 			@delete="onViewerDelete"
 			@restore="onViewerRestore"
 			@purge="onViewerPurge"

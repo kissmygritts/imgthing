@@ -458,6 +458,22 @@ export function useLibrary() {
 		}
 	}
 
+	// ── Metadata edit ────────────────────────────────────────────────────────────
+	// Persist an edit to a photo's user-facing metadata (EXIF text fields, iso,
+	// filename). Mirrors toggleFavorite: single PATCH, then merge the returned row
+	// in place for an instant reflect + refresh the list so counts/facets follow.
+	async function updatePhoto(id: string, patch: Partial<Photo>): Promise<void> {
+		try {
+			await $fetch(`/api/photos/${id}`, { method: "PATCH", body: patch });
+			await refreshNuxtData(["photos"]);
+			toast.success("Changes saved");
+		} catch (err) {
+			toast.error(
+				(err as { statusMessage?: string })?.statusMessage ?? "Update failed",
+			);
+		}
+	}
+
 	// ── Public sharing (publish / unpublish) ─────────────────────────────────────
 	// Publish mints a FRESH token every call (rotation is the revocation primitive),
 	// so re-publishing — including a show_location change — invalidates any prior URL.
@@ -607,6 +623,7 @@ export function useLibrary() {
 		purgePhoto,
 		emptyTrash,
 		toggleFavorite,
+		updatePhoto,
 		// sharing
 		publishPhoto,
 		unpublishPhoto,
