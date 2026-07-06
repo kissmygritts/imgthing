@@ -7,10 +7,11 @@ delegates the next `todo` task to a subagent, verifies the gate, commits, marks 
 repeats. It runs without human input **until it reaches the design-polish pass (F8), which is
 intentionally reserved for the user** — the loop stops there and hands back.
 
-Scope is the **autonomously-buildable subset** of the missing-features analysis: the one broken
-half-feature plus the library gaps that need no external account and no product decision. Deploy,
-backups-provisioning, video support, secret rotation, and album-level publishing are **out of
-scope** here — see "Explicitly out of scope" for why each needs a human.
+Scope is the **autonomously-buildable subset** of the missing-features analysis that the owner
+picked: the one broken half-feature plus the library gaps that need no external account and no
+product decision. Bulk export, slideshow, deploy, backups-provisioning, video support, secret
+rotation, and album-level publishing are **out of scope** here — see "Explicitly out of scope" for
+why each is deferred or needs a human.
 
 Point the loop at this file (see **How to run** at the bottom).
 
@@ -23,20 +24,18 @@ The local feature set is complete and the two prior sprints shipped. What remain
 1. **One actively-broken feature** — the metadata edit drawer in `PhotoViewer` emits a `save` event
    that nothing listens to, and there is no `PATCH /api/photos/[id]` to persist it. Fixing this is
    F1 and comes first because it's misleading, not merely absent.
-2. **Table-stakes library gaps** — bulk export (F3, doubles as the backup escape hatch),
-   date/time-taken browsing (F2), and duplicate detection (F4).
-3. **Discoverability / polish** — slideshow (F5), a keyboard-shortcut overlay (F6), and a storage
-   readout (F7).
+2. **Table-stakes library gaps** — date/time-taken browsing (F2) and duplicate detection (F4).
+3. **Discoverability / polish** — a keyboard-shortcut overlay (F6) and a storage readout (F7).
 
-All the data these need already exists (`file_size`, `exif_data.taken_at`, the multi-select action
-bar, `/api/photos/[id]/raw`); most tasks are aggregation + a param + a surface, mirroring patterns
-already in the codebase (the camera/lens facets from S3, the Trash view from S1).
+All the data these need already exists (`file_size`, `exif_data.taken_at`, the `save`-emit the
+viewer already fires); most tasks are aggregation + a param + a surface, mirroring patterns already
+in the codebase (the camera/lens facets from S3, the Trash view from S1).
 
-**Why F8 is reserved:** the new surfaces (date control, export affordance, slideshow chrome, help
-overlay, duplicate hint, storage readout) are functional-but-plain out of the loop. Final visual
-fit against **Bright Studio Glass** is a taste judgment tests can't gate and the user reviews
-personally — same split as P7a/P7b. The loop runs everything **through F7**, then stops with the
-features working end-to-end so the user can give design feedback from a live surface.
+**Why F8 is reserved:** the new surfaces (date control, duplicate hint, help overlay, storage
+readout) are functional-but-plain out of the loop. Final visual fit against **Bright Studio Glass**
+is a taste judgment tests can't gate and the user reviews personally — same split as P7a/P7b. The
+loop runs everything **through F7**, then stops with the features working end-to-end so the user can
+give design feedback from a live surface.
 
 ---
 
@@ -46,7 +45,7 @@ features working end-to-end so the user can give design feedback from a live sur
 - **One task = one feature commit.** Each task lands as a single, self-contained, cherry-pickable
   commit. Do **not** bundle two tasks. Do **not** leave a task half-committed.
 - **Commit message format:** `<type>: <summary> [<task-id>]`, e.g.
-  `feat: bulk zip export of selected photos [F3]`. The `[F#]` tag is how the loop and `git log`
+  `feat: date-range filter for taken-at [F2]`. The `[F#]` tag is how the loop and `git log`
   identify a task's commit — always include it. (This sprint uses `F#` ids so they never collide
   with the previous runs' `T#`/`S#`/`P#` tags in `git log`.)
 - **Definition of Done (hard gate — all must pass before the feature commit):**
@@ -65,12 +64,12 @@ features working end-to-end so the user can give design feedback from a live sur
   needs one). Never edit a prior migration. Run `npm run db:migrate:local` after adding one.
 - **Design language:** match the existing "Bright Studio Glass" tokens and component patterns
   (`app/assets/css/main.css`, `app/components/ui/`, `docs/imgthing-ui.md`). Reuse shadcn/reka
-  components already in `app/components/ui/`; **don't introduce a new UI kit or a date-picker/zip
+  components already in `app/components/ui/`; **don't introduce a new UI kit or a date-picker
   dependency without noting it in the ledger row**. Every new surface must be legible and operable
   at phone width (~375px) in **both** light and dark mode (the S6 mobile pass set this bar).
-- **Security altitude:** the export endpoint (F3) and stats endpoint (F7) are owner-only — they live
-  under `/api/**` so `server/middleware/auth.ts` guards them; never add a public/unauthenticated
-  path to originals or aggregate data. Do not expose `r2_key` or raw EXIF in any new response.
+- **Security altitude:** the stats endpoint (F7) is owner-only — it lives under `/api/**` so
+  `server/middleware/auth.ts` guards it; never add a public/unauthenticated path to aggregate data.
+  Do not expose `r2_key` or raw EXIF in any new response.
 - **Stay in scope.** Implement only the current task's spec. If you spot adjacent work, note it in
   the task's ledger row; don't do it.
 
@@ -124,25 +123,25 @@ Edit in place as the loop runs.
 |----|-----------------------------------------------|--------|-------------|
 | F1 | Fix metadata editing (`PATCH` + wire `save`)  | todo   | |
 | F2 | Date / time-taken filtering                   | todo   | |
-| F3 | Bulk download / export (zip)                  | todo   | |
 | F4 | Duplicate detection on upload                 | todo   | |
-| F5 | Slideshow mode                                | todo   | |
 | F6 | Keyboard-shortcut help overlay                | todo   | |
 | F7 | Storage-usage readout                         | todo   | |
 | F8 | **Design polish — HUMAN, loop stops here**    | hold   | Awaiting user design review; never delegate |
 
+The ids are non-contiguous (F3 bulk-export and F5 slideshow were dropped from this run — see
+"Explicitly out of scope"); the loop picks the **first `todo` in ledger order**, so the gaps don't
+matter. Keeping the original ids preserves the `[F#]` commit-tag mapping and the spec headers below.
+
 **Why this order (dependencies):** **F1 first** — it's the only *broken* item (misleading UI), and
 it's isolated (`[id]` route + viewer wiring). **F2** extends `buildFilter` in
 `server/api/photos/index.get.ts` exactly like S3's camera/lens params — do the filter work while
-that pattern is fresh; independent of the rest. **F3 (bulk export)** is the heaviest task (streaming
-zip) — schedule it while context is clean; the multi-select action bar it hangs off already exists.
-**F4** adds a migration and touches the **upload path** (`index.post.ts`) — grouped after the
-serving/filter work so the schema is stable. **F5 (slideshow) before F6 (help overlay)** because
-both edit `PhotoViewer`'s keydown handler and F6 must document the shortcut F5 adds — sequential
-execution also avoids two tasks editing the same handler back-to-back. **F7 (storage readout)** is a
-small isolated aggregation, last of the functional tasks. **F8 is human-only** and runs last so the
-user reviews every new surface at once. Sequential execution keeps the one migration number
-deterministic (F4 = `0008`).
+that pattern is fresh; independent of the rest. **F4** adds a migration and touches the **upload
+path** (`index.post.ts`) — grouped after the filter work so the schema is stable. **F6 (keyboard
+overlay)** edits `PhotoViewer` and must enumerate the viewer's *real* current shortcuts, so it runs
+after the other viewer-touching work is settled. **F7 (storage readout)** is a small isolated
+aggregation, last of the functional tasks. **F8 is human-only** and runs last so the user reviews
+every new surface at once. Sequential execution keeps the one migration number deterministic
+(F4 = `0008`).
 
 ---
 
@@ -211,43 +210,6 @@ the count reflects it; clearing returns to all; undated photos are excluded from
 selecting a date range clears any active folder/tag/camera filter; the new params are
 integration-tested (in-range included, out-of-range excluded, open-ended range); gate green.
 
-### F3 — Bulk download / export (zip)
-
-**Goal:** there's no way to get originals back out in bulk (per-photo download exists via
-`/api/photos/[id]/raw`, wired in the viewer at ~line 840). Add a **streaming zip** export — the
-single most-expected media-library feature, and the "export everything" escape hatch that doubles as
-a backup. **Owner-only, under `/api`.**
-
-- **New endpoint `GET /api/photos/export`** returning `application/zip`:
-  - **Selection modes** (reuse the existing filter vocabulary): `?ids=a,b,c` for a multi-select
-    export (follow the query-param convention the tags-detach DELETE and batch-delete already use —
-    **not** a request body); and the current-view filters (`?all=1`, `?folderId=`, `?tag=`,
-    `?favorite=1`, plus the F2 `dateFrom`/`dateTo` if trivial) for "export this view / everything".
-    Always exclude soft-deleted rows.
-  - **Stream, do not buffer.** Build the zip as a `ReadableStream` and pipe each R2 object body in
-    sequentially — never load all originals into memory (originals are ≤25 MB each but a batch is
-    unbounded). A small zero-dependency streaming-zip lib (e.g. `client-zip`, which takes async
-    iterables of `{ name, input }` and yields a `ReadableStream`) is the clean path; **if you add a
-    dependency, note it in the ledger row.** Store (no compression) is fine — JPEG/WebP are already
-    compressed and streaming store avoids buffering for CRC/deflate.
-  - Entry names: the original filenames, de-duplicated on collision (`name (2).jpg`). Response
-    headers: `content-type: application/zip`, `content-disposition: attachment;
-    filename="imgthing-export-<date>.zip"`.
-  - **Cap** the selection (e.g. a max file count or total-byte ceiling as named constants) and return
-    a clear `4xx` past it rather than starting an unbounded stream; document the cap.
-- **Client:** add an **Export** action to the multi-select action bar in `index.vue` (next to bulk
-  delete) that navigates to / fetches the export URL for the selected ids, and an "Export all" entry
-  somewhere sensible (e.g. a menu). A download is simplest triggered by navigating to the GET URL
-  (browser handles the save); if you use `fetch`, stream to a blob without holding the whole thing if
-  avoidable. Show a toast / disabled state while it's building.
-
-**Acceptance:** selecting several photos and choosing Export downloads a `.zip` whose entries are the
-selected originals; "export all" includes every live photo; the response is `application/zip` with an
-attachment disposition; the implementation streams from R2 (no full-batch buffering); over-cap
-requests are rejected cleanly; integration test asserts `application/zip` + attachment header + a
-non-empty body beginning with the `PK\x03\x04` zip signature (and, if a zip reader is readily
-available, the expected entry count); gate green.
-
 ### F4 — Duplicate detection on upload
 
 **Goal:** nothing stops the same photo being uploaded twice. Hash each upload and flag likely
@@ -277,41 +239,22 @@ detection informs, it doesn't reject.
 collide; migration applies; the changed upload endpoint keeps its existing tests green and adds a
 duplicate-report test; gate green.
 
-### F5 — Slideshow mode
-
-**Goal:** a hands-off auto-advance through the current photo set, from the viewer. Small, isolated
-to `app/components/PhotoViewer.vue`, reusing the existing next/prev nav.
-
-- Add a **Play/Pause** control to the viewer action bar and an `s` keyboard shortcut that toggles
-  slideshow. While playing, auto-advance to the next photo on an interval (e.g. 4s, a named
-  constant) using the existing `next()`/`update:index` mechanism; stop at the end (or loop — pick
-  one and keep it simple). **Pause on any manual nav / user interaction**, and exit on `Esc`.
-- Respect `prefers-reduced-motion` (no crossfade if reduced; a plain cut is fine). Clean up the
-  interval on unmount / close / when the viewer index changes externally — no leaked timers.
-- Optionally dim/hide the drawer + chrome while playing for a cleaner show (functional placeholder;
-  final look is F8). Don't fight the existing keydown handler — extend it.
-
-**Acceptance:** pressing Play (or `s`) auto-advances through the open set at the interval; Pause and
-manual nav stop it; `Esc` exits both slideshow and viewer sanely; no timer leaks (advancing keeps
-working after several toggles); works on mobile; gate green.
-
 ### F6 — Keyboard-shortcut help overlay
 
-**Goal:** the viewer has real shortcuts (`←`/`→` nav, `i` toggle details, `Esc` close, and after F5
-`s` slideshow) but they're undiscoverable. Add a help overlay. Do this **after F5** so it documents
-the full set.
+**Goal:** the viewer has real shortcuts (`←`/`→` nav, `i` toggle details, `Esc` close) but they're
+undiscoverable. Add a help overlay.
 
 - A `?` (Shift+/) shortcut and a small "?" / keyboard button in the viewer action bar open a
   **Dialog** (reuse `app/components/ui/dialog/`) listing every viewer shortcut with its key.
   **Enumerate from the actual keydown handler** in `PhotoViewer.vue` — don't hardcode a guessed list;
-  it must stay truthful to the real bindings (include F5's `s`). Group as key → action rows with
-  `<kbd>`-style treatment (functional placeholder styling; F8 refines).
+  it must stay truthful to the real bindings. Group as key → action rows with `<kbd>`-style
+  treatment (functional placeholder styling; F8 refines).
 - The overlay closes on `Esc`/`?`/backdrop and traps focus like the other dialogs. Ensure `?` while
   the overlay is open toggles it closed (don't stack).
 
-**Acceptance:** pressing `?` in the viewer opens an overlay listing the real, current shortcuts
-(including slideshow from F5); it opens/closes cleanly and doesn't interfere with the other
-shortcuts; legible in light and dark at phone width; gate green.
+**Acceptance:** pressing `?` in the viewer opens an overlay listing the real, current shortcuts; it
+opens/closes cleanly and doesn't interfere with the other shortcuts; legible in light and dark at
+phone width; gate green.
 
 ### F7 — Storage-usage readout
 
@@ -337,20 +280,23 @@ auth-guarded); gate green.
 
 **Not for a subagent.** After F7 lands, all new features work end-to-end and the user reviews the
 live surfaces against Bright Studio Glass (`docs/imgthing-ui.md`) and gives design direction. Scope:
-the date-range control (F2), the export affordance + progress treatment (F3), the duplicate hint
-(F4), the slideshow chrome/transition (F5), the keyboard overlay's `<kbd>` styling (F6), and the
-storage readout's placement/typography (F7) — plus overall on-brand fit in light and dark. The
-orchestrator stops the loop when this is the only remaining task and notifies the user.
+the date-range control (F2), the duplicate hint (F4), the keyboard overlay's `<kbd>` styling (F6),
+and the storage readout's placement/typography (F7) — plus overall on-brand fit in light and dark.
+The orchestrator stops the loop when this is the only remaining task and notifies the user.
 
 ---
 
-## Explicitly out of scope (needs a human — do NOT auto-pick or add)
+## Explicitly out of scope (deferred or needs a human — do NOT auto-pick or add)
 
+- **Bulk download / export (streaming zip).** Deferred by the owner for this run — not needed yet.
+  Re-introduce as its own task when wanted (it's the code side of the backup story; spec lived here
+  previously as F3).
+- **Slideshow mode.** Deferred by the owner for this run.
 - **Provision + deploy.** Needs the owner's Cloudflare account (`database_id` is still a
   placeholder). See `docs/cloudflare-setup.md`. Nothing here depends on it — these features are
   verified locally.
 - **Backups (D1 Time Travel + R2 object versioning).** Provision-time account toggles, not code.
-  F3's "export everything" is the code-side portion and is in scope; the infra side is not.
+  (The code-side "export everything" escape hatch is the deferred bulk-export task above.)
 - **Video / non-image formats.** Upload is deliberately gated to `image/*`. Adding video is a
   product decision (which formats, thumbnailing, player) — not an unattended build.
 - **Change-passphrase / secret-mutating settings.** The passphrase is a Worker secret (env), not
