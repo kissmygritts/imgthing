@@ -8,6 +8,7 @@ import {
 	Download,
 	Globe,
 	Heart,
+	Keyboard,
 	MoreHorizontal,
 	PanelRightClose,
 	PanelRightOpen,
@@ -133,7 +134,31 @@ function isTypingTarget(el: EventTarget | null): boolean {
 	return el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement;
 }
 
+// --- Keyboard-shortcut help overlay --------------------------------------
+// The viewer shortcuts are undiscoverable, so `?` (and a button) opens a Dialog
+// listing them. The list below is rendered verbatim in the overlay and MUST
+// stay in sync with onKeydown — one source of truth for the real bindings.
+const helpOpen = ref(false);
+
+const shortcuts: { keys: string[]; action: string }[] = [
+	{ keys: ["←"], action: "Previous photo" },
+	{ keys: ["→"], action: "Next photo" },
+	{ keys: ["i"], action: "Toggle details" },
+	{ keys: ["Esc"], action: "Back / close viewer" },
+	{ keys: ["?"], action: "Keyboard shortcuts" },
+];
+
 function onKeydown(e: KeyboardEvent) {
+	// While the help overlay is open it owns the keyboard: `?`/`Esc` close it and
+	// every other binding is inert, so viewer nav/close never fires underneath in
+	// the same keypress (the Dialog handles focus-trap + backdrop close itself).
+	if (helpOpen.value) {
+		if (e.key === "?" || e.key === "Escape") {
+			helpOpen.value = false;
+			e.preventDefault();
+		}
+		return;
+	}
 	if (e.key === "Escape") {
 		// Esc backs out of a sub-screen first, then closes the viewer.
 		if (mode.value === "edit") cancelEdit();
@@ -141,8 +166,13 @@ function onKeydown(e: KeyboardEvent) {
 		else emit("close");
 		return;
 	}
-	// Don't hijack arrows while editing a field.
+	// Don't hijack keys while editing a field.
 	if (isTypingTarget(e.target)) return;
+	if (e.key === "?") {
+		// Shift+/ — open the help overlay.
+		helpOpen.value = true;
+		return;
+	}
 	if (e.key === "ArrowLeft") prev();
 	else if (e.key === "ArrowRight") next();
 	else if (e.key === "i") drawerOpen.value = !drawerOpen.value;
@@ -591,6 +621,13 @@ watch(
 
 							<button
 								class="flex size-8 items-center justify-center rounded-full border border-white/85 dark:border-white/15 bg-white/55 dark:bg-white/12 text-muted-foreground backdrop-blur transition hover:bg-white/85 dark:hover:bg-white/20 hover:text-foreground"
+								aria-label="Keyboard shortcuts"
+								@click="helpOpen = true"
+							>
+								<Keyboard class="size-4" />
+							</button>
+							<button
+								class="flex size-8 items-center justify-center rounded-full border border-white/85 dark:border-white/15 bg-white/55 dark:bg-white/12 text-muted-foreground backdrop-blur transition hover:bg-white/85 dark:hover:bg-white/20 hover:text-foreground"
 								aria-label="Collapse details"
 								@click="drawerOpen = false"
 							>
@@ -898,6 +935,36 @@ watch(
 							{{ trash ? "Delete forever" : "Move to Trash" }}
 						</Button>
 					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
+			<!-- Keyboard-shortcut help — floats above the viewer (z-[110] > z-[100]) -->
+			<Dialog v-model:open="helpOpen">
+				<DialogContent class="z-[110] sm:max-w-sm">
+					<DialogHeader>
+						<DialogTitle>Keyboard shortcuts</DialogTitle>
+						<DialogDescription>
+							Navigate and act on photos without leaving the keyboard.
+						</DialogDescription>
+					</DialogHeader>
+					<dl class="grid gap-1">
+						<div
+							v-for="s in shortcuts"
+							:key="s.action"
+							class="flex items-center justify-between gap-4 border-t border-border py-2 first:border-t-0"
+						>
+							<dt class="text-sm text-foreground">{{ s.action }}</dt>
+							<dd class="flex shrink-0 items-center gap-1">
+								<kbd
+									v-for="k in s.keys"
+									:key="k"
+									class="inline-flex min-w-[1.75rem] items-center justify-center rounded-md border border-border bg-muted px-1.5 py-1 font-mono text-[12px] font-medium leading-none text-foreground shadow-sm"
+								>
+									{{ k }}
+								</kbd>
+							</dd>
+						</div>
+					</dl>
 				</DialogContent>
 			</Dialog>
 		</div>
