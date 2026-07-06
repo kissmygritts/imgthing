@@ -60,12 +60,15 @@ const {
 	trashOnly,
 	selectedCamera,
 	selectedLens,
+	dateFrom,
+	dateTo,
 	selectFolder,
 	selectFavorites,
 	selectTag,
 	selectTrash,
 	selectCamera,
 	selectLens,
+	setDateRange,
 	deleteTag,
 	expanded,
 	search,
@@ -93,6 +96,30 @@ const onGallery = computed(() => route.path === "/");
 const { isMobile, setOpenMobile } = useSidebar();
 function closeMobile() {
 	if (isMobile.value) setOpenMobile(false);
+}
+
+// ── Date-taken range ────────────────────────────────────────────────────────
+// Local yyyy-mm-dd strings mirrored from the composable state (kept in sync so a
+// reset elsewhere clears the inputs). Changing either end applies the range.
+const fromDate = ref(dateFrom.value ?? "");
+const toDate = ref(dateTo.value ?? "");
+watch([dateFrom, dateTo], ([f, t]) => {
+	fromDate.value = f ?? "";
+	toDate.value = t ?? "";
+});
+const dateActive = computed(() => !!(dateFrom.value || dateTo.value));
+// Native date inputs styled with the shared Input tokens (no calendar dep).
+const dateInputClass =
+	"h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
+
+function applyDates() {
+	setDateRange(fromDate.value || null, toDate.value || null);
+	closeMobile();
+}
+function clearDates() {
+	fromDate.value = "";
+	toDate.value = "";
+	selectFolder(null);
 }
 </script>
 
@@ -140,7 +167,7 @@ function closeMobile() {
 						<SidebarMenuItem>
 							<SidebarMenuButton
 								tooltip="All photos"
-								:is-active="onGallery && !favoritesOnly && !trashOnly && !selectedCamera && !selectedLens && selectedFolderId === null"
+								:is-active="onGallery && !favoritesOnly && !trashOnly && !selectedCamera && !selectedLens && !dateActive && selectedFolderId === null"
 								@click="selectFolder(null); closeMobile()"
 							>
 								<Images />
@@ -190,6 +217,44 @@ function closeMobile() {
 			</SidebarGroup>
 
 			<SidebarGroup>
+				<SidebarGroupLabel>Date taken</SidebarGroupLabel>
+				<SidebarGroupContent>
+					<div class="flex flex-col gap-2 px-2 py-1">
+						<label class="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+							From
+							<input
+								v-model="fromDate"
+								type="date"
+								aria-label="From date"
+								:max="toDate || undefined"
+								:class="dateInputClass"
+								@change="applyDates"
+							/>
+						</label>
+						<label class="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+							To
+							<input
+								v-model="toDate"
+								type="date"
+								aria-label="To date"
+								:min="fromDate || undefined"
+								:class="dateInputClass"
+								@change="applyDates"
+							/>
+						</label>
+						<button
+							v-if="dateActive"
+							type="button"
+							class="self-start rounded-md px-1 py-0.5 text-xs font-medium text-primary transition-colors hover:text-primary/80"
+							@click="clearDates"
+						>
+							Clear dates
+						</button>
+					</div>
+				</SidebarGroupContent>
+			</SidebarGroup>
+
+			<SidebarGroup>
 				<SidebarGroupLabel>Folders</SidebarGroupLabel>
 				<SidebarGroupAction title="New folder" @click="openCreate(null)">
 					<FolderPlus /> <span class="sr-only">New folder</span>
@@ -200,7 +265,7 @@ function closeMobile() {
 						:folders="folders"
 						:parent-id="null"
 						:depth="0"
-						:selected-id="!onGallery || favoritesOnly || selectedTagId || selectedCamera || selectedLens ? null : selectedFolderId"
+						:selected-id="!onGallery || favoritesOnly || selectedTagId || selectedCamera || selectedLens || dateActive ? null : selectedFolderId"
 						:expanded="expanded"
 						@select="selectFolder($event); closeMobile()"
 						@action="onTreeAction"

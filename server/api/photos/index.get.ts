@@ -4,6 +4,8 @@
 // Query params:
 //   q         filename substring match (case-insensitive LIKE)
 //   from/to   inclusive date range over COALESCE(taken_at, uploaded_at)
+//   dateFrom/dateTo  inclusive date range over EXIF taken_at only (undated
+//             photos, taken_at IS NULL, fall out of any bounded range)
 //   sort      newest | oldest | name | size_desc | size_asc  (default newest)
 //   folderId  a folder id, or "none" for photos in no folder
 //   favorite  "1" to return only favorited photos
@@ -73,6 +75,24 @@ function buildFilter(q: Record<string, unknown>) {
 	if (to) {
 		conditions.push("COALESCE(e.taken_at, p.uploaded_at) <= ?");
 		binds.push(to);
+	}
+
+	// ?dateFrom / ?dateTo filter by EXIF taken_at (when the photo was shot), NOT
+	// upload time. taken_at is ISO-ish TEXT so a lexical >= lower bound is
+	// chronological; the upper bound uses date(taken_at) <= date(?) so an end date
+	// includes that whole day. Photos with taken_at IS NULL yield NULL on both
+	// comparisons and fall out of any bounded range — undated photos aren't "in" a
+	// date range, which is correct.
+	const dateFrom = typeof q.dateFrom === "string" ? q.dateFrom.trim() : "";
+	if (dateFrom) {
+		conditions.push("e.taken_at >= ?");
+		binds.push(dateFrom);
+	}
+
+	const dateTo = typeof q.dateTo === "string" ? q.dateTo.trim() : "";
+	if (dateTo) {
+		conditions.push("date(e.taken_at) <= date(?)");
+		binds.push(dateTo);
 	}
 
 	if (q.favorite === "1" || q.favorite === 1 || q.favorite === true) {

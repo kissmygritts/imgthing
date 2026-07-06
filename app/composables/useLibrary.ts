@@ -59,6 +59,12 @@ export function useLibrary() {
 	// lens can be active at once and AND together server-side.
 	const selectedCamera = useState<string | null>("library:camera", () => null);
 	const selectedLens = useState<string | null>("library:lens", () => null);
+	// Date-taken range: filters the gallery to photos whose EXIF taken_at falls in
+	// [dateFrom, dateTo] (either end open). Another orthogonal, exclusive view —
+	// picking a range clears folder/tag/favorites/trash/camera/lens and vice versa.
+	// Values are yyyy-mm-dd strings (from native <input type="date">) or null.
+	const dateFrom = useState<string | null>("library:dateFrom", () => null);
+	const dateTo = useState<string | null>("library:dateTo", () => null);
 	const expanded = useState<Set<string>>("library:expanded", () => new Set());
 	const search = useState("library:search", () => "");
 
@@ -80,11 +86,19 @@ export function useLibrary() {
 		selectedLens.value = null;
 	}
 
+	// Clear the date-taken range. Called by every other view's select (they're
+	// exclusive with the range), mirroring clearExif.
+	function clearDateRange() {
+		dateFrom.value = null;
+		dateTo.value = null;
+	}
+
 	function selectFolder(id: string | null) {
 		favoritesOnly.value = false;
 		selectedTagId.value = null;
 		trashOnly.value = false;
 		clearExif();
+		clearDateRange();
 		selectedFolderId.value = id;
 		goToGallery();
 	}
@@ -93,6 +107,7 @@ export function useLibrary() {
 		selectedTagId.value = null;
 		trashOnly.value = false;
 		clearExif();
+		clearDateRange();
 		favoritesOnly.value = true;
 		goToGallery();
 	}
@@ -103,6 +118,7 @@ export function useLibrary() {
 		trashOnly.value = false;
 		selectedFolderId.value = null;
 		clearExif();
+		clearDateRange();
 		selectedTagId.value = id;
 		goToGallery();
 	}
@@ -113,6 +129,7 @@ export function useLibrary() {
 		selectedTagId.value = null;
 		selectedFolderId.value = null;
 		clearExif();
+		clearDateRange();
 		trashOnly.value = true;
 		goToGallery();
 	}
@@ -124,6 +141,7 @@ export function useLibrary() {
 		trashOnly.value = false;
 		selectedTagId.value = null;
 		selectedFolderId.value = null;
+		clearDateRange();
 		// Toggle off if re-picking the active camera.
 		selectedCamera.value = selectedCamera.value === name ? null : name;
 		goToGallery();
@@ -135,13 +153,58 @@ export function useLibrary() {
 		trashOnly.value = false;
 		selectedTagId.value = null;
 		selectedFolderId.value = null;
+		clearDateRange();
 		selectedLens.value = selectedLens.value === name ? null : name;
 		goToGallery();
+	}
+
+	// Filter the gallery by an EXIF taken_at range. Either end may be null (open-
+	// ended). Clears every exclusive view the same way selectTag does. Passing both
+	// ends null resets to All photos.
+	function setDateRange(from: string | null, to: string | null) {
+		favoritesOnly.value = false;
+		trashOnly.value = false;
+		selectedTagId.value = null;
+		selectedFolderId.value = null;
+		clearExif();
+		dateFrom.value = from || null;
+		dateTo.value = to || null;
+		goToGallery();
+	}
+
+	// "2025-07-05" → "Jul 2025". Parse the parts by hand to dodge timezone shifts
+	// that new Date("yyyy-mm-dd") (UTC midnight) would introduce.
+	const MONTHS = [
+		"Jan",
+		"Feb",
+		"Mar",
+		"Apr",
+		"May",
+		"Jun",
+		"Jul",
+		"Aug",
+		"Sep",
+		"Oct",
+		"Nov",
+		"Dec",
+	];
+	function monthYear(d: string): string {
+		const [y, m] = d.split("-");
+		const label = MONTHS[Number(m) - 1];
+		return label ? `${label} ${y}` : d;
+	}
+	function dateRangeTitle(from: string | null, to: string | null): string {
+		if (from && to) return `${monthYear(from)} – ${monthYear(to)}`;
+		if (from) return `From ${monthYear(from)}`;
+		if (to) return `Until ${monthYear(to)}`;
+		return "All photos";
 	}
 
 	const currentTitle = computed(() => {
 		if (trashOnly.value) return "Trash";
 		if (favoritesOnly.value) return "Favorites";
+		if (dateFrom.value || dateTo.value)
+			return dateRangeTitle(dateFrom.value, dateTo.value);
 		if (selectedTagId.value)
 			return `#${tags.value.find((t) => t.id === selectedTagId.value)?.name ?? "Tag"}`;
 		// Camera + lens can be active together — join them for a combined title.
@@ -590,12 +653,15 @@ export function useLibrary() {
 		trashOnly,
 		selectedCamera,
 		selectedLens,
+		dateFrom,
+		dateTo,
 		selectFolder,
 		selectFavorites,
 		selectTag,
 		selectTrash,
 		selectCamera,
 		selectLens,
+		setDateRange,
 		expanded,
 		search,
 		currentTitle,
