@@ -518,7 +518,7 @@ watch(
 							<!-- public indicator — placeholder styling (final polish is P7b) -->
 							<span
 								v-if="photo.visibility === 'public'"
-								class="mt-1 inline-flex items-center gap-1 rounded-full border border-white/70 dark:border-white/12 bg-white/45 dark:bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground backdrop-blur"
+								class="mt-2.5 inline-flex items-center gap-1 rounded-full border border-white/70 dark:border-white/12 bg-white/45 dark:bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground backdrop-blur"
 							>
 								<Globe class="size-3" />
 								Public

@@ -467,7 +467,7 @@ async function onViewerPurge(id: string) {
 				     Placeholder placement/styling (final polish is P7b). -->
 				<span
 					v-if="!trashOnly && photo.visibility === 'public'"
-					class="pointer-events-none absolute bottom-2 left-2 z-10 flex size-6 items-center justify-center rounded-full border border-white/70 dark:border-white/12 bg-white/40 dark:bg-white/8 text-white backdrop-blur"
+					class="pointer-events-none absolute bottom-2 right-2 z-10 flex size-6 items-center justify-center rounded-full border border-white/70 dark:border-white/12 bg-white/40 dark:bg-white/8 text-white backdrop-blur"
 					title="Public"
 				>
 					<Globe class="size-3.5" />
