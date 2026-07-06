@@ -124,7 +124,7 @@ Edit in place as the loop runs.
 | F1 | Fix metadata editing (`PATCH` + wire `save`)  | done   | d7927d2 — PATCH endpoint (UPSERT exif, rename, 404 soft-del), `updatePhoto` + `@save` wired; 8 integ tests. Note: drawer doesn't expose `original_filename` yet (server+tests cover rename). |
 | F2 | Date / time-taken filtering                   | done   | 9ead034 — `dateFrom`/`dateTo` in `buildFilter` (whole-day-inclusive end), sidebar "Date taken" group (native date inputs), `setDateRange` clears exclusive views; 4 integ tests. |
 | F4 | Duplicate detection on upload                 | done   | b10f708 — migration 0008 content_hash + index, SHA-256 on upload, `duplicateOf` in response + amber upload hint; 2 integ tests. Follow-up: `GET /api/photos/duplicates` view not built (noted). |
-| F6 | Keyboard-shortcut help overlay                | todo   | |
+| F6 | Keyboard-shortcut help overlay                | in_progress | |
 | F7 | Storage-usage readout                         | todo   | |
 | F8 | **Design polish — HUMAN, loop stops here**    | hold   | Awaiting user design review; never delegate |
 
