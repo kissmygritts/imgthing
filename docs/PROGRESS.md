@@ -87,13 +87,13 @@ Re-ranked against current reality (2026-07-05):
   See [cloudflare-setup.md](./cloudflare-setup.md). **This needs the owner** — it can't be done
   autonomously without the Cloudflare account.
 
-### P0 — Login brute-force protection (the one shippable-now security gap)
+### P0 — Login brute-force protection ✅ done (`af7772d`)
 
-- `POST /api/auth/login` (`server/api/auth/login.post.ts`) does a single `timingSafeEqual` with
-  **no rate limit or lockout** — once public it's an open guessing target for the single
-  passphrase. Add per-IP throttling. **No KV binding is configured**, so use a D1 counter table
-  keyed by `CF-Connecting-IP` with exponential backoff + lockout, cleared on success. This is the
-  highest-value item that does **not** need the owner's account, so it's the natural next build.
+- Shipped: migration `0007` (`login_attempts` table) + `server/utils/loginThrottle.ts`. Per-IP
+  throttle keyed by `CF-Connecting-IP` — 5 free consecutive failures, then exponential-backoff
+  lockout (1 min → 1 h cap); a locked IP is 429'd with `Retry-After` **before** the passphrase
+  compare; a successful login clears the counter. 3-scenario integration suite. D1-backed (no KV
+  binding needed). This was the one P0 that didn't need the owner's Cloudflare account.
 
 ### P1 — Don't lose photos
 
