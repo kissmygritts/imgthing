@@ -57,7 +57,13 @@ export default defineEventHandler(async (event) => {
 	// discover the folder doesn't exist (requireFolder throws a 404).
 	if (folderId) await requireFolder(db, folderId);
 
-	const uploaded: { id: string; original_filename: string }[] = [];
+	const uploaded: {
+		id: string;
+		original_filename: string;
+		// Present only when this file's bytes match an existing live photo. Non-blocking:
+		// the upload still lands — this just flags a likely duplicate for the user.
+		duplicateOf?: { id: string; filename: string };
+	}[] = [];
 	// Per-file rejections (over-size) — surfaced alongside successes so a mixed
 	// batch reports why each bad file didn't land, mirroring the upload page.
 	const rejected: { filename: string; reason: string }[] = [];
@@ -97,6 +103,28 @@ export default defineEventHandler(async (event) => {
 			httpMetadata: { contentType },
 		});
 
+		// SHA-256 of the original bytes → hex, for duplicate detection. If hashing
+		// ever fails, leave the hash NULL and skip the duplicate check (non-fatal).
+		let contentHash: string | null = null;
+		let duplicateOf: { id: string; filename: string } | undefined;
+		try {
+			const digest = await crypto.subtle.digest("SHA-256", bytes);
+			contentHash = [...new Uint8Array(digest)]
+				.map((b) => b.toString(16).padStart(2, "0"))
+				.join("");
+			const match = await db
+				.prepare(
+					"SELECT id, original_filename FROM photos WHERE content_hash = ? AND deleted_at IS NULL LIMIT 1",
+				)
+				.bind(contentHash)
+				.first<{ id: string; original_filename: string }>();
+			if (match) {
+				duplicateOf = { id: match.id, filename: match.original_filename };
+			}
+		} catch (err) {
+			console.error(`Content hashing failed for upload ${id}:`, err);
+		}
+
 		const exif = await extractExif(bytes);
 		const exifId = crypto.randomUUID();
 
@@ -104,10 +132,17 @@ export default defineEventHandler(async (event) => {
 			await db.batch([
 				db
 					.prepare(
-						`INSERT INTO photos (id, original_filename, r2_key, content_type, file_size)
-						 VALUES (?, ?, ?, ?, ?)`,
+						`INSERT INTO photos (id, original_filename, r2_key, content_type, file_size, content_hash)
+						 VALUES (?, ?, ?, ?, ?, ?)`,
 					)
-					.bind(id, file.filename, r2Key, contentType, file.data.byteLength),
+					.bind(
+						id,
+						file.filename,
+						r2Key,
+						contentType,
+						file.data.byteLength,
+						contentHash,
+					),
 				db
 					.prepare(
 						`INSERT INTO exif_data
@@ -153,7 +188,11 @@ export default defineEventHandler(async (event) => {
 			console.error(`Variant generation failed for photo ${id}:`, err);
 		}
 
-		uploaded.push({ id, original_filename: file.filename ?? id });
+		uploaded.push({
+			id,
+			original_filename: file.filename ?? id,
+			...(duplicateOf ? { duplicateOf } : {}),
+		});
 	}
 
 	// Nothing landed — every file was over-limit. Surface a 4xx (naming the first

@@ -62,6 +62,9 @@ interface QueueItem {
 	status: QueueStatus;
 	progress: number; // 0–100
 	error?: string;
+	// Set when the server flags this file's bytes as matching an existing photo.
+	// Non-blocking — the file still uploads; this is just an informational hint.
+	duplicateOf?: string;
 }
 
 // Mirror the server's per-file ceiling (server/api/photos/index.post.ts) so we can
@@ -152,6 +155,14 @@ function uploadOne(item: QueueItem): Promise<boolean> {
 			if (xhr.status >= 200 && xhr.status < 300) {
 				item.status = "done";
 				item.progress = 100;
+				// Surface a non-blocking duplicate hint if the server flagged one.
+				try {
+					const body = JSON.parse(xhr.responseText);
+					const dup = body?.uploaded?.[0]?.duplicateOf;
+					if (dup?.filename) item.duplicateOf = dup.filename;
+				} catch {
+					// non-JSON response — no hint to show
+				}
 				resolve(true);
 			} else {
 				let message = `Upload failed (${xhr.status})`;
@@ -362,12 +373,16 @@ async function startUpload() {
 						>
 							{{ item.error }} — won't be uploaded
 						</p>
-						<p
-							v-else-if="item.status === 'done'"
-							class="mt-0.5 text-xs text-emerald-600"
-						>
-							Uploaded
-						</p>
+						<template v-else-if="item.status === 'done'">
+							<p class="mt-0.5 text-xs text-emerald-600">Uploaded</p>
+							<p
+								v-if="item.duplicateOf"
+								class="mt-0.5 flex items-center gap-1 truncate text-xs text-amber-600"
+							>
+								<CircleAlert class="size-3 shrink-0" />
+								Looks like a duplicate of {{ item.duplicateOf }}
+							</p>
+						</template>
 						<p v-else class="mt-0.5 text-xs text-muted-foreground">Ready</p>
 					</div>
 

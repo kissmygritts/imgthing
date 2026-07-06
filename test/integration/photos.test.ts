@@ -4,7 +4,11 @@ import { login, pngBytes, url } from "./helpers";
 
 interface UploadResponse {
 	ok: boolean;
-	uploaded: { id: string; original_filename: string }[];
+	uploaded: {
+		id: string;
+		original_filename: string;
+		duplicateOf?: { id: string; filename: string };
+	}[];
 }
 
 interface PhotoRow {
@@ -313,6 +317,76 @@ describe("photos: upload limits", () => {
 		expect(res.status).toBe(413);
 		const body = (await res.json()) as { statusMessage?: string };
 		expect(body.statusMessage).toContain("50");
+	});
+});
+
+describe("photos: duplicate detection", () => {
+	// Upload an explicit byte body (so tests control the content hash directly).
+	async function uploadBytes(
+		cookie: string,
+		filename: string,
+		body: Uint8Array,
+	): Promise<UploadResponse> {
+		const form = new FormData();
+		form.append(
+			"file",
+			new File([body], filename, { type: "image/png" }),
+			filename,
+		);
+		const res = await SELF.fetch(url("/api/photos"), {
+			method: "POST",
+			headers: { cookie },
+			body: form,
+		});
+		expect(res.status, "upload should succeed").toBe(200);
+		return (await res.json()) as UploadResponse;
+	}
+
+	it("flags a re-upload of identical bytes as a duplicate of the first, non-blocking", async () => {
+		const cookie = await login();
+		// Unique bytes for this run so no earlier test's upload shares our hash.
+		const marker = Uint8Array.from(`dup-${Date.now()}-${Math.random()}`, (c) =>
+			c.charCodeAt(0),
+		);
+		const body = new Uint8Array([...pngBytes(), ...marker]);
+
+		// First upload lands with no duplicate flag.
+		const first = await uploadBytes(cookie, "original.png", body);
+		expect(first.uploaded).toHaveLength(1);
+		expect(first.uploaded[0].duplicateOf).toBeUndefined();
+		const firstId = first.uploaded[0].id;
+
+		// Second upload of the same bytes still succeeds, but reports the match.
+		const second = await uploadBytes(cookie, "copy.png", body);
+		expect(second.uploaded).toHaveLength(1);
+		// It's a distinct photo row (re-upload is allowed) …
+		expect(second.uploaded[0].id).not.toBe(firstId);
+		// … but flagged as a duplicate pointing at the first.
+		expect(second.uploaded[0].duplicateOf).toEqual({
+			id: firstId,
+			filename: "original.png",
+		});
+	});
+
+	it("does not flag different images as duplicates", async () => {
+		const cookie = await login();
+		const a = new Uint8Array([
+			...pngBytes(),
+			...Uint8Array.from(`a-${Date.now()}-${Math.random()}`, (c) =>
+				c.charCodeAt(0),
+			),
+		]);
+		const b = new Uint8Array([
+			...pngBytes(),
+			...Uint8Array.from(`b-${Date.now()}-${Math.random()}`, (c) =>
+				c.charCodeAt(0),
+			),
+		]);
+
+		const first = await uploadBytes(cookie, "distinct-a.png", a);
+		const second = await uploadBytes(cookie, "distinct-b.png", b);
+		expect(first.uploaded[0].duplicateOf).toBeUndefined();
+		expect(second.uploaded[0].duplicateOf).toBeUndefined();
 	});
 });
 
