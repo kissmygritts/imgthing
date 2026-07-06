@@ -125,7 +125,7 @@ Edit in place as the loop runs.
 | F2 | Date / time-taken filtering                   | done   | 9ead034 — `dateFrom`/`dateTo` in `buildFilter` (whole-day-inclusive end), sidebar "Date taken" group (native date inputs), `setDateRange` clears exclusive views; 4 integ tests. |
 | F4 | Duplicate detection on upload                 | done   | b10f708 — migration 0008 content_hash + index, SHA-256 on upload, `duplicateOf` in response + amber upload hint; 2 integ tests. Follow-up: `GET /api/photos/duplicates` view not built (noted). |
 | F6 | Keyboard-shortcut help overlay                | done   | 1be2893 — `?` opens Dialog listing real viewer shortcuts (←/→/i/Esc/?); overlay owns keyboard while open (other bindings inert). Note: help button only visible when drawer open (`?` key works always). |
-| F7 | Storage-usage readout                         | in_progress | |
+| F7 | Storage-usage readout                         | done   | c263509 — owner-only `GET /api/photos/stats` (live + trashed count/bytes), `humanBytes()` util, sidebar-footer readout, `stats` in `refreshAll`; integ + unit tests. |
 | F8 | **Design polish — HUMAN, loop stops here**    | hold   | Awaiting user design review; never delegate |
 
 The ids are non-contiguous (F3 bulk-export and F5 slideshow were dropped from this run — see
