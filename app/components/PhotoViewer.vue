@@ -249,7 +249,12 @@ const snippets = computed(() => {
 />`,
 		},
 		{
-			key: "meta",
+			key: "meta-curl",
+			label: "Metadata (cURL)",
+			code: `curl ${publicUrl("meta")}`,
+		},
+		{
+			key: "meta-js",
 			label: "Metadata (JSON)",
 			code: `const res = await fetch("${publicUrl("meta")}");
 const exif = await res.json();
