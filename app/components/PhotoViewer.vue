@@ -4,7 +4,6 @@ import {
 	Check,
 	ChevronLeft,
 	ChevronRight,
-	Code2,
 	Copy,
 	Download,
 	Globe,
@@ -120,7 +119,7 @@ const photo = computed(() => props.photos[props.index] ?? null);
 // (This component only ever mounts client-side, on tile click, so reading the
 // viewport width here is safe.)
 const drawerOpen = ref(import.meta.client ? window.innerWidth >= 768 : true);
-const mode = ref<"view" | "edit" | "usage">("view");
+const mode = ref<"view" | "edit" | "share">("view");
 
 function prev() {
 	if (props.index > 0) emit("update:index", props.index - 1);
@@ -138,7 +137,7 @@ function onKeydown(e: KeyboardEvent) {
 	if (e.key === "Escape") {
 		// Esc backs out of a sub-screen first, then closes the viewer.
 		if (mode.value === "edit") cancelEdit();
-		else if (mode.value === "usage") mode.value = "view";
+		else if (mode.value === "share") mode.value = "view";
 		else emit("close");
 		return;
 	}
@@ -152,7 +151,7 @@ function onKeydown(e: KeyboardEvent) {
 onMounted(() => {
 	window.addEventListener("keydown", onKeydown);
 	document.body.style.overflow = "hidden";
-	// Absolute origin so the embed screen's URLs are copy-paste ready.
+	// Absolute origin so the share screen's public URLs are copy-paste ready.
 	origin.value = window.location.origin;
 });
 onUnmounted(() => {
@@ -191,37 +190,37 @@ const facts = computed(() => {
 	return rows;
 });
 
-// --- Embed / optimize screen --------------------------------------------
-// Photos are served as on-the-fly WebP renditions from `/variant?size=…`
-// (widths below; height auto, never upscaled) or the untouched `/raw` original.
+// --- Share & embed screen -----------------------------------------------
+// One public surface: toggle the photo public, then surface its tokened
+// `/p/{token}/{size}` URLs + copy-paste embed snippets. These are the *only*
+// portable URLs — the private `/api/photos/{id}/variant` route only serves a
+// logged-in owner, so it's never handed out for embedding. Just the three WebP
+// renditions are exposed; the original and its EXIF stay private.
 const origin = ref("");
 
-const embedSizes = [
+// The three public renditions (longest side, px). No `raw` — the original is
+// never served publicly.
+const publicSizes = [
 	{ key: "thumb", width: 800, label: "Thumb" },
 	{ key: "md", width: 1280, label: "Medium" },
 	{ key: "lg", width: 2560, label: "Large" },
 ] as const;
 
-function variantUrl(size: string): string {
-	const p = photo.value;
-	return p ? `${origin.value}/api/photos/${p.id}/variant?size=${size}` : "";
+// A tokened public URL for a size, or "" while the photo is private (no token).
+function publicUrl(size: string): string {
+	const t = photo.value?.public_token;
+	return t ? `${origin.value}/p/${t}/${size}` : "";
 }
-const rawUrl = computed(() => {
-	const p = photo.value;
-	return p ? `${origin.value}/api/photos/${p.id}/raw` : "";
-});
 
-// The size list rendered on the embed screen — the three renditions plus the
-// untouched original, each as a scrollable, copyable URL box.
-const sizeRows = computed(() => [
-	...embedSizes.map((s) => ({
+// Copyable URL rows — only meaningful once published (token exists).
+const sizeRows = computed(() =>
+	publicSizes.map((s) => ({
 		key: s.key,
 		name: s.key,
-		meta: `${s.width}px wide`,
-		url: variantUrl(s.key),
+		meta: `${s.width}px`,
+		url: publicUrl(s.key),
 	})),
-	{ key: "raw", name: "original", meta: "full resolution", url: rawUrl.value },
-]);
+);
 
 // Copy-paste snippets, medium as the sensible default single-size embed.
 const snippets = computed(() => {
@@ -230,24 +229,32 @@ const snippets = computed(() => {
 		{
 			key: "html",
 			label: "HTML",
-			code: `<img src="${variantUrl("md")}" alt="${name}" />`,
+			code: `<img src="${publicUrl("md")}" alt="${name}" />`,
 		},
 		{
 			key: "markdown",
 			label: "Markdown",
-			code: `![${name}](${variantUrl("md")})`,
+			code: `![${name}](${publicUrl("md")})`,
 		},
 		{
 			key: "srcset",
 			label: "Responsive",
 			code: `<img
-  src="${variantUrl("md")}"
-  srcset="${variantUrl("thumb")} 800w,
-          ${variantUrl("md")} 1280w,
-          ${variantUrl("lg")} 2560w"
+  src="${publicUrl("md")}"
+  srcset="${publicUrl("thumb")} 800w,
+          ${publicUrl("md")} 1280w,
+          ${publicUrl("lg")} 2560w"
   sizes="(max-width: 768px) 100vw, 768px"
   alt="${name}"
 />`,
+		},
+		{
+			key: "meta",
+			label: "Metadata (JSON)",
+			code: `const res = await fetch("${publicUrl("meta")}");
+const exif = await res.json();
+// { filename, takenAt, camera, lens, exposure,
+//   aperture, iso, focalLength, publishedAt, gps }`,
 		},
 	];
 });
@@ -268,8 +275,8 @@ async function copy(text: string, key: string) {
 	}
 }
 
-function openUsage() {
-	mode.value = "usage";
+function openShare() {
+	mode.value = "share";
 	drawerOpen.value = true;
 }
 
@@ -346,10 +353,10 @@ function confirmDelete() {
 }
 
 // --- Share / publish -----------------------------------------------------
-// The share panel toggles public visibility and surfaces the tokened URLs. The
-// switches emit up to the parent, which persists via the composable and mutates
-// this row in place (visibility/public_token) — so the computeds below react.
-const shareOpen = ref(false);
+// The share screen (mode === 'share') toggles public visibility and surfaces the
+// tokened URLs. The switches emit up to the parent, which persists via the
+// composable and mutates this row in place (visibility/public_token) — so the
+// computeds above (sizeRows/snippets) and below react.
 // Local draft of the "show location" preference. Seeded from the row and kept as
 // the value we send on (re)publish.
 const shareShowLocation = ref(false);
@@ -358,17 +365,6 @@ const isPublic = computed(() => photo.value?.visibility === "public");
 const hasGps = computed(
 	() => photo.value?.gps_latitude != null && photo.value?.gps_longitude != null,
 );
-
-// The tokened public URLs, built from the row's token. md + lg are the shareable
-// renditions surfaced here (thumb/meta exist too but aren't offered for copy).
-const publicUrls = computed(() => {
-	const t = photo.value?.public_token;
-	if (!t) return [];
-	return [
-		{ key: "public-md", name: "medium", url: `${origin.value}/p/${t}/md` },
-		{ key: "public-lg", name: "large", url: `${origin.value}/p/${t}/lg` },
-	];
-});
 
 function togglePublic() {
 	const p = photo.value;
@@ -430,7 +426,6 @@ watch(
 	() => {
 		mode.value = "view";
 		confirmDeleteOpen.value = false;
-		shareOpen.value = false;
 		shareShowLocation.value = photo.value?.show_location === 1;
 		tagDraft.value = "";
 		copiedKey.value = null;
@@ -572,17 +567,13 @@ watch(
 											/>
 											{{ photo.is_favorite ? "Remove from favorites" : "Add to favorites" }}
 										</DropdownMenuItem>
-										<DropdownMenuItem @select="shareOpen = true">
+										<DropdownMenuItem @select="openShare">
 											<Share2 class="size-4" />
-											Share
+											Share &amp; embed
 										</DropdownMenuItem>
 										<DropdownMenuItem @select="startEdit">
 											<Pencil class="size-4" />
 											Edit details
-										</DropdownMenuItem>
-										<DropdownMenuItem @select="openUsage">
-											<Code2 class="size-4" />
-											Embed &amp; optimize
 										</DropdownMenuItem>
 										<DropdownMenuSeparator />
 										<DropdownMenuItem variant="destructive" @select="requestDelete">
@@ -696,16 +687,73 @@ watch(
 							</div>
 						</div>
 
-						<!-- Embed & optimize: ready-to-use rendition URLs + snippets -->
+						<!-- Share & embed: publish toggle, then tokened public URLs + snippets -->
 						<div v-else class="pb-2">
 							<p class="text-[12.5px] leading-relaxed text-muted-foreground">
-								Every size is generated on the fly as optimized
-								<span class="font-medium text-foreground">WebP</span>. Pick a
-								width — height scales automatically and never upsamples past
-								the original.
+								Publish this photo to a public link anyone can open — no imgthing
+								account needed. Only optimized
+								<span class="font-medium text-foreground">WebP</span> renditions
+								are shared; the original and its EXIF stay private.
 							</p>
 
-							<section class="mt-5">
+							<!-- Public toggle -->
+							<div class="mt-5 flex items-center justify-between gap-4">
+								<div class="min-w-0">
+									<p class="text-sm font-medium text-foreground">Public</p>
+									<p class="text-xs text-muted-foreground">
+										{{ isPublic ? "Anyone with the link can view this photo." : "Off — this photo is private." }}
+									</p>
+								</div>
+								<button
+									type="button"
+									role="switch"
+									:aria-checked="isPublic"
+									aria-label="Public"
+									class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border border-white/70 dark:border-white/12 transition-colors"
+									:class="isPublic ? 'bg-primary' : 'bg-white/40 dark:bg-white/10'"
+									@click="togglePublic"
+								>
+									<span
+										class="inline-block size-4 rounded-full bg-white shadow-sm transition-transform"
+										:class="isPublic ? 'translate-x-6' : 'translate-x-1'"
+									/>
+								</button>
+							</div>
+
+							<!-- Show location toggle — only for geotagged photos -->
+							<div v-if="hasGps" class="mt-4 flex items-center justify-between gap-4">
+								<div class="min-w-0">
+									<p class="text-sm font-medium text-foreground">Show location</p>
+									<p class="text-xs text-muted-foreground">
+										Include GPS coordinates on the public page.
+									</p>
+								</div>
+								<button
+									type="button"
+									role="switch"
+									:aria-checked="shareShowLocation"
+									aria-label="Show location"
+									class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border border-white/70 dark:border-white/12 transition-colors"
+									:class="shareShowLocation ? 'bg-primary' : 'bg-white/40 dark:bg-white/10'"
+									@click="toggleShowLocation"
+								>
+									<span
+										class="inline-block size-4 rounded-full bg-white shadow-sm transition-transform"
+										:class="shareShowLocation ? 'translate-x-6' : 'translate-x-1'"
+									/>
+								</button>
+							</div>
+
+							<!-- Private: nothing to copy yet -->
+							<p
+								v-if="!isPublic"
+								class="mt-5 rounded-lg border border-border bg-white/40 dark:bg-white/5 px-3 py-2.5 text-[11.5px] leading-relaxed text-muted-foreground"
+							>
+								Turn on Public to generate shareable links and embed snippets.
+							</p>
+
+							<template v-else>
+							<section class="mt-6">
 								<p
 									class="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground"
 								>
@@ -773,10 +821,10 @@ watch(
 							<p
 								class="mt-5 rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-2.5 text-[11.5px] leading-relaxed text-amber-700 dark:text-amber-300"
 							>
-								These URLs require an active imgthing session. Public embedding
-								on external sites isn't available yet — it needs a public
-								delivery domain.
+								Turning this off — or changing Show location — replaces the link,
+								so any previously shared URL stops working.
 							</p>
+							</template>
 						</div>
 					</div>
 
@@ -792,7 +840,7 @@ watch(
 								Download
 							</a>
 						</template>
-						<template v-else-if="mode === 'usage'">
+						<template v-else-if="mode === 'share'">
 							<button
 								class="flex-1 rounded-xl border border-white/85 dark:border-white/15 bg-white/50 dark:bg-white/10 px-3 py-2.5 text-center text-xs font-semibold text-muted-foreground transition hover:bg-white/75 dark:hover:bg-white/18 hover:text-foreground"
 								@click="mode = 'view'"
@@ -844,106 +892,6 @@ watch(
 						<Button variant="destructive" @click="confirmDelete">
 							{{ trash ? "Delete forever" : "Move to Trash" }}
 						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
-
-			<!-- Share panel — publish/unpublish + tokened public URLs. Placeholder
-			     styling/copy throughout (final polish is P7b). -->
-			<Dialog v-model:open="shareOpen">
-				<DialogContent class="z-[110]">
-					<DialogHeader>
-						<DialogTitle>Share “{{ photo.original_filename }}”</DialogTitle>
-						<DialogDescription>
-							Publish this photo to a public link anyone can open — no imgthing
-							account needed.
-						</DialogDescription>
-					</DialogHeader>
-
-					<div class="grid gap-4 py-2">
-						<!-- Public toggle -->
-						<div class="flex items-center justify-between gap-4">
-							<div class="min-w-0">
-								<p class="text-sm font-medium text-foreground">Public</p>
-								<p class="text-xs text-muted-foreground">
-									{{ isPublic ? "Anyone with the link can view this photo." : "Off — this photo is private." }}
-								</p>
-							</div>
-							<button
-								type="button"
-								role="switch"
-								:aria-checked="isPublic"
-								aria-label="Public"
-								class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border border-white/70 dark:border-white/12 transition-colors"
-								:class="isPublic ? 'bg-primary' : 'bg-white/40 dark:bg-white/10'"
-								@click="togglePublic"
-							>
-								<span
-									class="inline-block size-4 rounded-full bg-white shadow-sm transition-transform"
-									:class="isPublic ? 'translate-x-6' : 'translate-x-1'"
-								/>
-							</button>
-						</div>
-
-						<!-- Show location toggle — only for geotagged photos -->
-						<div v-if="hasGps" class="flex items-center justify-between gap-4">
-							<div class="min-w-0">
-								<p class="text-sm font-medium text-foreground">Show location</p>
-								<p class="text-xs text-muted-foreground">
-									Include GPS coordinates on the public page.
-								</p>
-							</div>
-							<button
-								type="button"
-								role="switch"
-								:aria-checked="shareShowLocation"
-								aria-label="Show location"
-								class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border border-white/70 dark:border-white/12 transition-colors"
-								:class="shareShowLocation ? 'bg-primary' : 'bg-white/40 dark:bg-white/10'"
-								@click="toggleShowLocation"
-							>
-								<span
-									class="inline-block size-4 rounded-full bg-white shadow-sm transition-transform"
-									:class="shareShowLocation ? 'translate-x-6' : 'translate-x-1'"
-								/>
-							</button>
-						</div>
-
-						<!-- Public URLs (only when published) -->
-						<div v-if="isPublic && publicUrls.length" class="grid gap-2.5">
-							<div v-for="u in publicUrls" :key="u.key" class="min-w-0">
-								<div class="mb-1 flex items-center justify-between gap-2">
-									<span class="font-mono text-[12px] font-semibold text-foreground">
-										{{ u.name }}
-									</span>
-									<button
-										type="button"
-										class="flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground transition hover:text-foreground"
-										:aria-label="`Copy ${u.name} URL`"
-										@click="copy(u.url, u.key)"
-									>
-										<Check v-if="copiedKey === u.key" class="size-3 text-primary" />
-										<Copy v-else class="size-3" />
-										{{ copiedKey === u.key ? "Copied" : "Copy" }}
-									</button>
-								</div>
-								<pre
-									class="overflow-x-auto rounded-lg border border-white/60 dark:border-white/10 bg-white/45 dark:bg-black/25 p-2.5 font-mono text-[11px] leading-relaxed text-foreground backdrop-blur"
-								><code>{{ u.url }}</code></pre>
-							</div>
-
-							<!-- Placeholder hint: links break on unpublish / re-publish (P7b copy) -->
-							<p
-								class="rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-2.5 text-[11.5px] leading-relaxed text-amber-700 dark:text-amber-300"
-							>
-								Turning this off — or changing Show location — replaces the link, so
-								any previously shared URL stops working.
-							</p>
-						</div>
-					</div>
-
-					<DialogFooter>
-						<Button variant="outline" @click="shareOpen = false">Done</Button>
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>
