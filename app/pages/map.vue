@@ -8,7 +8,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 // client-side: maplibre-gl is browser-only, and this dodges the known SSR
 // hydration quirk where server-rendered lists come back empty.
 
-const { tags, toggleFavorite, deletePhoto, attachTag, detachTag } =
+const { tags, toggleFavorite, deletePhoto, attachTag, detachTag, updatePhoto } =
 	useLibrary();
 
 // Swap the basemap to match the app theme so the map isn't a bright slab in
@@ -140,6 +140,18 @@ async function onViewerDetachTag(id: string, tagId: string) {
 		await refetch();
 	}
 }
+// A metadata edit (notably GPS) can move a marker or, if location is cleared,
+// drop the photo off the map — re-fetch, re-plot, and clamp/close the viewer.
+async function onViewerSave(id: string, patch: Partial<Photo>) {
+	await updatePhoto(id, patch);
+	await refetch();
+	await nextTick();
+	const count = photos.value.length;
+	if (count === 0) viewerIndex.value = null;
+	else if (viewerIndex.value !== null && viewerIndex.value > count - 1)
+		viewerIndex.value = count - 1;
+}
+
 async function onViewerDelete(id: string) {
 	const photo = photos.value.find((p) => p.id === id);
 	if (!photo) return;
@@ -191,6 +203,7 @@ async function onViewerDelete(id: string) {
 			@favorite="onViewerFavorite"
 			@attach-tag="onViewerAttachTag"
 			@detach-tag="onViewerDetachTag"
+			@save="onViewerSave"
 		/>
 	</div>
 </template>

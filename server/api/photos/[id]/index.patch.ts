@@ -1,9 +1,10 @@
 // Edit a photo's user-facing metadata. Accepts a JSON patch of the editable
 // fields only — the EXIF text fields (camera_make, camera_model, lens_info,
-// exposure, aperture, focal_length), the numeric `iso`, and `original_filename`
-// (rename). Everything else in the body is ignored (forward-compatible with the
-// client sending a wider Partial<Photo>): `taken_at` and GPS are display-only, so
-// a PATCH can never move a photo on the map.
+// exposure, aperture, focal_length), the numeric `iso`, the GPS coordinates
+// (gps_latitude/gps_longitude — set or cleared together from the map picker), and
+// `original_filename` (rename). Everything else in the body is ignored
+// (forward-compatible with the client sending a wider Partial<Photo>): `taken_at`
+// stays display-only.
 //
 // EXIF columns UPSERT into exif_data (a photo may have no row yet); the filename
 // lives on the photos row. Any successful edit bumps photos.updated_at. 404 if the
@@ -38,6 +39,16 @@ function coerceIso(raw: unknown): number | null {
 	return Number.isFinite(n) ? Math.trunc(n) : null;
 }
 
+// GPS columns are REAL: blank/invalid → NULL (clears the location), otherwise the
+// number, but only if it's in range (latitude ±90, longitude ±180) so a bad value
+// can't drop the photo at a bogus point on the map.
+function coerceGps(raw: unknown, kind: "lat" | "lng"): number | null {
+	if (raw == null) return null;
+	const n = typeof raw === "number" ? raw : Number(String(raw).trim());
+	if (!Number.isFinite(n)) return null;
+	return Math.abs(n) <= (kind === "lat" ? 90 : 180) ? n : null;
+}
+
 export default defineEventHandler(async (event) => {
 	const id = getRouterParam(event, "id");
 	if (!id) throw createError({ statusCode: 400, statusMessage: "Missing id" });
@@ -67,6 +78,14 @@ export default defineEventHandler(async (event) => {
 	if (Object.hasOwn(body, "iso")) {
 		exifCols.push("iso");
 		exifVals.push(coerceIso(body.iso));
+	}
+	if (Object.hasOwn(body, "gps_latitude")) {
+		exifCols.push("gps_latitude");
+		exifVals.push(coerceGps(body.gps_latitude, "lat"));
+	}
+	if (Object.hasOwn(body, "gps_longitude")) {
+		exifCols.push("gps_longitude");
+		exifVals.push(coerceGps(body.gps_longitude, "lng"));
 	}
 
 	const statements = [];

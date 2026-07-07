@@ -87,8 +87,8 @@ const props = defineProps<{
 const emit = defineEmits<{
 	close: [];
 	"update:index": [value: number];
-	// Emitted when the metadata drawer saves an edit. No PATCH endpoint exists
-	// yet — the parent is responsible for persisting the patch.
+	// Emitted when the metadata drawer saves an edit — the parent persists the
+	// patch via PATCH /api/photos/:id (useLibrary.updatePhoto).
 	save: [id: string, patch: Partial<Photo>];
 	// Emitted (after confirm) to delete a photo. In the normal library this is a
 	// soft delete (move to Trash); the parent performs the request, refreshes the
@@ -188,6 +188,7 @@ onUnmounted(() => {
 	window.removeEventListener("keydown", onKeydown);
 	document.body.style.overflow = "";
 	clearTimeout(copyTimer);
+	destroyGpsMap();
 });
 
 function formatDate(iso: string | null): string | null {
@@ -344,6 +345,8 @@ function startEdit() {
 		const v = p[f.key];
 		draft[f.key] = v == null ? "" : String(v);
 	}
+	gpsDraft.lat = p.gps_latitude;
+	gpsDraft.lng = p.gps_longitude;
 	mode.value = "edit";
 	drawerOpen.value = true;
 }
@@ -366,9 +369,112 @@ function saveEdit() {
 			if (next !== p[f.key]) (patch as Record<string, unknown>)[f.key] = next;
 		}
 	}
+	// GPS moves as a pair from the map picker; send whichever coordinate changed.
+	if (gpsDraft.lat !== p.gps_latitude) patch.gps_latitude = gpsDraft.lat;
+	if (gpsDraft.lng !== p.gps_longitude) patch.gps_longitude = gpsDraft.lng;
 	if (Object.keys(patch).length > 0) emit("save", p.id, patch);
 	mode.value = "view";
 }
+
+// --- GPS location picker -------------------------------------------------
+// A mini MapLibre map inside the edit form: click to drop a pin, drag it to
+// fine-tune, or Clear to remove the location. Coordinates live in gpsDraft
+// (seeded by startEdit, diffed by saveEdit). The map/marker are kept outside
+// reactive state — MapLibre instances shouldn't be proxied — and (re)built via
+// the [mode, drawerOpen] watcher since the edit form unmounts when the drawer
+// collapses.
+const gpsDraft = reactive<{ lat: number | null; lng: number | null }>({
+	lat: null,
+	lng: null,
+});
+const gpsMapEl = ref<HTMLElement | null>(null);
+let gpsMap: import("maplibre-gl").Map | null = null;
+let gpsMarker: import("maplibre-gl").Marker | null = null;
+
+// Match the app theme so the picker isn't a bright slab in dark mode — same
+// no-key OpenFreeMap styles the full map page uses.
+const colorMode = useColorMode();
+const gpsMapStyle = computed(() =>
+	colorMode.value === "dark"
+		? "https://tiles.openfreemap.org/styles/fiord"
+		: "https://tiles.openfreemap.org/styles/positron",
+);
+watch(gpsMapStyle, (style) => gpsMap?.setStyle(style));
+
+const hasGpsDraft = computed(
+	() => gpsDraft.lat != null && gpsDraft.lng != null,
+);
+
+// Round to ~6 decimals (~11cm) — plenty of precision, no float noise in the UI.
+function roundCoord(n: number): number {
+	return Math.round(n * 1e6) / 1e6;
+}
+
+async function placeGpsMarker(lat: number, lng: number) {
+	if (!gpsMap) return;
+	if (gpsMarker) {
+		gpsMarker.setLngLat([lng, lat]);
+		return;
+	}
+	const maplibregl = await import("maplibre-gl");
+	gpsMarker = new maplibregl.Marker({ draggable: true, color: "#8b5cf6" })
+		.setLngLat([lng, lat])
+		.addTo(gpsMap);
+	gpsMarker.on("dragend", () => {
+		const { lat, lng } = (
+			gpsMarker as import("maplibre-gl").Marker
+		).getLngLat();
+		gpsDraft.lat = roundCoord(lat);
+		gpsDraft.lng = roundCoord(lng);
+	});
+}
+
+function setGpsPoint(lat: number, lng: number) {
+	gpsDraft.lat = roundCoord(lat);
+	gpsDraft.lng = roundCoord(lng);
+	placeGpsMarker(gpsDraft.lat, gpsDraft.lng);
+}
+
+function clearGps() {
+	gpsDraft.lat = null;
+	gpsDraft.lng = null;
+	gpsMarker?.remove();
+	gpsMarker = null;
+}
+
+async function initGpsMap() {
+	if (gpsMap || !gpsMapEl.value) return;
+	const maplibregl = await import("maplibre-gl");
+	if (!gpsMapEl.value) return; // may have unmounted during the async import
+	const has = gpsDraft.lat != null && gpsDraft.lng != null;
+	gpsMap = new maplibregl.Map({
+		container: gpsMapEl.value,
+		style: gpsMapStyle.value,
+		center: has ? [gpsDraft.lng as number, gpsDraft.lat as number] : [0, 20],
+		zoom: has ? 11 : 1,
+		attributionControl: { compact: true },
+	});
+	gpsMap.on("click", (e) => setGpsPoint(e.lngLat.lat, e.lngLat.lng));
+	if (has) placeGpsMarker(gpsDraft.lat as number, gpsDraft.lng as number);
+}
+
+function destroyGpsMap() {
+	gpsMarker?.remove();
+	gpsMarker = null;
+	gpsMap?.remove();
+	gpsMap = null;
+}
+
+// The edit form (and its map container) only exists while editing with the
+// drawer open — build the map when both hold, tear it down otherwise.
+watch([mode, drawerOpen], async ([m, open]) => {
+	if (m === "edit" && open) {
+		await nextTick();
+		initGpsMap();
+	} else {
+		destroyGpsMap();
+	}
+});
 
 // --- Delete --------------------------------------------------------------
 const confirmDeleteOpen = ref(false);
@@ -727,6 +833,37 @@ watch(
 									:type="f.numeric ? 'number' : 'text'"
 									class="border-white/70 dark:border-white/12 bg-white/50 dark:bg-white/10 font-mono text-[13px] backdrop-blur"
 								/>
+							</div>
+
+							<!-- Location: click the map to drop a pin, drag to fine-tune -->
+							<div class="grid gap-1.5">
+								<div class="flex items-center justify-between">
+									<span
+										class="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground"
+									>
+										Location
+									</span>
+									<button
+										v-if="hasGpsDraft"
+										type="button"
+										class="text-[11px] font-medium text-muted-foreground transition hover:text-destructive"
+										@click="clearGps"
+									>
+										Clear
+									</button>
+								</div>
+								<div
+									ref="gpsMapEl"
+									class="h-44 w-full overflow-hidden rounded-lg border border-white/70 dark:border-white/12"
+								/>
+								<p class="font-mono text-[12px] text-muted-foreground">
+									<template v-if="hasGpsDraft">
+										{{ gpsDraft.lat }}, {{ gpsDraft.lng }}
+									</template>
+									<template v-else>
+										No location — click the map to add one.
+									</template>
+								</p>
 							</div>
 						</div>
 
