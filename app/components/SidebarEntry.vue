@@ -8,9 +8,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 
-// One row shared by the Folders and Tags lists: a left-aligned SidebarMenuButton
-// (icon · label · count) with a 3-dot menu revealed on hover. The button reserves
-// right padding (pr-8) so the count sits clear of where the menu appears.
+// One row shared by the Folders, Tags and Camera/Lens lists: a left-aligned
+// SidebarMenuButton (icon · label · count) with an optional 3-dot menu revealed on
+// hover. Every row reserves the same right padding (pr-8) — whether or not it has a
+// menu — so the count sits in one shared column and lines up across all groups.
 //
 // The row lives in its own `group/entry` wrapper and the nested `default` slot
 // (e.g. an expanded folder's children) sits OUTSIDE that wrapper — so hovering a
@@ -41,7 +42,7 @@ defineEmits<{ select: []; iconClick: [] }>();
 	<SidebarMenuItem>
 		<div class="group/entry relative">
 			<SidebarMenuButton
-				:class="$slots.menu ? 'pr-8' : undefined"
+				class="pr-8"
 				:tooltip="label"
 				:is-active="active"
 				:style="indent ? { paddingLeft: `${8 + indent}px` } : undefined"
