@@ -11,6 +11,7 @@ import {
 	LogOut,
 	MapPin,
 	Search,
+	Settings,
 	Trash2,
 	Upload,
 } from "@lucide/vue";
@@ -327,6 +328,12 @@ function closeMobile() {
 								</span>
 							</div>
 							<DropdownMenuSeparator />
+							<DropdownMenuItem as-child>
+								<NuxtLink to="/settings">
+									<Settings class="size-4" />
+									Settings
+								</NuxtLink>
+							</DropdownMenuItem>
 							<DropdownMenuItem @click="logout">
 								<LogOut class="size-4" />
 								Sign out
