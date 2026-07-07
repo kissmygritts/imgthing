@@ -5,6 +5,8 @@ export default defineNuxtConfig({
 	compatibilityDate: "2026-06-30",
 	devtools: { enabled: true },
 
+	devServer: { port: 8000 },
+
 	css: ["~/assets/css/main.css", "maplibre-gl/dist/maplibre-gl.css"],
 
 	modules: ["shadcn-nuxt", "nitro-cloudflare-dev", "@nuxtjs/color-mode"],
