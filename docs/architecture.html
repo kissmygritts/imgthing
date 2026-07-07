@@ -1,0 +1,498 @@
+<title>imgthing — Architecture & Self-Hosting</title>
+<style>
+  /* ===========================================================================
+   * imgthing — Architecture doc. Ports the app's "Bright Studio Glass" system:
+   * aurora root plane, iris accent (#6e56cf), floating glass panels, prism edges.
+   * Tokens mirror app/assets/css/main.css. Theme-aware: OS preference via
+   * prefers-color-scheme, overridden by the viewer's data-theme stamp.
+   * ========================================================================= */
+
+  :root {
+    color-scheme: light;
+    --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", SFMono-Regular, Menlo, Consolas, monospace;
+
+    --canvas: #f6f5fb;
+    --ink: #332b49;
+    --ink-soft: #69607f;
+    --iris: #6e56cf;
+    --iris-deep: #5a41b8;
+    --iris-line: rgba(110, 86, 207, 0.42);
+    --accent-soft: rgba(110, 86, 207, 0.10);
+
+    --panel-a: rgba(255, 255, 255, 0.76);
+    --panel-b: rgba(255, 255, 255, 0.62);
+    --panel-edge: rgba(120, 108, 150, 0.16);
+    --chip: rgba(255, 255, 255, 0.55);
+    --chip-edge: rgba(120, 108, 150, 0.20);
+    --code-bg: rgba(110, 86, 207, 0.08);
+    --code-ink: #4c3f86;
+    --hair: rgba(120, 108, 150, 0.18);
+
+    --node-fill: rgba(255, 255, 255, 0.78);
+    --node-edge: rgba(120, 108, 150, 0.28);
+    --worker-fill: rgba(110, 86, 207, 0.06);
+    --edge-strong: #8a7bbd;
+
+    --shadow: 0 1px 1px rgba(190, 160, 255, 0.18), 0 44px 90px -34px rgba(90, 70, 160, 0.40), 0 20px 46px -24px rgba(255, 170, 120, 0.20);
+
+    --blob1: #ffd9cf; --blob2: #c7adff; --blob3: #bef0dd; --blob4: #bfe3ff;
+    --topwash: rgba(255, 255, 255, 0.35);
+    --prism: conic-gradient(from 180deg, #ffd3ae, #d9c6ff, #bfe3ff, #bef0dd, #ffd3ae);
+  }
+
+  /* Dark tokens — declared once, applied to both the OS-preference and the
+   * explicit toggle. (Duplicated by design; a static doc favors clarity.) */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --canvas: #17131f; --ink: #ece8f5; --ink-soft: #b3aac6;
+      --iris: #a892f2; --iris-deep: #c3b4ff; --iris-line: rgba(168, 146, 242, 0.45);
+      --accent-soft: rgba(168, 146, 242, 0.14);
+      --panel-a: rgba(38, 33, 55, 0.82); --panel-b: rgba(31, 27, 46, 0.78);
+      --panel-edge: rgba(220, 210, 255, 0.12); --chip: rgba(220, 210, 255, 0.06);
+      --chip-edge: rgba(220, 210, 255, 0.14); --code-bg: rgba(168, 146, 242, 0.14);
+      --code-ink: #cdbfff; --hair: rgba(220, 210, 255, 0.12);
+      --node-fill: rgba(46, 40, 66, 0.85); --node-edge: rgba(220, 210, 255, 0.20);
+      --worker-fill: rgba(168, 146, 242, 0.09); --edge-strong: #9c8bd6;
+      --shadow: 0 1px 1px rgba(0,0,0,0.45), 0 44px 90px -32px rgba(0,0,0,0.75), 0 20px 46px -24px rgba(50,30,90,0.55);
+      --blob1: #4a2f42; --blob2: #3a2c6e; --blob3: #1e4a45; --blob4: #23395e;
+      --topwash: rgba(150, 128, 214, 0.12);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --canvas: #17131f; --ink: #ece8f5; --ink-soft: #b3aac6;
+    --iris: #a892f2; --iris-deep: #c3b4ff; --iris-line: rgba(168, 146, 242, 0.45);
+    --accent-soft: rgba(168, 146, 242, 0.14);
+    --panel-a: rgba(38, 33, 55, 0.82); --panel-b: rgba(31, 27, 46, 0.78);
+    --panel-edge: rgba(220, 210, 255, 0.12); --chip: rgba(220, 210, 255, 0.06);
+    --chip-edge: rgba(220, 210, 255, 0.14); --code-bg: rgba(168, 146, 242, 0.14);
+    --code-ink: #cdbfff; --hair: rgba(220, 210, 255, 0.12);
+    --node-fill: rgba(46, 40, 66, 0.85); --node-edge: rgba(220, 210, 255, 0.20);
+    --worker-fill: rgba(168, 146, 242, 0.09); --edge-strong: #9c8bd6;
+    --shadow: 0 1px 1px rgba(0,0,0,0.45), 0 44px 90px -32px rgba(0,0,0,0.75), 0 20px 46px -24px rgba(50,30,90,0.55);
+    --blob1: #4a2f42; --blob2: #3a2c6e; --blob3: #1e4a45; --blob4: #23395e;
+    --topwash: rgba(150, 128, 214, 0.12);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: var(--sans);
+    color: var(--ink);
+    background: var(--canvas);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* ---- Aurora root plane (z0), lifted straight from the app --------------- */
+  .aurora { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; background: var(--canvas); }
+  .aurora span { position: absolute; width: 64vmax; height: 64vmax; border-radius: 50%; filter: blur(72px); will-change: transform; }
+  .aurora .b1 { background: radial-gradient(circle, var(--blob1), transparent 70%); top: -18vmax; left: -14vmax; opacity: .55; animation: d1 46s ease-in-out infinite; }
+  .aurora .b2 { background: radial-gradient(circle, var(--blob2), transparent 70%); top: -22vmax; right: -18vmax; opacity: .85; animation: d2 55s ease-in-out infinite; }
+  .aurora .b3 { background: radial-gradient(circle, var(--blob3), transparent 70%); bottom: -24vmax; left: 6vw; opacity: .72; animation: d3 50s ease-in-out infinite; }
+  .aurora .b4 { background: radial-gradient(circle, var(--blob4), transparent 70%); bottom: -20vmax; right: -10vmax; opacity: .6; animation: d4 60s ease-in-out infinite; }
+  .aurora::after { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 0%, var(--topwash), transparent 60%); }
+  @keyframes d1 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(6vw,4vh) scale(1.08)} }
+  @keyframes d2 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-5vw,5vh) scale(1.05)} }
+  @keyframes d3 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(4vw,-4vh) scale(1.1)} }
+  @keyframes d4 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-4vw,-5vh) scale(1.04)} }
+
+  /* ---- Layout ------------------------------------------------------------- */
+  .wrap { position: relative; z-index: 1; max-width: 940px; margin: 0 auto; padding: clamp(28px, 5vw, 72px) clamp(18px, 4vw, 40px) 96px; }
+
+  /* ---- Glass panel -------------------------------------------------------- */
+  .panel {
+    position: relative;
+    background: linear-gradient(165deg, var(--panel-a), var(--panel-b));
+    backdrop-filter: blur(40px) saturate(1.5);
+    -webkit-backdrop-filter: blur(40px) saturate(1.5);
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+    padding: clamp(20px, 3.5vw, 34px);
+  }
+  .panel::before {
+    content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px;
+    background: var(--prism);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    opacity: .3; pointer-events: none;
+  }
+
+  /* ---- Hero --------------------------------------------------------------- */
+  header.hero { margin-bottom: 40px; animation: rise .7s cubic-bezier(.22,.61,.36,1) both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  .brandrow { display: flex; align-items: center; gap: 16px; }
+  .aperture {
+    width: 52px; height: 52px; border-radius: 50%; flex: none;
+    background: conic-gradient(from 120deg, #ffd3ae, #d9c6ff, #bfe3ff, #bef0dd, #ffd3ae);
+    box-shadow: inset 0 0 0 6px var(--canvas), inset 0 0 0 7px rgba(255,255,255,.35), 0 8px 22px -8px rgba(110,86,207,.5);
+  }
+  .brandrow h1 { font-family: var(--serif); font-weight: 600; letter-spacing: -.01em; font-size: clamp(2.1rem, 6vw, 3.1rem); margin: 0; line-height: 1.02; text-wrap: balance; }
+  .brandrow h1 .dot { color: var(--iris); }
+  .tagline { font-family: var(--serif); font-style: italic; color: var(--ink-soft); font-size: clamp(1.05rem, 2.6vw, 1.3rem); margin: 20px 0 0; max-width: 60ch; text-wrap: pretty; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: .8rem; font-weight: 500; padding: 6px 12px; border-radius: 999px;
+    background: var(--chip); border: 1px solid var(--chip-edge); color: var(--ink);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  }
+  .chip b { color: var(--iris-deep); font-weight: 700; }
+
+  /* ---- Section rhythm ----------------------------------------------------- */
+  section { margin-top: 30px; }
+  .eyebrow { font-size: .72rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--iris-deep); margin: 0 0 6px; }
+  h2 { font-family: var(--serif); font-weight: 600; font-size: clamp(1.4rem, 3.4vw, 1.9rem); margin: 0 0 14px; letter-spacing: -.01em; text-wrap: balance; }
+  h3 { font-size: 1.02rem; font-weight: 700; margin: 0 0 4px; letter-spacing: -.005em; }
+  p { margin: 0 0 12px; max-width: 68ch; }
+  p:last-child { margin-bottom: 0; }
+  a { color: var(--iris-deep); text-decoration-color: color-mix(in oklab, var(--iris) 40%, transparent); text-underline-offset: 2px; }
+  strong { font-weight: 650; }
+  code { font-family: var(--mono); font-size: .86em; background: var(--code-bg); color: var(--code-ink); padding: 1.5px 6px; border-radius: 6px; white-space: nowrap; }
+
+  /* ---- Stack cards -------------------------------------------------------- */
+  .grid { display: grid; gap: 14px; }
+  .grid.two { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+  .grid.stack5 { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+  .card {
+    position: relative; border-radius: 15px; padding: 16px 17px;
+    background: var(--chip); border: 1px solid var(--chip-edge);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    transition: transform .3s cubic-bezier(.22,.61,.36,1), box-shadow .3s;
+  }
+  .card::after {
+    content: ""; position: absolute; inset: -1px; border-radius: inherit; padding: 1.5px;
+    background: var(--prism);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    opacity: 0; transition: opacity .3s cubic-bezier(.22,.61,.36,1); pointer-events: none;
+  }
+  .card:hover { transform: translateY(-2px); }
+  .card:hover::after { opacity: .9; }
+  .card .kicker { font-size: .68rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); }
+  .card h3 { margin: 6px 0 5px; }
+  .card p { font-size: .88rem; color: var(--ink-soft); margin: 0; }
+
+  /* ---- Diagram ------------------------------------------------------------ */
+  .diagram-wrap { overflow-x: auto; padding: 6px 2px 4px; }
+  .diagram { min-width: 660px; display: block; width: 100%; height: auto; }
+  .diagram text { font-family: var(--sans); fill: var(--ink); }
+  .n-fill { fill: var(--node-fill); stroke: var(--node-edge); }
+  .n-worker { fill: var(--worker-fill); stroke: var(--iris-line); }
+  .n-bind { fill: var(--accent-soft); stroke: var(--iris-line); }
+  .n-title { font-weight: 700; font-size: 14px; }
+  .n-sub { font-size: 11.5px; fill: var(--ink-soft); }
+  .n-tag { font-size: 10.5px; font-weight: 700; letter-spacing: .06em; fill: var(--iris-deep); }
+  .edge { stroke: var(--edge-strong); stroke-width: 1.6; fill: none; }
+  .edge-dash { stroke-dasharray: 5 4; }
+  .elabel { font-size: 11px; fill: var(--ink-soft); }
+  .legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 14px; font-size: .8rem; color: var(--ink-soft); }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .swatch { width: 22px; height: 0; border-top: 2px solid var(--edge-strong); }
+  .swatch.dash { border-top-style: dashed; }
+
+  /* ---- Flow steps --------------------------------------------------------- */
+  .flow { display: grid; gap: 12px; }
+  .step { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: start; }
+  .step .num {
+    font-family: var(--mono); font-size: .82rem; font-weight: 700; color: var(--iris-deep);
+    background: var(--accent-soft); border: 1px solid var(--iris-line);
+    width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; flex: none;
+  }
+  .step .body h3 { font-size: .96rem; }
+  .step .body p { font-size: .89rem; color: var(--ink-soft); margin: 2px 0 0; }
+
+  /* ---- Table -------------------------------------------------------------- */
+  .tbl-wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; min-width: 520px; font-size: .89rem; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--hair); vertical-align: top; }
+  th { font-size: .7rem; text-transform: uppercase; letter-spacing: .1em; color: var(--ink-soft); font-weight: 700; }
+  tbody tr:last-child td { border-bottom: none; }
+  td code { white-space: nowrap; }
+  .muted { color: var(--ink-soft); }
+
+  /* ---- Numbered host steps ------------------------------------------------ */
+  ol.host { list-style: none; counter-reset: h; padding: 0; margin: 0; display: grid; gap: 14px; }
+  ol.host > li { counter-increment: h; display: grid; grid-template-columns: auto 1fr; gap: 14px; }
+  ol.host > li::before {
+    content: counter(h); font-family: var(--mono); font-weight: 700; font-size: .82rem; color: #fff;
+    background: var(--iris); width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center;
+  }
+  ol.host h3 { font-size: .95rem; margin-bottom: 3px; }
+  ol.host p { font-size: .88rem; color: var(--ink-soft); margin: 0; }
+  pre {
+    margin: 8px 0 0; padding: 12px 14px; border-radius: 11px; overflow-x: auto;
+    background: var(--code-bg); border: 1px solid var(--chip-edge);
+    font-family: var(--mono); font-size: .82rem; line-height: 1.55; color: var(--code-ink);
+  }
+  pre code { background: none; padding: 0; color: inherit; white-space: pre; }
+  .note { font-size: .84rem; color: var(--ink-soft); margin-top: 10px; padding-left: 12px; border-left: 2px solid var(--iris-line); }
+
+  footer { margin-top: 44px; text-align: center; font-size: .82rem; color: var(--ink-soft); }
+  footer .aperture-sm { width: 26px; height: 26px; border-radius: 50%; margin: 0 auto 10px; background: conic-gradient(from 120deg, #ffd3ae, #d9c6ff, #bfe3ff, #bef0dd, #ffd3ae); box-shadow: inset 0 0 0 3px var(--canvas); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .aurora span { animation: none; }
+    header.hero { animation: none; }
+    .card { transition: none; }
+  }
+</style>
+
+<div class="aurora" aria-hidden="true"><span class="b1"></span><span class="b2"></span><span class="b3"></span><span class="b4"></span></div>
+
+<div class="wrap">
+
+  <header class="hero">
+    <div class="brandrow">
+      <div class="aperture" aria-hidden="true"></div>
+      <h1>imgthing<span class="dot">.</span></h1>
+    </div>
+    <p class="tagline">A single-owner photo library that lives entirely on Cloudflare — one Worker, three bindings, and no other vendor. This is how it fits together, and how to run your own.</p>
+    <div class="chips">
+      <span class="chip"><b>Cloudflare-native</b></span>
+      <span class="chip">Nuxt 4 · SSR on Workers</span>
+      <span class="chip">Single owner</span>
+      <span class="chip">≈ <b>$0–5</b>/month</span>
+    </div>
+  </header>
+
+  <section class="panel">
+    <p class="eyebrow">The idea</p>
+    <h2>One vendor, one owner, one Worker</h2>
+    <p>imgthing is a personal photo library for exactly one person. That single decision removes almost all the usual complexity — there is no user table, no per-row ownership scoping, no cross-tenant isolation. Everything runs inside one Cloudflare Worker that serves both the app and its API, backed by Cloudflare's own storage primitives.</p>
+    <p>Originals live in <strong>R2</strong>. Metadata lives in <strong>D1</strong> (SQLite). Resizing happens once at upload through the <strong>Cloudflare Images</strong> binding, and every image view after that is a plain read from R2. Nothing depends on a custom domain — the whole thing works on a <code>*.workers.dev</code> URL from the first deploy.</p>
+  </section>
+
+  <section>
+    <p class="eyebrow">The stack at a glance</p>
+    <h2>Five moving parts</h2>
+    <div class="grid stack5">
+      <div class="card"><div class="kicker">Compute</div><h3>Nuxt 4 on Workers</h3><p>SSR via the Nitro <code>cloudflare_module</code> preset. Serves the UI and every API route.</p></div>
+      <div class="card"><div class="kicker">Metadata</div><h3>Cloudflare D1</h3><p>SQLite at the edge. Photos, folders, EXIF, tags — nowhere near D1's limits at one-owner scale.</p></div>
+      <div class="card"><div class="kicker">Originals</div><h3>R2 bucket</h3><p>One object per photo, plus three precomputed variants. Free egress, private bucket.</p></div>
+      <div class="card"><div class="kicker">Resize</div><h3>Images binding</h3><p><code>env.IMAGES</code> as an upload-time resize function only — never on a serving path.</p></div>
+      <div class="card"><div class="kicker">Gate</div><h3>Hand-rolled auth</h3><p>One passphrase, a signed cookie. Self-contained and testable with no Cloudflare account.</p></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <p class="eyebrow">System map</p>
+    <h2>How it fits together</h2>
+    <p style="margin-bottom:18px">Two kinds of caller reach a single Worker. The Worker owns all logic and talks to three bindings. Resizing (dashed) happens only at upload; every view is a read.</p>
+    <div class="diagram-wrap">
+      <svg class="diagram" viewBox="0 0 900 500" role="img" aria-label="Architecture diagram: owner and public visitor reach one Cloudflare Worker, which uses D1, R2, and the Images binding.">
+        <defs>
+          <marker id="arw" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0.5,0.5 L9,5 L0.5,9.5" fill="none" stroke="var(--edge-strong)" stroke-width="1.6"/>
+          </marker>
+        </defs>
+
+        <!-- Clients -->
+        <g>
+          <rect class="n-fill" x="24" y="96" width="176" height="76" rx="14"/>
+          <text class="n-title" x="112" y="128" text-anchor="middle">Owner</text>
+          <text class="n-sub" x="112" y="148" text-anchor="middle">browser · signed in</text>
+        </g>
+        <g>
+          <rect class="n-fill" x="24" y="300" width="176" height="76" rx="14"/>
+          <text class="n-title" x="112" y="332" text-anchor="middle">Public visitor</text>
+          <text class="n-sub" x="112" y="352" text-anchor="middle">holds a share token</text>
+        </g>
+
+        <!-- Worker container -->
+        <rect class="n-worker" x="300" y="54" width="300" height="384" rx="20"/>
+        <text class="n-tag" x="322" y="84">CLOUDFLARE WORKER · imgthing</text>
+        <g>
+          <rect class="n-fill" x="322" y="100" width="256" height="66" rx="12"/>
+          <text class="n-title" x="338" y="128">Static client</text>
+          <text class="n-sub" x="338" y="147">ASSETS · the built Nuxt SPA</text>
+        </g>
+        <g>
+          <rect class="n-fill" x="322" y="178" width="256" height="72" rx="12"/>
+          <text class="n-title" x="338" y="206">Auth middleware</text>
+          <text class="n-sub" x="338" y="225">gates /api/** · redirects to /login</text>
+        </g>
+        <g>
+          <rect class="n-fill" x="322" y="262" width="256" height="160" rx="12"/>
+          <text class="n-title" x="338" y="290">Nitro server routes</text>
+          <text class="n-sub" x="338" y="311">/api/auth · /api/photos</text>
+          <text class="n-sub" x="338" y="329">/api/photos/:id/variant  (private)</text>
+          <text class="n-sub" x="338" y="347">/p/:token/:size  (public)</text>
+          <text class="n-sub" x="338" y="365">/p/:token/meta  (public JSON)</text>
+          <text class="n-sub" x="338" y="397" style="fill:var(--iris-deep);font-weight:600">getOrCreateVariant() · self-healing</text>
+        </g>
+
+        <!-- Bindings -->
+        <g>
+          <rect class="n-bind" x="700" y="80" width="176" height="82" rx="14"/>
+          <text class="n-tag" x="716" y="106">D1 · DB</text>
+          <text class="n-sub" x="716" y="126">photos · folders</text>
+          <text class="n-sub" x="716" y="144">exif · tags · tokens</text>
+        </g>
+        <g>
+          <rect class="n-bind" x="700" y="204" width="176" height="82" rx="14"/>
+          <text class="n-tag" x="716" y="230">R2 · BUCKET</text>
+          <text class="n-sub" x="716" y="250">originals (private)</text>
+          <text class="n-sub" x="716" y="268">variants/{id}/{size}</text>
+        </g>
+        <g>
+          <rect class="n-bind" x="700" y="328" width="176" height="82" rx="14"/>
+          <text class="n-tag" x="716" y="354">Images · IMAGES</text>
+          <text class="n-sub" x="716" y="374">resize + WebP</text>
+          <text class="n-sub" x="716" y="392">upload time only</text>
+        </g>
+
+        <!-- Client → Worker edges -->
+        <path class="edge" d="M200,134 C250,134 262,150 298,168" marker-end="url(#arw)"/>
+        <text class="elabel" x="212" y="126">session cookie</text>
+        <path class="edge" d="M200,338 C250,338 262,340 298,330" marker-end="url(#arw)"/>
+        <text class="elabel" x="210" y="360">/p/:token/:size</text>
+
+        <!-- Worker → binding edges -->
+        <path class="edge" d="M600,300 C650,300 660,150 698,128" marker-end="url(#arw)"/>
+        <text class="elabel" x="612" y="210">metadata</text>
+        <path class="edge" d="M600,320 C648,320 658,262 698,250" marker-end="url(#arw)"/>
+        <text class="elabel" x="620" y="300">read variants</text>
+        <path class="edge edge-dash" d="M600,352 C650,352 660,368 698,372" marker-end="url(#arw)"/>
+        <text class="elabel" x="612" y="392">resize on upload</text>
+      </svg>
+    </div>
+    <div class="legend">
+      <span><span class="swatch"></span> request / read (every view)</span>
+      <span><span class="swatch dash"></span> resize — upload only, billed once per photo</span>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Request flows</p>
+    <h2>What happens on each path</h2>
+    <div class="grid two" style="margin-top:4px">
+
+      <div class="panel">
+        <h3>Signing in</h3>
+        <div class="flow" style="margin-top:12px">
+          <div class="step"><div class="num">1</div><div class="body"><h3>Submit passphrase</h3><p><code>POST /api/auth/login</code> compares it to <code>APP_PASSPHRASE</code> in constant time.</p></div></div>
+          <div class="step"><div class="num">2</div><div class="body"><h3>Mint a cookie</h3><p>An HMAC-SHA256 cookie <code>imgthing_session</code> signed with <code>SESSION_SECRET</code>. Payload <code>{sub, exp}</code>, 30 days, httpOnly.</p></div></div>
+          <div class="step"><div class="num">3</div><div class="body"><h3>Two guards</h3><p>Server middleware 401s any <code>/api/**</code>; page middleware redirects to <code>/login</code>. No sessions table.</p></div></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Uploading a photo</h3>
+        <div class="flow" style="margin-top:12px">
+          <div class="step"><div class="num">1</div><div class="body"><h3>Store the original</h3><p>Bytes go straight to R2 (one object). EXIF is parsed and written to D1.</p></div></div>
+          <div class="step"><div class="num">2</div><div class="body"><h3>Precompute variants</h3><p>The <code>IMAGES</code> binding makes three WebP sizes — <code>thumb 800</code>, <code>md 1280</code>, <code>lg 2560</code> — written to <code>variants/{id}/{size}</code>.</p></div></div>
+          <div class="step"><div class="num">3</div><div class="body"><h3>Non-fatal by design</h3><p>Row + original are already durable. A failed resize just leaves the variant unmade — the first view heals it.</p></div></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Viewing (owner)</h3>
+        <div class="flow" style="margin-top:12px">
+          <div class="step"><div class="num">1</div><div class="body"><h3>Gated request</h3><p><code>GET /api/photos/:id/variant?size=</code> passes the auth middleware.</p></div></div>
+          <div class="step"><div class="num">2</div><div class="body"><h3>Read, don't transform</h3><p><code>getOrCreateVariant</code> streams the WebP from R2 on a hit; on a miss it regenerates all sizes, then serves.</p></div></div>
+          <div class="step"><div class="num">3</div><div class="body"><h3>Long cache</h3><p>Served <code>private, immutable</code> for a year — the bytes never change.</p></div></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Sharing (public)</h3>
+        <div class="flow" style="margin-top:12px">
+          <div class="step"><div class="num">1</div><div class="body"><h3>Publish mints a token</h3><p>A fresh 128-bit random <code>public_token</code>. Re-publishing rotates it — old links die permanently.</p></div></div>
+          <div class="step"><div class="num">2</div><div class="body"><h3>Tokened read</h3><p><code>GET /p/:token/:size</code> lives outside <code>/api</code>, so no session is needed. It checks token + <code>visibility='public'</code> + not trashed.</p></div></div>
+          <div class="step"><div class="num">3</div><div class="body"><h3>Uniform 404s</h3><p>Bad size, bad token, private, or trashed all return an identical bare 404 — a revoked link can't be told from a fake one. Location EXIF is stripped by the WebP re-encode.</p></div></div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="panel">
+    <p class="eyebrow">Storage model</p>
+    <h2>Where the bytes live</h2>
+    <p>Two stores, cleanly split: R2 holds the pixels, D1 holds everything you can query. A photo id ties them together.</p>
+    <div class="grid two" style="margin-top:16px">
+      <div>
+        <h3 style="color:var(--iris-deep)">R2 &nbsp;·&nbsp; <code>BUCKET</code></h3>
+        <p class="muted" style="font-size:.88rem">Private bucket, never directly reachable. Keys:</p>
+        <pre><code>&lt;r2_key&gt;                original bytes
+variants/{id}/thumb     WebP · 800px
+variants/{id}/md        WebP · 1280px
+variants/{id}/lg        WebP · 2560px</code></pre>
+      </div>
+      <div>
+        <h3 style="color:var(--iris-deep)">D1 &nbsp;·&nbsp; <code>DB</code></h3>
+        <p class="muted" style="font-size:.88rem">Eight migrations, <code>0001</code>–<code>0008</code>. Core tables:</p>
+        <pre><code>photos      metadata, r2_key, visibility,
+            public_token, deleted_at
+exif_data   camera / GPS, per photo
+folders     + folder_photos join
+tags        + favorites</code></pre>
+      </div>
+    </div>
+    <p class="note">Soft delete and unpublish are the same instant: trashing a photo clears <code>visibility</code>, <code>public_token</code>, and <code>published_at</code> in the update that sets <code>deleted_at</code>. Hard delete also removes the three variant objects and the original from R2.</p>
+  </section>
+
+  <section class="panel">
+    <p class="eyebrow">Reference</p>
+    <h2>The four bindings</h2>
+    <p style="margin-bottom:16px">Everything the Worker can touch is declared in <code>wrangler.jsonc</code>. Names matter — the code reads them directly.</p>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Binding</th><th>Type</th><th>Holds</th><th>Provision with</th></tr></thead>
+        <tbody>
+          <tr><td><code>DB</code></td><td>D1</td><td>All metadata (SQLite)</td><td><code>wrangler d1 create imgthing</code></td></tr>
+          <tr><td><code>BUCKET</code></td><td>R2</td><td>Originals + variants</td><td><code>wrangler r2 bucket create imgthing-photos</code></td></tr>
+          <tr><td><code>IMAGES</code></td><td>Images</td><td>Resize function (no storage)</td><td>Enable Images on the account</td></tr>
+          <tr><td><code>ASSETS</code></td><td>Assets</td><td>Built static client</td><td>Automatic — from <code>nuxt build</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">Two secrets are set separately, not in <code>wrangler.jsonc</code>: <code>APP_PASSPHRASE</code> (your login) and <code>SESSION_SECRET</code> (a long random cookie-signing key). Locally they live in <code>.dev.vars</code>; in prod, <code>wrangler secret put</code>.</p>
+  </section>
+
+  <section class="panel">
+    <p class="eyebrow">Run your own</p>
+    <h2>Host it yourself</h2>
+    <p style="margin-bottom:20px">You need a Cloudflare account with <strong>Workers Paid</strong> ($5/mo, for CPU headroom) and <strong>Node</strong> locally. Everything below is account-scoped, so it's yours to run once.</p>
+    <ol class="host">
+      <li><div><h3>Authenticate & provision</h3><p>Log in, then create the two stateful stores.</p>
+        <pre><code>npx wrangler login
+npx wrangler d1 create imgthing
+npx wrangler r2 bucket create imgthing-photos</code></pre></div></li>
+      <li><div><h3>Wire the database id</h3><p>Paste the printed <code>database_id</code> into the <code>d1_databases</code> block in <code>wrangler.jsonc</code>. Keep <code>binding: "DB"</code> and <code>migrations_dir: "server/db/migrations"</code> — <code>wrangler d1 create</code> tends to rewrite both.</p></div></li>
+      <li><div><h3>Apply migrations</h3><p>Runs every pending migration (<code>0001</code>–<code>0008</code>) against the remote D1.</p>
+        <pre><code>npm run db:migrate:remote</code></pre></div></li>
+      <li><div><h3>Enable Cloudflare Images</h3><p>In the dashboard: <strong>account → Images</strong>. This is the account-level toggle that unlocks the <code>IMAGES</code> binding (free tier: 5,000 transforms/month). It is <em>not</em> the per-zone URL-transform setting, and it needs no custom domain.</p></div></li>
+      <li><div><h3>Set the two secrets</h3><p>Generate a strong random key without depending on a system <code>openssl</code>.</p>
+        <pre><code>npx wrangler secret put APP_PASSPHRASE
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))" \
+  | npx wrangler secret put SESSION_SECRET</code></pre></div></li>
+      <li><div><h3>Deploy</h3><p>Builds Nuxt and publishes the Worker to a <code>*.workers.dev</code> URL. First visit lands on <code>/login</code>.</p>
+        <pre><code>npm run deploy</code></pre></div></li>
+      <li><div><h3>(Optional) Custom domain</h3><p>Add your zone to Cloudflare, then attach it under <strong>Workers → your worker → Domains &amp; Routes</strong>. Works on the free DNS plan. Variants, sharing, and everything else behave identically to the workers.dev URL.</p></div></li>
+    </ol>
+  </section>
+
+  <section>
+    <p class="eyebrow">Why it's built this way</p>
+    <h2>Four decisions worth knowing</h2>
+    <div class="grid two" style="margin-top:4px">
+      <div class="card"><div class="kicker">ADR 0005</div><h3>Precomputed variants, not on-the-fly</h3><p>An earlier design resized per-request through <code>/cdn-cgi/image/</code> URLs — which forced a custom domain, a purge token, and per-view billing. Precomputing three WebP sizes at upload and serving them as plain R2 reads removes all of it. Steady-state serving cost is R2 reads only.</p></div>
+      <div class="card"><div class="kicker">ADR 0003</div><h3>Hand-rolled auth over Access</h3><p>Cloudflare Access is excellent but couples auth to the Zero Trust dashboard and doesn't run in local dev without stubbing. One passphrase plus a signed cookie keeps the app self-contained, portable, and testable with no Cloudflare account.</p></div>
+      <div class="card"><div class="kicker">ADR 0005</div><h3>Uniform 404 on every public miss</h3><p>Bad token, private, or trashed all return an identical bare 404. Without it, Nuxt would render the SPA shell at HTTP 200 for a non-<code>/api</code> route — making a revoked link look alive and leaking app HTML.</p></div>
+      <div class="card"><div class="kicker">ADR 0001</div><h3>Single-tenant, on purpose</h3><p>No user table, no per-row scoping, one vendor. Portability is reduced by design in exchange for near-zero cost and a dramatically smaller surface. Multi-user would be a real rewrite — and that's fine.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="aperture-sm" aria-hidden="true"></div>
+    imgthing · a personal photo library on Cloudflare · single-owner by design
+  </footer>
+
+</div>
