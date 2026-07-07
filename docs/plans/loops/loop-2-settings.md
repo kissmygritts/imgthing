@@ -17,7 +17,7 @@ Context confirmed by exploration:
 
 ---
 
-## [ ] Item 7 — Settings shell + user-menu entry
+## [x] Item 7 — Settings shell + user-menu entry
 
 **Label:** Feature. **Effort:** M. **Commit:** `feat: settings section shell and nav entry`.
 
