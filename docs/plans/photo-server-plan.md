@@ -1,7 +1,11 @@
 # Photo Server Plan (v2) — Cloudflare-native
 
-The source-of-truth plan for imgthing. See ADRs in `../decisions/` for the reasoning behind the
-stack, and `../PROGRESS.md` for status. (UI stack was later revised — see ADR 0002.)
+The architecture overview for imgthing. Reasoning for the stack lives in the ADRs
+(`../decisions/`); running status lives in `../PROGRESS.md`; the spent per-sprint build ledgers are
+in `./archive/`.
+
+**Status: shipped and live.** All milestones below are complete and the app is deployed to production
+(see [ADR 0006](../decisions/0006-production-deploy-and-operations.md)).
 
 ## Architecture
 
@@ -13,36 +17,40 @@ Cloudflare Worker (Nuxt via nitro cloudflare_module preset)
    │              │                    │
    ▼              ▼                    ▼
 Cloudflare D1   Cloudflare R2      Cloudflare Images
-(metadata)      (original photos)  (on-the-fly variants from R2)
+(metadata)      (originals +       (upload-time variant
+                 WebP variants)     transforms only)
 ```
+
+Serving is a pure R2 read: three fixed WebP variants are precomputed per photo at upload and stored
+in R2 (`variants/{id}/{size}`); the Images binding is used **only** at upload time, never on a
+per-view path. See [ADR 0005](../decisions/0005-precomputed-variants-from-r2.md).
 
 ## Data model
 
-- **folders** — id, name, parent_folder_id, created_at, updated_at
-- **photos** — id, original_filename, r2_key, content_type, file_size, folder_id, uploaded_at, updated_at
-- **exif_data** — id, photo_id, camera_make, camera_model, lens_info, exposure, aperture, iso,
-  focal_length, taken_at, gps_latitude, gps_longitude, other_data (JSON TEXT)
+Single owner — no `users` table, no per-row scoping. Schema is defined by the migrations in
+`server/db/migrations/` (`0001`–`0008`):
 
-No `users` table — single owner, no per-row scoping.
+- **folders** — id, name, parent_folder_id, timestamps
+- **photos** — id, original_filename, r2_key, content_type, file_size, timestamps; plus
+  `deleted_at` (soft-delete tombstone, `0005`), `visibility`/`public_token`/`published_at`/
+  `show_location`/`variants_generated_at` (public sharing, `0006`), `content_hash` (dup detection,
+  `0008`)
+- **exif_data** — camera/lens/exposure/aperture/iso/focal_length, taken_at, gps_latitude,
+  gps_longitude, other_data (JSON TEXT)
+- **folder_photos**, **tags** + **photo_tags** — many-to-many junctions (`0002`, `0004`)
+- **login_attempts** — per-IP brute-force throttle state (`0007`)
 
-## Milestones
+## Milestones — all complete
 
-1. **Foundation** — Nuxt on Workers, D1 + R2 + Images bindings, local dev with emulated bindings,
-   domain pointed at a Custom Domain. _(app scaffold done; account provisioning + domain pending —
-   see `../cloudflare-setup.md`)_
-2. **Auth** — single-owner login, session handling; or Cloudflare Access in front of the Worker.
-3. **Upload + Storage** — upload UI, originals to R2, D1 record, EXIF extracted at upload.
-4. **Folder Management** — folder CRUD, nesting, move-between-folders.
-5. **Gallery UI** — grid/list views, pagination, breadcrumbs.
-6. **Photo Viewing** — lightbox/slider, EXIF panel, Images variant links.
-7. **Search & Polish** — filename/date/EXIF search, tagging, mobile responsiveness.
-8. **Deployment Hardening** — D1 Time Travel backups, R2 versioning, monitoring, export job, docs.
-
-## Open items
-
-- Auth: hand-rolled vs. Cloudflare Access (decide before/at Milestone 2).
-- Variant preset sizes (thumbnail/medium/large) — config-level, not DB.
-- Export-everything job (dump D1 + list R2 keys) as backup insurance beyond D1 Time Travel.
+1. **Foundation** — Nuxt on Workers, D1 + R2 + Images bindings, local dev with emulated bindings. ✅
+2. **Auth** — hand-rolled single-owner login + signed session cookie ([ADR 0003](../decisions/0003-hand-rolled-auth.md)). ✅
+3. **Upload + Storage** — upload UI, originals to R2, D1 record, EXIF extracted at upload. ✅
+4. **Folder Management** — folder CRUD, nesting, move-between-folders. ✅
+5. **Gallery UI** — responsive grid, server-side search/paging/sort, multi-select. ✅
+6. **Photo Viewing** — lightbox, EXIF panel + editing, precomputed variants, map view, dark mode. ✅
+7. **Search & Polish** — filename search, camera/lens facets, tags, favorites, trash, mobile pass. ✅
+8. **Deployment Hardening** — deployed to production; brute-force throttle + soft-delete shipped.
+   Backups (D1 Time Travel + R2 versioning) and bulk export remain open — see `../PROGRESS.md`. ◑
 
 ## Cost (ballpark, mid-2026 pricing)
 

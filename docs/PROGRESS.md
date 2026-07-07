@@ -4,13 +4,14 @@ Milestones M1–M6 and backlog T1–T10 are **done** (auth, upload+EXIF, folders
 Images variants, delete, search/pagination, sort, multi-select, favorites, tags, upload page, map,
 dark mode) plus a design/UX polish pass. The feature set is complete locally. Full history is in git.
 
-The next sprint is about making it **real and safe to run** — it has never been deployed, it's a
-single passphrase on the open internet, and photo deletes are currently irreversible. Ranked by
-risk × value.
+The app is now **deployed and live** (2026-07-07, single-owner-gated on `gritts.net`). The sprints
+that got it there focused on making it real and safe to run — soft-delete so photo deletes are
+recoverable, per-IP brute-force protection on the open-internet login, and the deploy itself. The
+remaining work is operational (backups) and a couple of net-new features — see **Next up** below.
 
 ## Shipped this sprint (autonomous S1–S6)
 
-Driven unattended by [next-sprint-autonomous.md](./plans/next-sprint-autonomous.md). All six tasks
+Driven unattended by [next-sprint-autonomous.md](./plans/archive/next-sprint-autonomous.md). All six tasks
 landed with the gate green (`check` + `typecheck` + `test:all`; integration suite now 63 tests).
 
 - **S1 — Soft delete / trash** (`139da58`): `photos.deleted_at` tombstone (migration `0005`),
@@ -33,7 +34,7 @@ backups (P1), bulk download/export (P2) — intentionally out of this autonomous
 
 ## Shipped this sprint (autonomous public-photos P1–P9, P7a)
 
-Driven unattended by [public-photos-plan.md](./plans/public-photos-plan.md), which supersedes the
+Driven unattended by [public-photos-plan.md](./plans/archive/public-photos-plan.md), which supersedes the
 serving layer in ADR 0004. Precomputed WebP variants in R2 + tokened public/private serving with no
 new infra (no `/cdn-cgi/image/`, no purge API, no custom domain). All tasks landed with the gate
 green (`check` + `typecheck` + `test:all`; integration suite now 72 tests, 8 files). **P7b (design
@@ -72,7 +73,7 @@ The serving/variant architecture is now captured in
 
 ## Shipped this sprint (autonomous feature-sprint F1–F7)
 
-Driven unattended by [features-sprint-autonomous.md](./plans/features-sprint-autonomous.md) — fix the
+Driven unattended by [features-sprint-autonomous.md](./plans/archive/features-sprint-autonomous.md) — fix the
 one broken half-feature plus fill table-stakes library gaps that need no external account or product
 decision. All five functional tasks landed with the gate green; **F2 (date filtering) was later
 reverted by the owner** for a redesign, leaving F1, F4, F6, F7 in the tree. **F8 (design polish) is
@@ -107,51 +108,48 @@ reserved for the owner** — the loop stopped there for a live-surface review.
 overlay `<kbd>` styling, storage readout) are functional-but-plain out of the loop. Final visual fit
 against Bright Studio Glass (`docs/imgthing-ui.md`) is the owner's review, same split as P7a/P7b.
 
-## Next sprint
+## Shipped: production launch (2026-07-07)
 
-Everything the two autonomous sprints scoped (soft delete/trash, batch delete, camera/lens
-filters, upload limits, test coverage, mobile pass, and the whole public-photos feature) has
-**shipped**. What remains is the deploy-and-harden work those sprints deliberately excluded.
-Re-ranked against current reality (2026-07-05):
+**The app is live.** Provisioned remote D1 + R2, applied all migrations (`0001`–`0008`) remotely,
+set the `APP_PASSPHRASE` / `SESSION_SECRET` secrets, and deployed the Worker behind a Custom Domain
+on `gritts.net` (`5123ced` wired the real `database_id`; `6b023f8` marked the runbook complete). The
+serving model needs no custom domain — [ADR 0005](./decisions/0005-precomputed-variants-from-r2.md)
+made it work on `workers.dev` — but we added one for a memorable URL and stable share links. Deploy
+topology + durability posture are recorded in
+[ADR 0006](./decisions/0006-production-deploy-and-operations.md). Runbook:
+[cloudflare-setup.md](./cloudflare-setup.md).
 
-### P0 — Ship it (blocks everything; needs the owner's Cloudflare account)
+Both P0 items are now closed: brute-force protection (`af7772d`, migration `0007` — per-IP
+`login_attempts` throttle, exponential-backoff lockout, 429 before the passphrase compare) and the
+deploy itself.
 
-- **Provision + deploy.** `database_id` is still `REPLACE_WITH_D1_DATABASE_ID` (confirmed in
-  `wrangler.jsonc`) — the app has never run outside local dev. Create remote D1/R2, enable
-  Cloudflare Images, apply remote migrations, set secrets (`APP_PASSPHRASE`, `SESSION_SECRET`),
-  first `wrangler deploy`. A custom domain is **no longer required** — ADR 0005's variants-from-R2
-  serving works on `workers.dev` (this is the big change since the deploy note was first written).
-  See [cloudflare-setup.md](./cloudflare-setup.md). **This needs the owner** — it can't be done
-  autonomously without the Cloudflare account.
+## Next up
 
-### P0 — Login brute-force protection ✅ done (`af7772d`)
+The local feature set is complete and the app is deployed. What remains is operational hardening and
+a couple of net-new library features. Re-ranked against current reality (2026-07-07):
 
-- Shipped: migration `0007` (`login_attempts` table) + `server/utils/loginThrottle.ts`. Per-IP
-  throttle keyed by `CF-Connecting-IP` — 5 free consecutive failures, then exponential-backoff
-  lockout (1 min → 1 h cap); a locked IP is 429'd with `Retry-After` **before** the passphrase
-  compare; a successful login clears the counter. 3-scenario integration suite. D1-backed (no KV
-  binding needed). This was the one P0 that didn't need the owner's Cloudflare account.
+### P1 — Don't lose photos (top priority now that it's live)
 
-### P1 — Don't lose photos
-
-- **Backups.** The only unaddressed durability item. Enable D1 Time Travel + R2 object versioning
-  at provision time (config/ops, not code), and sketch an export-everything job (pairs with bulk
-  export below). Soft-delete/trash already covers accidental deletion.
+- **Enable platform backups.** The one unaddressed durability layer, and the only thing standing
+  between "deployed" and "safe." Flip **D1 Time Travel** + **R2 object versioning** in the dashboard
+  (provision-time toggles, no code). Soft-delete/trash covers accidental deletion; these cover
+  platform/account-level loss. See [ADR 0006](./decisions/0006-production-deploy-and-operations.md).
 
 ### P2 — Rounding out the media library
 
 - **Bulk download / export.** Select N → download a zip; also the "export everything" escape hatch
-  (no lock-in, doubles as a backup). Highest-value net-new feature for a media library — users
-  expect to get their originals back out. Needs streaming-zip in a Worker (watch memory; stream
-  from R2, don't buffer).
-- **Keyboard-shortcut help overlay** for the viewer (arrow-key nav already exists; document it).
-- **Date / time-taken filtering** — `exif_data.taken_at` is already stored; a date-range facet or
-  a timeline scrubber is cheap relative to value (mirror the camera/lens facet pattern).
+  (no lock-in, doubles as an offline backup). Highest-value net-new feature — users expect to get
+  their originals back out. Needs streaming-zip in a Worker (stream from R2, don't buffer).
+- **Date / time-taken filtering (redesign).** F2 shipped then was reverted by the owner — the
+  backend was fine but the two-bare-native-date-inputs sidebar UI was wrong. Redesign the control
+  first, then rebuild. `exif_data.taken_at` is stored + indexed; the `buildFilter` pattern is known.
 - **Album/folder-level publishing** — publish a whole folder as a public gallery (extends the
-  per-photo token model to a folder token). Explicitly deferred in ADR 0005; revisit if wanted.
+  per-photo token model to a folder token). Security-sensitive; deferred in ADR 0005 — deserves its
+  own planned sprint with a design pass, not a general feature sweep.
 
 ### Done since this list was first written (for the record)
 
 Soft delete/trash + restore (S1), batch delete (S2), camera/lens filters (S3), upload limits (S4),
-test-coverage audit (S5), mobile/responsive pass (S6), and the full public-photos feature
-(P1–P9, P7a/P7b). The "untested endpoints" gap is closed (72 integration tests, 8 files).
+test-coverage audit (S5), mobile/responsive pass (S6), the full public-photos feature (P1–P9,
+P7a/P7b), the feature sprint (F1/F4/F6/F7 + hand F8 polish), brute-force protection, and the
+production deploy. The "untested endpoints" gap is closed (72 integration tests, 8 files).

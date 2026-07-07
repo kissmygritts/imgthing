@@ -2,7 +2,7 @@
 
 **Status:** Superseded · 2026-07 — the `/cdn-cgi/image/` serving layer was dropped in favor
 of upload-time precomputed variants served straight from R2; see
-[`docs/plans/public-photos-plan.md`](../plans/public-photos-plan.md). The token/revocation
+[`docs/plans/archive/public-photos-plan.md`](../plans/archive/public-photos-plan.md). The token/revocation
 model (Q1/Q2), uniform 404s, private bucket, and trash-implies-unpublish carry over unchanged.
 The Cloudflare-docs findings below (purge semantics, `Via` header, billing) remain the
 reference for why the URL-transform mode was abandoned.
