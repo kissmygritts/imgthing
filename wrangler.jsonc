@@ -8,11 +8,11 @@
 	// Nuxt builds the static client into .output/public; serve it as assets.
 	"assets": {
 		"binding": "ASSETS",
-		"directory": "./.output/public"
+		"directory": "./.output/public",
 	},
 
 	"observability": {
-		"enabled": true
+		"enabled": true,
 	},
 
 	// D1 — photo/folder/exif metadata. Fill database_id after
@@ -21,21 +21,21 @@
 		{
 			"binding": "DB",
 			"database_name": "imgthing",
-			"database_id": "REPLACE_WITH_D1_DATABASE_ID",
-			"migrations_dir": "server/db/migrations"
-		}
+			"database_id": "9a43b318-e090-4c5b-a8ab-76104eb3deac",
+			"migrations_dir": "server/db/migrations",
+		},
 	],
 
 	// R2 — original photo objects, one per photo.
 	"r2_buckets": [
 		{
 			"binding": "BUCKET",
-			"bucket_name": "imgthing-photos"
-		}
+			"bucket_name": "imgthing-photos",
+		},
 	],
 
 	// Cloudflare Images binding — on-the-fly variant transforms.
 	"images": {
-		"binding": "IMAGES"
-	}
+		"binding": "IMAGES",
+	},
 }
