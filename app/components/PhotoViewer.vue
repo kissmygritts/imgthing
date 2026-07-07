@@ -936,7 +936,7 @@ watch(
 					</header>
 
 					<!-- Body: fact list (view) or editable fields (edit) -->
-					<div class="flex-1 overflow-y-auto overflow-x-hidden px-7">
+					<div class="flex-1 overflow-y-auto overflow-x-hidden px-7 pb-7">
 						<template v-if="mode === 'view'">
 							<dl class="grid gap-3">
 								<div
@@ -955,9 +955,26 @@ watch(
 								</div>
 							</dl>
 
+							<!-- Location: read-only map + coords for geotagged photos -->
+							<section v-if="hasGps" class="mt-4 border-t border-border pt-3">
+								<p
+									class="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground"
+								>
+									Location
+								</p>
+								<div
+									ref="viewMapEl"
+									class="h-40 w-full overflow-hidden rounded-lg border border-white/70 dark:border-white/12"
+								/>
+								<p class="mt-2 font-mono text-[12px] text-muted-foreground">
+									{{ photo.gps_latitude }}, {{ photo.gps_longitude }}
+								</p>
+							</section>
+
 							<!-- Full metadata: the raw EXIF beyond the curated facts, opt-in
-							     behind a collapsible. Fetched lazily per photo; hidden until
-							     there's something extra to show. GPS is never listed here. -->
+							     behind a collapsible. Sits below the map. Fetched lazily per
+							     photo; hidden until there's something extra to show. GPS is
+							     never listed here. -->
 							<Collapsible
 								v-if="fullMetaRows.length"
 								v-model:open="fullMetaOpen"
@@ -997,22 +1014,6 @@ watch(
 									</dl>
 								</CollapsibleContent>
 							</Collapsible>
-
-							<!-- Location: read-only map + coords for geotagged photos -->
-							<section v-if="hasGps" class="mt-4 border-t border-border pt-3">
-								<p
-									class="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground"
-								>
-									Location
-								</p>
-								<div
-									ref="viewMapEl"
-									class="h-40 w-full overflow-hidden rounded-lg border border-white/70 dark:border-white/12"
-								/>
-								<p class="mt-2 font-mono text-[12px] text-muted-foreground">
-									{{ photo.gps_latitude }}, {{ photo.gps_longitude }}
-								</p>
-							</section>
 
 							<!-- Tags: chips + free-form add with autocomplete -->
 							<section class="mt-4 border-t border-border pt-3">
