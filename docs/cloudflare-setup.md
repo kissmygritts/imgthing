@@ -75,21 +75,26 @@ The binding (`BUCKET`) and bucket name are already wired in `wrangler.jsonc` —
 npm run db:migrate:remote
 ```
 
-- [ ] `0001_init.sql` applied remotely (creates `folders`, `photos`, `exif_data`)
+This applies **all pending migrations** in `server/db/migrations/` (currently `0001`–`0008`),
+not just the initial schema.
+
+- [ ] All migrations applied remotely (`wrangler d1 migrations list imgthing --remote` shows none pending)
 
 ---
 
-## 4. Enable Cloudflare Images transformations
+## 4. Enable Cloudflare Images (account level)
 
-In the dashboard: **your account → Images → Transformations**, and enable transformations for
-the zone you'll serve from (`gritts.net` once it's added — see step 6). This is what lets the
-app generate thumbnail/medium/large variants from R2 originals on the fly.
+In the dashboard: **your account → Images** and make sure Images is enabled for the account.
+That's all this app needs — variants are generated through the Worker's `IMAGES` binding
+(`server/utils/variants.ts`), which is unlocked by account-level Images.
 
 - Free tier: 5,000 unique transforms/month.
-- The Worker also has an `IMAGES` binding for programmatic transforms, but URL-based transforms
-  need this zone setting on.
+- This is **not** the per-zone "Transformations" toggle. The app never uses URL-based
+  (`/cdn-cgi/image/...`) transforms, so you don't need to enable zone transformations, and this
+  step has **no dependency on a custom domain** — variants work on the `*.workers.dev` URL from
+  day one.
 
-- [ ] Images transformations enabled
+- [ ] Cloudflare Images enabled on the account
 
 ---
 
@@ -106,6 +111,10 @@ npx wrangler secret put APP_PASSPHRASE
 openssl rand -hex 32   # copy the output, then:
 npx wrangler secret put SESSION_SECRET
 ```
+
+> Note: this runs before the first deploy (step 6), so the Worker may not exist yet. `wrangler
+> secret put` will prompt to create a placeholder Worker to attach the secret to — that's
+> expected. If you'd rather avoid the prompt, deploy first (step 6) and set secrets after.
 
 - [ ] `APP_PASSPHRASE` set in prod
 - [ ] `SESSION_SECRET` set in prod (long random)
@@ -151,7 +160,8 @@ That's the full provisioning path. Development continues in parallel on local de
 Public sharing (the `/p/{token}/{size}` route) needs **no new infrastructure**. It runs on the
 `*.workers.dev` URL as-is — no custom domain, no cache-purge API token, and no per-zone
 transformation settings. Variants are precomputed WebP objects stored in R2 (`variants/{id}/{size}`)
-and served straight from the bucket, so they don't touch the URL-based transform path from step 4.
+and served straight from the bucket, so they never touch any URL-based transform path — they're
+plain R2 reads.
 
 Variant generation still uses the `IMAGES` binding, which counts against the free tier's 5,000
 transforms/month. At 3 variants per upload that's roughly **1,600 uploads/month** before you'd need a
