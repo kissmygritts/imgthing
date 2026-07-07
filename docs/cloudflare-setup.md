@@ -50,8 +50,8 @@ database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 
 Then re-run `npx wrangler types` so the change is picked up.
 
-- [ ] D1 created
-- [ ] `database_id` pasted into `wrangler.jsonc`
+- [x] D1 created
+- [x] `database_id` pasted into `wrangler.jsonc`
 
 ---
 
@@ -63,7 +63,7 @@ npx wrangler r2 bucket create imgthing-photos
 
 The binding (`BUCKET`) and bucket name are already wired in `wrangler.jsonc` — nothing to paste.
 
-- [ ] Bucket `imgthing-photos` created
+- [x] Bucket `imgthing-photos` created
 
 ---
 
@@ -78,7 +78,7 @@ npm run db:migrate:remote
 This applies **all pending migrations** in `server/db/migrations/` (currently `0001`–`0008`),
 not just the initial schema.
 
-- [ ] All migrations applied remotely (`wrangler d1 migrations list imgthing --remote` shows none pending)
+- [x] All migrations applied remotely (`wrangler d1 migrations list imgthing --remote` shows none pending)
 
 ---
 
@@ -94,7 +94,7 @@ That's all this app needs — variants are generated through the Worker's `IMAGE
   step has **no dependency on a custom domain** — variants work on the `*.workers.dev` URL from
   day one.
 
-- [ ] Cloudflare Images enabled on the account
+- [?] Cloudflare Images enabled on the account
 
 ---
 
@@ -116,8 +116,8 @@ npx wrangler secret put SESSION_SECRET
 > secret put` will prompt to create a placeholder Worker to attach the secret to — that's
 > expected. If you'd rather avoid the prompt, deploy first (step 6) and set secrets after.
 
-- [ ] `APP_PASSPHRASE` set in prod
-- [ ] `SESSION_SECRET` set in prod (long random)
+- [x] `APP_PASSPHRASE` set in prod
+- [x] `SESSION_SECRET` set in prod (long random)
 
 ---
 
@@ -130,7 +130,7 @@ npm run deploy   # nuxt build && wrangler deploy
 Publishes to a `*.workers.dev` URL. The app is gated by the login now, so this is safe to expose.
 First visit → `/login`; enter your `APP_PASSPHRASE`.
 
-- [ ] Deployed and login works
+- [x] Deployed and login works
 
 ---
 
@@ -143,8 +143,8 @@ First visit → `/login`; enter your `APP_PASSPHRASE`.
 
 Custom Domains work on the free DNS plan — no paid zone needed.
 
-- [ ] `gritts.net` added to Cloudflare
-- [ ] Custom Domain pointed at the `imgthing` worker
+- [x] `gritts.net` added to Cloudflare
+- [x] Custom Domain pointed at the `imgthing` worker
 
 ---
 
