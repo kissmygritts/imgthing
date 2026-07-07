@@ -189,6 +189,7 @@ onUnmounted(() => {
 	document.body.style.overflow = "";
 	clearTimeout(copyTimer);
 	destroyGpsMap();
+	destroyViewMap();
 });
 
 function formatDate(iso: string | null): string | null {
@@ -399,7 +400,10 @@ const gpsMapStyle = computed(() =>
 		? "https://tiles.openfreemap.org/styles/fiord"
 		: "https://tiles.openfreemap.org/styles/positron",
 );
-watch(gpsMapStyle, (style) => gpsMap?.setStyle(style));
+watch(gpsMapStyle, (style) => {
+	gpsMap?.setStyle(style);
+	viewMap?.setStyle(style);
+});
 
 const hasGpsDraft = computed(
 	() => gpsDraft.lat != null && gpsDraft.lng != null,
@@ -475,6 +479,67 @@ watch([mode, drawerOpen], async ([m, open]) => {
 		destroyGpsMap();
 	}
 });
+
+// --- View-mode location map ---------------------------------------------
+// A read-only companion to the edit picker: when the visible photo is
+// geotagged, the details view shows a static (non-interactive) MapLibre map
+// with a single pin. Built/torn down by the watcher below, which mirrors the
+// edit map's lifecycle and also rebuilds when the visible photo changes.
+const viewMapEl = ref<HTMLElement | null>(null);
+let viewMap: import("maplibre-gl").Map | null = null;
+let viewMarker: import("maplibre-gl").Marker | null = null;
+
+async function initViewMap() {
+	if (viewMap || !viewMapEl.value) return;
+	const p = photo.value;
+	if (!p || p.gps_latitude == null || p.gps_longitude == null) return;
+	const maplibregl = await import("maplibre-gl");
+	if (!viewMapEl.value) return; // may have unmounted during the async import
+	const lat = p.gps_latitude;
+	const lng = p.gps_longitude;
+	viewMap = new maplibregl.Map({
+		container: viewMapEl.value,
+		style: gpsMapStyle.value,
+		center: [lng, lat],
+		zoom: 11,
+		// Static display — no pan/zoom/interaction; the edit picker owns editing.
+		interactive: false,
+		attributionControl: { compact: true },
+	});
+	viewMarker = new maplibregl.Marker({ color: "#8b5cf6" })
+		.setLngLat([lng, lat])
+		.addTo(viewMap);
+}
+
+function destroyViewMap() {
+	viewMarker?.remove();
+	viewMarker = null;
+	viewMap?.remove();
+	viewMap = null;
+}
+
+// Build the read-only map only in view mode with the drawer open and a
+// geotagged photo. Keyed on the coordinates too (not just photo id) so it
+// (re)builds when an edit adds/moves GPS on the current photo — the row
+// updates asynchronously after Save, after mode has already flipped to view.
+watch(
+	[
+		mode,
+		drawerOpen,
+		() => photo.value?.gps_latitude,
+		() => photo.value?.gps_longitude,
+	],
+	async ([m, open, lat, lng]) => {
+		destroyViewMap();
+		if (m === "view" && open && lat != null && lng != null) {
+			await nextTick();
+			initViewMap();
+		}
+	},
+	// Fire on mount too: opening a geotagged photo lands directly in view mode,
+	// so no watched source changes and the map would otherwise never build.
+	{ immediate: true },
+);
 
 // --- Delete --------------------------------------------------------------
 const confirmDeleteOpen = ref(false);
@@ -769,6 +834,22 @@ watch(
 									</dd>
 								</div>
 							</dl>
+
+							<!-- Location: read-only map + coords for geotagged photos -->
+							<section v-if="hasGps" class="mt-4 border-t border-border pt-3">
+								<p
+									class="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground"
+								>
+									Location
+								</p>
+								<div
+									ref="viewMapEl"
+									class="h-40 w-full overflow-hidden rounded-lg border border-white/70 dark:border-white/12"
+								/>
+								<p class="mt-2 font-mono text-[12px] text-muted-foreground">
+									{{ photo.gps_latitude }}, {{ photo.gps_longitude }}
+								</p>
+							</section>
 
 							<!-- Tags: chips + free-form add with autocomplete -->
 							<section class="mt-4 border-t border-border pt-3">
