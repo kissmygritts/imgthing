@@ -286,13 +286,6 @@ function closeMobile() {
 		</SidebarContent>
 
 		<SidebarFooter>
-			<!-- Storage-usage readout -->
-			<div class="flex flex-col gap-0.5 px-2 py-1 text-xs text-muted-foreground">
-				<span class="font-medium text-foreground/80">{{ storageLabel }}</span>
-				<span v-if="stats.trashedCount > 0">
-					{{ humanBytes(stats.trashedBytes) }} in Trash
-				</span>
-			</div>
 			<div class="px-1 pb-1">
 				<ThemeToggle />
 			</div>
@@ -325,6 +318,14 @@ function closeMobile() {
 							<DropdownMenuLabel class="text-xs text-muted-foreground">
 								Account
 							</DropdownMenuLabel>
+							<DropdownMenuSeparator />
+							<!-- Storage-usage readout -->
+							<div class="flex flex-col gap-0.5 px-2 py-1.5 text-xs text-muted-foreground">
+								<span class="font-medium text-foreground/80">{{ storageLabel }}</span>
+								<span v-if="stats.trashedCount > 0">
+									{{ humanBytes(stats.trashedBytes) }} in Trash
+								</span>
+							</div>
 							<DropdownMenuSeparator />
 							<DropdownMenuItem @click="logout">
 								<LogOut class="size-4" />

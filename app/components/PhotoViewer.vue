@@ -135,8 +135,8 @@ function isTypingTarget(el: EventTarget | null): boolean {
 }
 
 // --- Keyboard-shortcut help overlay --------------------------------------
-// The viewer shortcuts are undiscoverable, so `?` (and a button) opens a Dialog
-// listing them. The list below is rendered verbatim in the overlay and MUST
+// The viewer shortcuts are undiscoverable, so `?` (and a kebab-menu item) opens a
+// Dialog listing them. The list below is rendered verbatim in the overlay and MUST
 // stay in sync with onKeydown — one source of truth for the real bindings.
 const helpOpen = ref(false);
 
@@ -587,6 +587,11 @@ watch(
 											Restore
 										</DropdownMenuItem>
 										<DropdownMenuSeparator />
+										<DropdownMenuItem @select="helpOpen = true">
+											<Keyboard class="size-4" />
+											Keyboard shortcuts
+										</DropdownMenuItem>
+										<DropdownMenuSeparator />
 										<DropdownMenuItem variant="destructive" @select="requestDelete">
 											<Trash2 class="size-4" />
 											Delete forever
@@ -611,6 +616,10 @@ watch(
 											Edit details
 										</DropdownMenuItem>
 										<DropdownMenuSeparator />
+										<DropdownMenuItem @select="helpOpen = true">
+											<Keyboard class="size-4" />
+											Keyboard shortcuts
+										</DropdownMenuItem>
 										<DropdownMenuItem variant="destructive" @select="requestDelete">
 											<Trash2 class="size-4" />
 											Move to Trash
@@ -619,13 +628,6 @@ watch(
 								</DropdownMenuContent>
 							</DropdownMenu>
 
-							<button
-								class="flex size-8 items-center justify-center rounded-full border border-white/85 dark:border-white/15 bg-white/55 dark:bg-white/12 text-muted-foreground backdrop-blur transition hover:bg-white/85 dark:hover:bg-white/20 hover:text-foreground"
-								aria-label="Keyboard shortcuts"
-								@click="helpOpen = true"
-							>
-								<Keyboard class="size-4" />
-							</button>
 							<button
 								class="flex size-8 items-center justify-center rounded-full border border-white/85 dark:border-white/15 bg-white/55 dark:bg-white/12 text-muted-foreground backdrop-blur transition hover:bg-white/85 dark:hover:bg-white/20 hover:text-foreground"
 								aria-label="Collapse details"
