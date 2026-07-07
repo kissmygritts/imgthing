@@ -177,12 +177,12 @@ export default defineEventHandler(async (event) => {
 		// fail the upload — serving self-heals on a variant miss. Leave
 		// variants_generated_at NULL on failure so a later serve regenerates.
 		try {
-			await generateVariants(images, bucket, id, bytes);
+			const variantBytes = await generateVariants(images, bucket, id, bytes);
 			await db
 				.prepare(
-					"UPDATE photos SET variants_generated_at = datetime('now') WHERE id = ?",
+					"UPDATE photos SET variants_generated_at = datetime('now'), variant_bytes = ? WHERE id = ?",
 				)
-				.bind(id)
+				.bind(variantBytes, id)
 				.run();
 		} catch (err) {
 			console.error(`Variant generation failed for photo ${id}:`, err);

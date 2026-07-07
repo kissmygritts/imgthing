@@ -58,13 +58,17 @@ async function transformVariant(
  * Generate and store all fixed variants for a photo. Originals are capped at
  * 25 MB (the upload limit), so three sequential buffered transforms stay within
  * Worker memory — do them sequentially rather than Promise.all.
+ *
+ * Returns the summed byte size of the three stored variants so callers can
+ * persist it (`photos.variant_bytes`) for storage accounting — recorded here on
+ * upload and again on every self-heal, which lazily backfills pre-existing rows.
  */
 export async function generateVariants(
 	images: ImagesBinding,
 	bucket: R2Bucket,
 	photoId: string,
 	original: ArrayBuffer,
-): Promise<void> {
+): Promise<number> {
 	// Read orientation once and reuse for every size. On anything without pixel
 	// dimensions (e.g. SVG) or an info failure, fall back to width-bound (landscape).
 	let portrait = false;
@@ -79,12 +83,15 @@ export async function generateVariants(
 		portrait = false;
 	}
 
+	let totalBytes = 0;
 	for (const size of Object.keys(VARIANT_SIZES) as VariantSize[]) {
 		const bytes = await transformVariant(images, original, size, portrait);
+		totalBytes += bytes.byteLength;
 		await bucket.put(variantKey(photoId, size), bytes, {
 			httpMetadata: { contentType: "image/webp" },
 		});
 	}
+	return totalBytes;
 }
 
 /**
@@ -109,7 +116,7 @@ export async function getOrCreateVariant(
 		throw createError({ statusCode: 404, statusMessage: "Object missing" });
 	}
 
-	await generateVariants(
+	const variantBytes = await generateVariants(
 		images,
 		bucket,
 		photo.id,
@@ -117,9 +124,9 @@ export async function getOrCreateVariant(
 	);
 	await db
 		.prepare(
-			"UPDATE photos SET variants_generated_at = datetime('now') WHERE id = ?",
+			"UPDATE photos SET variants_generated_at = datetime('now'), variant_bytes = ? WHERE id = ?",
 		)
-		.bind(photo.id)
+		.bind(variantBytes, photo.id)
 		.run();
 
 	const created = await bucket.get(variantKey(photo.id, size));
