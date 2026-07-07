@@ -586,7 +586,6 @@ watch(
 											<RotateCcw class="size-4" />
 											Restore
 										</DropdownMenuItem>
-										<DropdownMenuSeparator />
 										<DropdownMenuItem @select="helpOpen = true">
 											<Keyboard class="size-4" />
 											Keyboard shortcuts
@@ -615,11 +614,11 @@ watch(
 											<Pencil class="size-4" />
 											Edit details
 										</DropdownMenuItem>
-										<DropdownMenuSeparator />
 										<DropdownMenuItem @select="helpOpen = true">
 											<Keyboard class="size-4" />
 											Keyboard shortcuts
 										</DropdownMenuItem>
+										<DropdownMenuSeparator />
 										<DropdownMenuItem variant="destructive" @select="requestDelete">
 											<Trash2 class="size-4" />
 											Move to Trash
