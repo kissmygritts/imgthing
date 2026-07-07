@@ -54,8 +54,6 @@ const {
 	trashOnly,
 	selectedCamera,
 	selectedLens,
-	dateFrom,
-	dateTo,
 	search,
 	currentTitle,
 	foldersOf,
@@ -105,10 +103,6 @@ const listQuery = computed(() => {
 		// Camera and lens can both be set — pass both so they AND server-side.
 		if (selectedCamera.value) query.camera = selectedCamera.value;
 		if (selectedLens.value) query.lens = selectedLens.value;
-	} else if (dateFrom.value || dateTo.value) {
-		// Date-taken range is exclusive with the views above; either end may be open.
-		if (dateFrom.value) query.dateFrom = dateFrom.value;
-		if (dateTo.value) query.dateTo = dateTo.value;
 	} else if (selectedFolderId.value !== null)
 		query.folderId = selectedFolderId.value;
 	if (activeSearch.value) query.q = activeSearch.value;
