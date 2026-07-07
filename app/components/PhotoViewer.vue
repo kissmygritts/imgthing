@@ -9,7 +9,7 @@ import {
 	Globe,
 	Heart,
 	Keyboard,
-	MoreHorizontal,
+	MoreVertical,
 	PanelRightClose,
 	PanelRightOpen,
 	Pencil,
@@ -574,7 +574,7 @@ watch(
 										class="flex size-8 items-center justify-center rounded-full border border-white/85 dark:border-white/15 bg-white/55 dark:bg-white/12 text-muted-foreground backdrop-blur transition hover:bg-white/85 dark:hover:bg-white/20 hover:text-foreground data-[state=open]:bg-white/85 dark:data-[state=open]:bg-white/20 data-[state=open]:text-foreground"
 										aria-label="More actions"
 									>
-										<MoreHorizontal class="size-4" />
+										<MoreVertical class="size-4" />
 									</button>
 								</DropdownMenuTrigger>
 								<DropdownMenuContent
