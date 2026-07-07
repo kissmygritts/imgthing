@@ -95,7 +95,7 @@ Context confirmed by exploration:
 
 ---
 
-## [ ] Item 4 — Raw database viewer page
+## [x] Item 4 — Raw database viewer page
 
 **Depends on:** Item 7 (checked). **Label:** Feature. **Effort:** M.
 **Commit:** `feat: read-only database table viewer in settings`.
