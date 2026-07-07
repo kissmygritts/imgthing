@@ -2,6 +2,7 @@
 import {
 	ArrowLeft,
 	Check,
+	ChevronDown,
 	ChevronLeft,
 	ChevronRight,
 	Copy,
@@ -20,6 +21,11 @@ import {
 	X,
 } from "@lucide/vue";
 import { Button } from "@/components/ui/button";
+import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
 	Dialog,
 	DialogContent,
@@ -221,6 +227,116 @@ const facts = computed(() => {
 	];
 	return rows;
 });
+
+// --- Full metadata (raw EXIF) -------------------------------------------
+// The gallery list endpoint stays lean, so the raw `other_data` EXIF blob is
+// fetched lazily per photo from GET /api/photos/:id (keyed on id). This never
+// blocks the curated `facts` above — the extended set is opt-in behind a
+// collapsible. `rawExif` holds the parsed object (or null while loading / when
+// absent / on parse failure).
+const rawExif = ref<Record<string, unknown> | null>(null);
+const fullMetaOpen = ref(false);
+
+// Tags already surfaced by the curated facts, plus internal/derived ones exifr
+// emits — skip these so the extended list only adds genuinely new detail.
+const SKIP_EXIF_KEYS = new Set(
+	[
+		"Make",
+		"Model",
+		"LensModel",
+		"LensInfo",
+		"ExposureTime",
+		"FNumber",
+		"ISO",
+		"FocalLength",
+		"DateTimeOriginal",
+		"CreateDate",
+	].map((k) => k.toLowerCase()),
+);
+
+// GPS is owned by the map picker + promoted gps_* columns and gated by the
+// location-privacy model — never leak it through the generic dump.
+function isGpsKey(key: string): boolean {
+	const k = key.toLowerCase();
+	return k.startsWith("gps") || k === "latitude" || k === "longitude";
+}
+
+// camelCase / PascalCase → "Title Case" (e.g. WhiteBalance → "White Balance").
+function humanizeKey(key: string): string {
+	const spaced = key
+		.replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+		.replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
+		.replace(/[_-]+/g, " ")
+		.trim();
+	return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
+// Render a value as a short, readable string. Skips empties by returning null.
+function formatExifValue(value: unknown): string | null {
+	if (value == null) return null;
+	if (typeof value === "string") {
+		const s = value.trim();
+		return s.length ? s : null;
+	}
+	if (typeof value === "number")
+		return Number.isFinite(value) ? String(value) : null;
+	if (typeof value === "boolean") return value ? "Yes" : "No";
+	if (value instanceof Date)
+		return Number.isNaN(value.getTime()) ? null : value.toLocaleString();
+	if (Array.isArray(value)) {
+		const parts = value.map((v) => formatExifValue(v)).filter(Boolean);
+		return parts.length ? parts.join(", ") : null;
+	}
+	if (typeof value === "object") {
+		try {
+			const s = JSON.stringify(value);
+			return s && s !== "{}" ? s : null;
+		} catch {
+			return null;
+		}
+	}
+	return null;
+}
+
+// [label, value] rows for every remaining non-empty, non-GPS, not-already-shown
+// EXIF tag, sorted by label for a stable order.
+const fullMetaRows = computed(() => {
+	const raw = rawExif.value;
+	if (!raw) return [] as [string, string][];
+	const rows: [string, string][] = [];
+	for (const [key, value] of Object.entries(raw)) {
+		if (isGpsKey(key)) continue;
+		if (SKIP_EXIF_KEYS.has(key.toLowerCase())) continue;
+		const formatted = formatExifValue(value);
+		if (formatted == null) continue;
+		rows.push([humanizeKey(key), formatted]);
+	}
+	rows.sort((a, b) => a[0].localeCompare(b[0]));
+	return rows;
+});
+
+interface PhotoDetail {
+	photo?: { other_data?: string | null } | null;
+}
+
+// Fetch the raw EXIF for the visible photo. Reset first so a stale blob never
+// shows while the next one loads; guarded against JSON/parse failure and a
+// slow response that lands after the user has already navigated away.
+async function loadRawExif(id: string) {
+	rawExif.value = null;
+	fullMetaOpen.value = false;
+	try {
+		const detail = await $fetch<PhotoDetail>(`/api/photos/${id}`);
+		if (photo.value?.id !== id) return; // navigated away mid-flight
+		const other = detail?.photo?.other_data;
+		rawExif.value =
+			typeof other === "string" && other
+				? (JSON.parse(other) as Record<string, unknown>)
+				: null;
+	} catch {
+		if (photo.value?.id === id) rawExif.value = null;
+	}
+}
 
 // --- Share & embed screen -----------------------------------------------
 // One public surface: toggle the photo public, then surface its tokened
@@ -629,12 +745,16 @@ function removeTag(tagId: string) {
 // view mode whenever the visible photo changes.
 watch(
 	() => photo.value?.id,
-	() => {
+	(id) => {
 		mode.value = "view";
 		confirmDeleteOpen.value = false;
 		shareShowLocation.value = photo.value?.show_location === 1;
 		tagDraft.value = "";
 		copiedKey.value = null;
+		// Lazily pull the raw EXIF for the newly-visible photo (does not block
+		// the curated facts, which come from the already-loaded list row).
+		if (id) loadRawExif(id);
+		else rawExif.value = null;
 	},
 	{ immediate: true },
 );
@@ -834,6 +954,49 @@ watch(
 									</dd>
 								</div>
 							</dl>
+
+							<!-- Full metadata: the raw EXIF beyond the curated facts, opt-in
+							     behind a collapsible. Fetched lazily per photo; hidden until
+							     there's something extra to show. GPS is never listed here. -->
+							<Collapsible
+								v-if="fullMetaRows.length"
+								v-model:open="fullMetaOpen"
+								class="mt-4 border-t border-border pt-3"
+							>
+								<CollapsibleTrigger
+									class="group flex w-full items-center justify-between gap-2 text-left"
+								>
+									<span
+										class="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground"
+									>
+										Full metadata
+									</span>
+									<ChevronDown
+										class="size-4 shrink-0 text-muted-foreground transition-transform duration-200"
+										:class="fullMetaOpen ? 'rotate-180' : ''"
+									/>
+								</CollapsibleTrigger>
+								<CollapsibleContent>
+									<dl class="mt-3 grid gap-3">
+										<div
+											v-for="[label, value] in fullMetaRows"
+											:key="label"
+											class="min-w-0 border-t border-border pt-2 first:border-t-0 first:pt-0"
+										>
+											<dt
+												class="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground"
+											>
+												{{ label }}
+											</dt>
+											<dd
+												class="overflow-x-auto whitespace-pre-wrap break-words font-mono text-[13px] text-foreground"
+											>
+												{{ value }}
+											</dd>
+										</div>
+									</dl>
+								</CollapsibleContent>
+							</Collapsible>
 
 							<!-- Location: read-only map + coords for geotagged photos -->
 							<section v-if="hasGps" class="mt-4 border-t border-border pt-3">
