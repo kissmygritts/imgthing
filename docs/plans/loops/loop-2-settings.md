@@ -49,7 +49,7 @@ Context confirmed by exploration:
 
 ---
 
-## [ ] Item 3 — Storage & cloud-usage metrics page
+## [x] Item 3 — Storage & cloud-usage metrics page
 
 **Depends on:** Item 7 (checked). **Label:** Feature. **Effort:** M.
 **Commit:** `feat: storage usage metrics settings page`.
