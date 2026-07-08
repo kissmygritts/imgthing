@@ -47,7 +47,7 @@ export default defineNuxtConfig({
 			nodeCompat: true,
 		},
 		// Dev-only: auto-generate an OpenAPI spec + docs UI from server/api/**.
-		// Spec at /_openapi.json, docs at /_docs/scalar and /_docs/swagger.
+		// Spec at /_openapi.json, docs at /_scalar and /_swagger.
 		experimental: {
 			openAPI: true,
 		},
