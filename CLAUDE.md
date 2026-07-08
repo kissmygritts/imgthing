@@ -13,8 +13,8 @@ owner. Don't add multi-tenant concepts.
 - `docs/decisions/*.md` — the ADRs. Read the relevant one before changing auth (0003), the
   serving/variant model (0005), or deploy/ops (0006). **Reverse a decision by adding a superseding
   ADR, never by editing an old one.**
-- `docs/architecture.html` — architecture overview + self-hosting guide. `docs/plans/archive/` —
-  spent build ledgers (history, not live plans).
+- `docs/html/architecture.html` — architecture overview + self-hosting guide (generated HTML docs
+  live in `docs/html/`). `docs/plans/archive/` — spent build ledgers (history, not live plans).
 - `docs/cloudflare-setup.md` — the provisioning/deploy runbook (done; the re-provision reference).
 - `docs/imgthing-ui.md` — the "Bright Studio Glass" design language.
 
