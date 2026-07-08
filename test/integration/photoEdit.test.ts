@@ -104,7 +104,7 @@ describe("PATCH /api/photos/[id]", () => {
 		expect(photo.iso).toBeNull();
 	});
 
-	it("ignores taken_at and GPS (display-only) — cannot move the photo", async () => {
+	it("edits GPS (map picker) but ignores taken_at (display-only)", async () => {
 		const cookie = await login();
 		const id = await upload(cookie, `geo-${Date.now()}.png`);
 
@@ -116,18 +116,18 @@ describe("PATCH /api/photos/[id]", () => {
 			.run();
 
 		const res = await patch(cookie, id, {
-			gps_latitude: 0,
-			gps_longitude: 0,
+			gps_latitude: 40.7128,
+			gps_longitude: -74.006,
 			taken_at: "1999-12-31 00:00:00",
 			camera_make: "Nikon",
 		});
 		expect(res.status).toBe(200);
 		const { photo } = (await res.json()) as { photo: Photo };
-		// The editable field applied…
+		// The editable fields applied — GPS moves via the map picker…
 		expect(photo.camera_make).toBe("Nikon");
-		// …but GPS + date are untouched.
-		expect(photo.gps_latitude).toBeCloseTo(37.8199, 4);
-		expect(photo.gps_longitude).toBeCloseTo(-122.4783, 4);
+		expect(photo.gps_latitude).toBeCloseTo(40.7128, 4);
+		expect(photo.gps_longitude).toBeCloseTo(-74.006, 4);
+		// …but taken_at stays display-only (handler never writes it).
 		expect(photo.taken_at).toBe("2020-01-01 00:00:00");
 	});
 
