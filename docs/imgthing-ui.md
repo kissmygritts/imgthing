@@ -22,6 +22,8 @@ see [Known gaps](#known-gaps).
 | Root-plane chrome (brand, search, upload, nav) | `app/components/AppSidebar.vue` |
 | Gallery toolbar + glass tiles | `app/pages/index.vue` |
 | Lightbox (plate viewer) | `app/components/PhotoViewer.vue` |
+| Living reference — every token/surface/primitive, standalone | `app/pages/styleguide.vue` (`/styleguide`) |
+| The build recipe (how to add UI without drift) | `.claude/skills/imgthing-ui/SKILL.md` (`/imgthing-ui`) |
 
 > **CSS layering gotcha:** the `.aurora`, `.glass-panel`, `.prism-edge`, and `.brand-mark` rules
 > live **outside `@layer`** on purpose. Unlayered rules beat Tailwind's layered utilities, so
