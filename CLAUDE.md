@@ -13,9 +13,12 @@ owner. Don't add multi-tenant concepts.
 - `docs/decisions/*.md` — the ADRs. Read the relevant one before changing auth (0003), the
   serving/variant model (0005), or deploy/ops (0006). **Reverse a decision by adding a superseding
   ADR, never by editing an old one.**
-- `docs/plans/photo-server-plan.md` — architecture overview. `docs/plans/archive/` — spent build
-  ledgers (history, not live plans).
+- `docs/architecture.html` — architecture overview + self-hosting guide. `docs/plans/archive/` —
+  spent build ledgers (history, not live plans).
+- `docs/cloudflare-setup.md` — the provisioning/deploy runbook (done; the re-provision reference).
 - `docs/imgthing-ui.md` — the "Bright Studio Glass" design language.
+
+Keep `docs/PROGRESS.md` current as milestones land. ADRs are `NNNN-short-title.md`, append-only.
 
 ## Commands (the gate)
 
@@ -31,6 +34,15 @@ npm run test:all    # unit + integration; integration runs `npm run build` first
   which bindings (DB/BUCKET/IMAGES) resolved.
 - `npm run db:migrate:local` — apply D1 migrations to local miniflare state (run after adding one).
 - `npm run test` / `test:unit` — fast Vitest unit run without the build step.
+
+Two Vitest layers; CI (`.github/workflows/ci.yml`) runs both on every push:
+
+- **Unit** (`test/unit/`, `vitest.unit.config.ts`) — Node, no runtime; pure server utils
+  (`exif.ts` formatters, `session.ts` `timingSafeEqual`, `openapiMeta`).
+- **Integration** (`test/integration/`, `vitest.integration.config.ts`) — the built worker in real
+  workerd via `@cloudflare/vitest-pool-workers`, **isolated D1 + R2 per test** (schema applied from
+  `server/db/migrations` by `setup.ts`; bindings/secrets in `test/integration/wrangler.jsonc`).
+  Drives real routes with `SELF.fetch()`, so it exercises the same path a browser would.
 
 ## Layout
 
