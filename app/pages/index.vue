@@ -11,7 +11,9 @@ import {
 	Loader2,
 	MoreVertical,
 	RotateCcw,
+	Share2,
 	SquareCheckBig,
+	Tag,
 	Trash2,
 	X,
 } from "@lucide/vue";
@@ -37,6 +39,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 
 interface PhotosResponse {
 	photos: Photo[];
@@ -64,6 +67,11 @@ const {
 	removePhotosFromFolder,
 	deletePhoto,
 	bulkDelete,
+	bulkFavorite,
+	bulkPublish,
+	bulkUnpublish,
+	bulkAttachTag,
+	bulkRestore,
 	restorePhoto,
 	purgePhoto,
 	emptyTrash,
@@ -234,6 +242,59 @@ async function runBulkDelete() {
 	}
 }
 
+// ── Batch actions on the current selection ────────────────────────────────
+// Favorite is a deterministic set-all, not a per-item flip: the first click
+// favorites the whole selection, the next un-favorites it. Any change to the
+// selection resets the intent to false (a mixed set is treated as un-favorited).
+const bulkFavorited = ref(false);
+watch(selectedIds, () => {
+	bulkFavorited.value = false;
+});
+async function bulkFavoriteSelected() {
+	const value = !bulkFavorited.value;
+	if (await bulkFavorite(selectedPhotoIds.value, value))
+		bulkFavorited.value = value;
+}
+
+// Publish/unpublish/restore mirror the delete flow: clear the selection on
+// success (favorite deliberately keeps it so the toggle stays reachable).
+async function bulkPublishSelected() {
+	if (await bulkPublish(selectedPhotoIds.value)) exitSelect();
+}
+async function bulkUnpublishSelected() {
+	if (await bulkUnpublish(selectedPhotoIds.value)) exitSelect();
+}
+async function bulkRestoreSelected() {
+	if (await bulkRestore(selectedPhotoIds.value)) exitSelect();
+}
+
+// Batch tag entry — reuse the single-photo pattern (free-form Input, comma
+// splits multiple tags). Lives in a small dialog so the bulk bar stays compact.
+const tagDialogOpen = ref(false);
+const bulkTagDraft = ref("");
+const bulkTagging = ref(false);
+function openBulkTag() {
+	bulkTagDraft.value = "";
+	tagDialogOpen.value = true;
+}
+async function runBulkTag() {
+	const names = bulkTagDraft.value
+		.split(",")
+		.map((s) => s.trim())
+		.filter(Boolean);
+	if (names.length === 0) return;
+	bulkTagging.value = true;
+	try {
+		const ok = await bulkAttachTag(selectedPhotoIds.value, names);
+		if (ok) {
+			tagDialogOpen.value = false;
+			exitSelect();
+		}
+	} finally {
+		bulkTagging.value = false;
+	}
+}
+
 // ── Trash: per-tile restore / permanent delete + empty ─────────
 // A tombstoned photo leaves the current (trash) list when restored or purged, so
 // both refresh the grid; the confirm dialog gates the destructive permanent purge.
@@ -357,7 +418,7 @@ async function onViewerPurge(id: string) {
 					Empty trash
 				</button>
 				<button
-					v-if="!trashOnly"
+					v-if="!trashOnly || photos.length"
 					class="flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] transition-colors"
 					:class="
 						selectMode
@@ -605,69 +666,122 @@ async function onViewerPurge(id: string) {
 
 				<span class="mx-0.5 h-5 w-px bg-border" />
 
-				<!-- Add selected → folder -->
-				<DropdownMenu>
-					<DropdownMenuTrigger as-child>
-						<button
-							class="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-white/50 dark:hover:bg-white/10 sm:px-3"
-							title="Add to folder"
-						>
-							<FolderPlus class="size-4" /><span class="hidden sm:inline">Add to</span>
-						</button>
-					</DropdownMenuTrigger>
-					<DropdownMenuContent align="center" side="top" class="min-w-44">
-						<DropdownMenuLabel>Add to folder</DropdownMenuLabel>
-						<template v-if="folders.length">
-							<DropdownMenuSeparator />
-							<DropdownMenuItem
-								v-for="folder in folders"
-								:key="folder.id"
-								@select="bulkAddToFolder(folder.id)"
-							>
-								{{ folder.name }}
-							</DropdownMenuItem>
-						</template>
-						<p v-else class="px-2 py-1.5 text-xs text-muted-foreground">
-							Create a folder first
-						</p>
-					</DropdownMenuContent>
-				</DropdownMenu>
-
-				<!-- Remove selected from folder -->
-				<DropdownMenu>
-					<DropdownMenuTrigger as-child>
-						<button
-							class="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-white/50 dark:hover:bg-white/10 sm:px-3"
-							title="Remove from folder"
-						>
-							<FolderMinus class="size-4" /><span class="hidden sm:inline">Remove from</span>
-						</button>
-					</DropdownMenuTrigger>
-					<DropdownMenuContent align="center" side="top" class="min-w-44">
-						<DropdownMenuLabel>Remove from folder</DropdownMenuLabel>
-						<template v-if="folders.length">
-							<DropdownMenuSeparator />
-							<DropdownMenuItem
-								v-for="folder in folders"
-								:key="folder.id"
-								@select="bulkRemoveFromFolder(folder.id)"
-							>
-								{{ folder.name }}
-							</DropdownMenuItem>
-						</template>
-						<p v-else class="px-2 py-1.5 text-xs text-muted-foreground">
-							No folders yet
-						</p>
-					</DropdownMenuContent>
-				</DropdownMenu>
-
+				<!-- Trash view: the only bulk action is restore -->
 				<button
-					class="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10 sm:px-3"
-					title="Move to Trash"
-					@click="confirmBulkDelete = true"
+					v-if="trashOnly"
+					class="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-white/50 dark:hover:bg-white/10 sm:px-3"
+					title="Restore"
+					@click="bulkRestoreSelected"
 				>
-					<Trash2 class="size-4" /><span class="hidden sm:inline">Delete</span>
+					<RotateCcw class="size-4" /><span class="hidden sm:inline">Restore</span>
 				</button>
+
+				<template v-else>
+					<!-- Favorite the whole selection (toggles set-all-true / set-all-false) -->
+					<button
+						class="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-semibold transition-colors hover:bg-white/50 dark:hover:bg-white/10 sm:px-3"
+						:class="bulkFavorited ? 'text-rose-500' : 'text-foreground'"
+						:title="bulkFavorited ? 'Remove from favorites' : 'Add to favorites'"
+						@click="bulkFavoriteSelected"
+					>
+						<Heart class="size-4" :class="bulkFavorited && 'fill-current'" /><span class="hidden sm:inline">Favorite</span>
+					</button>
+
+					<!-- Publish / unpublish the selection -->
+					<DropdownMenu>
+						<DropdownMenuTrigger as-child>
+							<button
+								class="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-white/50 dark:hover:bg-white/10 sm:px-3"
+								title="Public sharing"
+							>
+								<Share2 class="size-4" /><span class="hidden sm:inline">Share</span>
+							</button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="center" side="top" class="min-w-44">
+							<DropdownMenuLabel>Public sharing</DropdownMenuLabel>
+							<DropdownMenuSeparator />
+							<DropdownMenuItem @select="bulkPublishSelected">
+								<Globe class="size-4" /> Publish
+							</DropdownMenuItem>
+							<DropdownMenuItem @select="bulkUnpublishSelected">
+								<X class="size-4" /> Unpublish
+							</DropdownMenuItem>
+						</DropdownMenuContent>
+					</DropdownMenu>
+
+					<!-- Tag the selection -->
+					<button
+						class="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-white/50 dark:hover:bg-white/10 sm:px-3"
+						title="Add tag"
+						@click="openBulkTag"
+					>
+						<Tag class="size-4" /><span class="hidden sm:inline">Tag</span>
+					</button>
+
+					<!-- Add selected → folder -->
+					<DropdownMenu>
+						<DropdownMenuTrigger as-child>
+							<button
+								class="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-white/50 dark:hover:bg-white/10 sm:px-3"
+								title="Add to folder"
+							>
+								<FolderPlus class="size-4" /><span class="hidden sm:inline">Add to</span>
+							</button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="center" side="top" class="min-w-44">
+							<DropdownMenuLabel>Add to folder</DropdownMenuLabel>
+							<template v-if="folders.length">
+								<DropdownMenuSeparator />
+								<DropdownMenuItem
+									v-for="folder in folders"
+									:key="folder.id"
+									@select="bulkAddToFolder(folder.id)"
+								>
+									{{ folder.name }}
+								</DropdownMenuItem>
+							</template>
+							<p v-else class="px-2 py-1.5 text-xs text-muted-foreground">
+								Create a folder first
+							</p>
+						</DropdownMenuContent>
+					</DropdownMenu>
+
+					<!-- Remove selected from folder -->
+					<DropdownMenu>
+						<DropdownMenuTrigger as-child>
+							<button
+								class="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-white/50 dark:hover:bg-white/10 sm:px-3"
+								title="Remove from folder"
+							>
+								<FolderMinus class="size-4" /><span class="hidden sm:inline">Remove from</span>
+							</button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="center" side="top" class="min-w-44">
+							<DropdownMenuLabel>Remove from folder</DropdownMenuLabel>
+							<template v-if="folders.length">
+								<DropdownMenuSeparator />
+								<DropdownMenuItem
+									v-for="folder in folders"
+									:key="folder.id"
+									@select="bulkRemoveFromFolder(folder.id)"
+								>
+									{{ folder.name }}
+								</DropdownMenuItem>
+							</template>
+							<p v-else class="px-2 py-1.5 text-xs text-muted-foreground">
+								No folders yet
+							</p>
+						</DropdownMenuContent>
+					</DropdownMenu>
+
+					<button
+						class="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10 sm:px-3"
+						title="Move to Trash"
+						@click="confirmBulkDelete = true"
+					>
+						<Trash2 class="size-4" /><span class="hidden sm:inline">Delete</span>
+					</button>
+				</template>
 
 				<button
 					class="ml-0.5 flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-white/50 dark:hover:bg-white/10 hover:text-foreground"
@@ -708,6 +822,49 @@ async function onViewerPurge(id: string) {
 						Move to Trash
 					</Button>
 				</DialogFooter>
+			</DialogContent>
+		</Dialog>
+
+		<!-- Batch tag entry -->
+		<Dialog
+			:open="tagDialogOpen"
+			@update:open="(v) => !v && (tagDialogOpen = false)"
+		>
+			<DialogContent>
+				<DialogHeader>
+					<DialogTitle>
+						Tag {{ selectedCount }} photo{{ selectedCount === 1 ? "" : "s" }}
+					</DialogTitle>
+					<DialogDescription>
+						Add one or more tags to every selected photo. Separate multiple tags
+						with commas — new tags are created automatically.
+					</DialogDescription>
+				</DialogHeader>
+				<form class="flex flex-col gap-2" @submit.prevent="runBulkTag">
+					<Input
+						v-model="bulkTagDraft"
+						list="bulk-tag-suggestions"
+						placeholder="e.g. sunset, beach"
+						aria-label="Add tags"
+						autofocus
+					/>
+					<datalist id="bulk-tag-suggestions">
+						<option v-for="t in tags" :key="t.id" :value="t.name" />
+					</datalist>
+					<DialogFooter>
+						<Button
+							type="button"
+							variant="outline"
+							@click="tagDialogOpen = false"
+						>
+							Cancel
+						</Button>
+						<Button type="submit" :disabled="bulkTagging || !bulkTagDraft.trim()">
+							<Loader2 v-if="bulkTagging" class="size-4 animate-spin" />
+							Add tags
+						</Button>
+					</DialogFooter>
+				</form>
 			</DialogContent>
 		</Dialog>
 

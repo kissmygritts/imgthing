@@ -12,7 +12,7 @@ gate must pass, one commit (or split into per-action commits — see below).
 
 ---
 
-## [ ] Item 5 — Batch actions on multi-select
+## [x] Item 5 — Batch actions on multi-select
 
 **Label:** Feature. **Effort:** M.
 **Commit:** `feat: batch favorite/publish/tag actions on multi-select`
@@ -76,10 +76,10 @@ conventions exactly.
 ### Open questions
 - **Q:** batch favorite — a **toggle** (flip each) or an explicit **set value**? **Default: explicit
   `value`** (Favorite-all / Unfavorite-all as two buttons, or one "Favorite" that sets true). Bulk
-  toggles are confusing when the selection is mixed. Not a human blocker — implement the default.
+  toggles are confusing when the selection is mixed. Not a human blocker — implement the default. **Answer:** one favorite button that sets true. Clicking again sets false. When mixed, assume all are false, clicking sets to true. Unclicking sets to false. 
 - **Q:** should bulk **publish** rotate tokens for already-published photos (revoking old links)?
   **Default: leave already-published photos untouched; only publish the unpublished ones**, to avoid
   silently breaking live share links. Worth a one-line confirm with the human if they expected
-  rotate-all, but the safe default ships.
+  rotate-all, but the safe default ships. **ANSWER:** the dfault is the correct implementation
 - **Q:** include batch **restore** (trash view)? **Default: include if cheap, else defer** and leave a
-  TODO line — not required for the item to be "done."
+  TODO line — not required for the item to be "done." **ANSWER:** yes batch restore is good.

@@ -412,6 +412,118 @@ export function useLibrary() {
 		}
 	}
 
+	// ── Batch multi-select mutations ──────────────────────────────────────────────
+	// Each mirrors its single-item counterpart but hits a dedicated batch endpoint
+	// (one D1 write for the whole selection) and refreshes the relevant keys so the
+	// Favorites / published / tag views + counts reflect the change immediately.
+
+	// Set the favorite flag on every selected photo to an explicit value (not a
+	// per-item toggle) so a bulk action is deterministic.
+	async function bulkFavorite(ids: string[], value: boolean): Promise<boolean> {
+		if (ids.length === 0) return false;
+		try {
+			await $fetch("/api/photos/favorite", {
+				method: "POST",
+				body: { ids, value },
+			});
+			await refreshNuxtData(["photos"]);
+			return true;
+		} catch (err) {
+			toast.error(
+				(err as { statusMessage?: string })?.statusMessage ?? "Update failed",
+			);
+			return false;
+		}
+	}
+
+	// Publish every not-yet-published photo in the selection (already-public rows
+	// are left untouched — no token rotation). Reports how many were newly shared.
+	async function bulkPublish(ids: string[]): Promise<boolean> {
+		if (ids.length === 0) return false;
+		try {
+			const res = await $fetch<{ published: number }>("/api/photos/publish", {
+				method: "POST",
+				body: { ids },
+			});
+			await refreshNuxtData(["photos"]);
+			toast.success(
+				`Published ${res.published} photo${res.published === 1 ? "" : "s"}`,
+			);
+			return true;
+		} catch (err) {
+			toast.error(
+				(err as { statusMessage?: string })?.statusMessage ?? "Publish failed",
+			);
+			return false;
+		}
+	}
+
+	// Revoke sharing for every selected photo (drops each token).
+	async function bulkUnpublish(ids: string[]): Promise<boolean> {
+		if (ids.length === 0) return false;
+		try {
+			const res = await $fetch<{ unpublished: number }>(
+				"/api/photos/unpublish",
+				{ method: "POST", body: { ids } },
+			);
+			await refreshNuxtData(["photos"]);
+			toast.success(
+				`Unpublished ${res.unpublished} photo${res.unpublished === 1 ? "" : "s"}`,
+			);
+			return true;
+		} catch (err) {
+			toast.error(
+				(err as { statusMessage?: string })?.statusMessage ??
+					"Unpublish failed",
+			);
+			return false;
+		}
+	}
+
+	// Attach one or more tags (by name — reused or created) to every selected
+	// photo. Refreshes the tag list too (new tag / updated counts).
+	async function bulkAttachTag(
+		ids: string[],
+		names: string[],
+	): Promise<boolean> {
+		if (ids.length === 0 || names.length === 0) return false;
+		try {
+			await $fetch("/api/photos/tags", {
+				method: "POST",
+				body: { ids, names },
+			});
+			await refreshNuxtData(["photos", "tags"]);
+			toast.success(`Tagged ${ids.length} photo${ids.length === 1 ? "" : "s"}`);
+			return true;
+		} catch (err) {
+			toast.error(
+				(err as { statusMessage?: string })?.statusMessage ?? "Update failed",
+			);
+			return false;
+		}
+	}
+
+	// Restore every selected tombstoned photo back to the live library.
+	async function bulkRestore(ids: string[]): Promise<boolean> {
+		if (ids.length === 0) return false;
+		try {
+			const res = await $fetch<{ restored: number }>("/api/photos/restore", {
+				method: "POST",
+				body: { ids },
+			});
+			await refreshNuxtData(["photos", "stats"]);
+			toast.success(
+				`Restored ${res.restored} photo${res.restored === 1 ? "" : "s"}`,
+			);
+			return true;
+		} catch (err) {
+			toast.error(
+				(err as { statusMessage?: string })?.statusMessage ?? "Restore failed",
+			);
+			return false;
+		}
+	}
+
 	// ── Trash: restore / permanent delete / empty ────────────────────────────────
 	// Restore a tombstoned photo back to the live library (clears deleted_at).
 	async function restorePhoto(photo: Photo): Promise<boolean> {
@@ -646,6 +758,11 @@ export function useLibrary() {
 		removePhotosFromFolder,
 		deletePhoto,
 		bulkDelete,
+		bulkFavorite,
+		bulkPublish,
+		bulkUnpublish,
+		bulkAttachTag,
+		bulkRestore,
 		restorePhoto,
 		purgePhoto,
 		emptyTrash,
