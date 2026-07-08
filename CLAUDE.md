@@ -57,6 +57,14 @@ npm run test:all    # unit + integration; integration runs `npm run build` first
 - **New/changed API endpoint ⇒ integration test.** Add/extend a file in `test/integration/` using
   `import { env, SELF } from "cloudflare:test"` and the `login, pngBytes, url` helpers from
   `./helpers`. Don't claim green without running the gate.
+- **New/changed API endpoint ⇒ OpenAPI annotation.** Every `server/api/**` handler carries a
+  `defineRouteMeta({ openAPI: { tags, summary, description, parameters, requestBody, responses,
+  security } })` block above its `defineEventHandler` (compile-time macro — no import). Gated routes
+  use `security: [{ sessionCookie: [] }]`; only `auth/*` and `health` use `security: []` (the
+  `sessionCookie` scheme is defined once, in `health.get.ts`'s `$global`). `test/unit/openapiMeta.test.ts`
+  fails the gate if a route is unannotated. Nitro's `experimental.openAPI` (dev-only) serves the spec
+  at `/_openapi.json` and readable docs at `/_scalar`. The public `server/routes/p/**` share routes are
+  **intentionally excluded** — don't advertise that surface.
 - **DELETE takes ids via query string, never a request body** (`?ids=a,b,c`) — there's a known
   Workers DELETE-with-body issue; follow the existing tags-detach / batch-delete convention.
 - **Design language:** reuse shadcn/reka components already in `app/components/ui/`; don't add a new
