@@ -1,5 +1,14 @@
 <script setup lang="ts">
-import { Aperture, Camera, Globe, Heart, ImageOff, Trash2 } from "@lucide/vue";
+import {
+	Aperture,
+	Camera,
+	Database,
+	Globe,
+	HardDrive,
+	Heart,
+	ImageOff,
+	Trash2,
+} from "@lucide/vue";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,14 +57,24 @@ const charts = [
 const demoPhoto =
 	"linear-gradient(135deg, #c7adff 0%, #bfe3ff 45%, #bef0dd 75%, #ffd9cf 100%)";
 
-// Mono EXIF fact list, as the lightbox renders it.
+// EXIF fact list, in the exact label order + rows PhotoViewer.vue's `facts`
+// computed renders — Camera, Lens, Focal length, ISO, Shutter, Aperture, Date.
 const exif = [
 	{ k: "Camera", v: "Fujifilm X-T5" },
 	{ k: "Lens", v: "XF 33mm F1.4" },
-	{ k: "Exposure", v: "1/500s · f/2.0 · ISO 200" },
 	{ k: "Focal length", v: "33 mm" },
-	{ k: "Taken", v: "2026-06-14 17:42" },
+	{ k: "ISO", v: "ISO 200" },
+	{ k: "Shutter", v: "1/500s" },
+	{ k: "Aperture", v: "f/2.0" },
+	{ k: "Date", v: "Jun 14, 2026" },
 ];
+
+// Pill sub-nav demo state (settings.vue idiom).
+const settingsTabs = [
+	{ label: "Usage", icon: HardDrive },
+	{ label: "Database", icon: Database },
+];
+const activeSettingsTab = ref("Usage");
 
 const antiPatterns = [
 	"A second .glass-panel, or an opaque sidebar — breaks the two-plane illusion.",
@@ -170,10 +189,10 @@ const overlayChip =
 					</p>
 				</div>
 				<div class="rounded-xl border border-border bg-card p-5">
-					<p class="font-mono text-2xl">Mono 1/500s</p>
+					<p class="font-mono text-2xl">1/500s · f/2.0</p>
 					<p class="mt-2 text-xs text-muted-foreground">
-						EXIF facts, the PLATE 004 / N number, byte counts. Labels go
-						uppercase tracking-widest. The instrument voice.
+						EXIF values, byte counts, D1 table/column names. The instrument
+						voice — values are mono, labels usually stay sans uppercase.
 					</p>
 				</div>
 				<div class="rounded-xl border border-border bg-card p-5">
@@ -284,13 +303,15 @@ const overlayChip =
 				<Card class="justify-center">
 					<CardHeader class="gap-1">
 						<CardDescription>Card</CardDescription>
-						<CardTitle class="text-2xl tabular-nums">1,240</CardTitle>
+						<CardTitle class="text-3xl tabular-nums">1,240</CardTitle>
 					</CardHeader>
 				</Card>
 
-				<!-- Glass chip / pill -->
+				<!-- Glass chip / pill — no card behind it. It sits directly on
+				     chrome (toolbar, panel), so this cell stays unfilled instead of
+				     hiding the translucency behind an opaque bg-card. -->
 				<div
-					class="flex items-center justify-center rounded-2xl border border-border bg-card p-4"
+					class="flex items-center justify-center rounded-2xl border border-dashed border-border p-4"
 				>
 					<button :class="rootChip" class="px-4 py-2 text-xs font-semibold">
 						Glass pill
@@ -382,31 +403,52 @@ const overlayChip =
 					</span>
 				</div>
 			</div>
+
+			<!-- Pill sub-nav — settings.vue's section-nav idiom. A distinct third
+			     "active" treatment: solid --primary fill, not the translucent
+			     bg-primary/15 glass-active state above. -->
+			<div class="flex flex-col gap-3">
+				<p class="font-mono text-xs text-muted-foreground">
+					Pill sub-nav · segmented section nav
+				</p>
+				<nav class="flex flex-wrap gap-2">
+					<button
+						v-for="tab in settingsTabs"
+						:key="tab.label"
+						type="button"
+						class="flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-colors"
+						:class="
+							activeSettingsTab === tab.label
+								? 'border-transparent bg-primary text-primary-foreground shadow-sm shadow-primary/30'
+								: 'border-white/70 dark:border-white/12 bg-white/55 dark:bg-white/12 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] hover:bg-white/70 dark:hover:bg-white/18'
+						"
+						@click="activeSettingsTab = tab.label"
+					>
+						<component :is="tab.icon" class="size-4" />
+						{{ tab.label }}
+					</button>
+				</nav>
+			</div>
 		</section>
 
-		<!-- 07 · Instrument voice — the plate / EXIF pattern -->
+		<!-- 07 · Instrument voice — the lightbox fact list -->
 		<section class="flex flex-col gap-5">
-			<p :class="eyebrow">07 · Instrument voice — plate & EXIF</p>
+			<p :class="eyebrow">07 · Instrument voice — lightbox facts</p>
 			<div
 				class="grid gap-6 rounded-2xl border border-border bg-card p-6 sm:grid-cols-[1fr_auto]"
 			>
 				<div>
-					<p class="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-						Plate 004 / 128
-					</p>
-					<p class="mt-2 font-serif text-2xl italic leading-tight text-foreground">
+					<p class="font-serif text-[22px] italic leading-tight text-foreground">
 						golden-hour-ridge.jpg
 					</p>
-					<dl class="mt-4 flex flex-col gap-1.5">
-						<div
-							v-for="row in exif"
-							:key="row.k"
-							class="flex items-baseline justify-between gap-4 border-b border-border/60 pb-1.5 last:border-0"
-						>
-							<dt class="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+					<dl class="mt-4 grid gap-3">
+						<div v-for="row in exif" :key="row.k" class="border-t border-border pt-2">
+							<dt
+								class="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground"
+							>
 								{{ row.k }}
 							</dt>
-							<dd class="font-mono text-xs tabular-nums text-foreground">
+							<dd class="font-mono text-[13px] text-foreground">
 								{{ row.v }}
 							</dd>
 						</div>
@@ -417,6 +459,13 @@ const overlayChip =
 					:style="{ background: demoPhoto }"
 				/>
 			</div>
+			<p class="text-xs text-muted-foreground">
+				No plate/index numbering — the drawer header is just the serif
+				filename. Facts stack label-over-value (sans label, mono value), not
+				a mono/mono row — the exact recipe from
+				<code class="font-mono">PhotoViewer.vue</code>'s view-mode
+				<code class="font-mono">&lt;dl&gt;</code>.
+			</p>
 		</section>
 
 		<!-- 08 · Anti-patterns -->

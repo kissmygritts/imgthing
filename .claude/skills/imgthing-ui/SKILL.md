@@ -7,10 +7,12 @@ description: Build or modify UI in imgthing — pages, components, layouts, styl
 
 imgthing has a specific visual language — **"Bright Studio Glass"**: a subtly
 drifting aurora behind the whole app, a translucent sidebar that sits *on* it,
-and content floating *above* it in a rounded glass panel. New UI drifts when
-it's built without referring back to that language. This skill is the working
-recipe book. `docs/imgthing-ui.md` is the durable spec (the "why", the design
-bakeoff history); this is the "how".
+and content floating *above* it in a rounded glass panel. Chosen in Milestone 6
+via a three-way design bakeoff (dark Vision-Pro vs. bright aurora vs.
+editorial) — bright aurora won, with the editorial lightbox layout grafted in.
+New UI drifts when it's built without referring back to that language. This
+skill is the durable spec *and* the working recipe book — there is no separate
+design doc; this file is the single source for the "why" and the "how".
 
 > **Where the canonical examples live:** the live `/styleguide` route renders
 > every token, surface, and primitive once, standalone. Prefer it over
@@ -82,6 +84,11 @@ pair together every time.
 - **Both light and dark, every time.** Dark mode is class-based (`.dark` on
   `<html>`, toggled by `@nuxtjs/color-mode`). Every glass chip pairs a
   `dark:` variant. Verify both — dark was historically the neglected mode.
+- **`.aurora`, `.glass-panel`, `.prism-edge`, and `.brand-mark` live outside
+  `@layer` in `main.css` — on purpose.** Unlayered rules beat Tailwind's
+  layered utilities; that's the only reason `.glass-panel`'s background wins
+  over a component's own `bg-background`. Never move them into `@layer` (or
+  `@layer components`), and keep any new base-plane primitive unlayered too.
 
 ## Typography (tri-voice)
 
@@ -91,7 +98,7 @@ lowercase-everything like a ledger app).
 | Use | Class | Casing |
 |---|---|---|
 | Wordmark, page `<h1>`, view titles, lightbox filename | `font-serif ... italic` (wordmark/filename) or `font-serif text-3xl font-normal tracking-tight` (h1) | Title / sentence case; wordmark is lowercase `imgthing` |
-| EXIF facts, `PLATE 004 / N` plate number, D1 table names | `font-mono text-xs` (+ `uppercase tracking-widest` for labels) | the instrument voice |
+| EXIF values, byte counts, D1 table/column names | `font-mono text-xs`/`text-[13px]` | the instrument voice |
 | Everything else — buttons, nav, body, captions | `font-sans` (default; `-apple-system` first) | sentence case |
 
 ### Rules
@@ -100,9 +107,13 @@ lowercase-everything like a ledger app).
   lightbox filename. It carries voice, not data. `font-serif text-3xl
   font-normal tracking-tight text-foreground` is the page-title recipe; the
   wordmark and filenames add `italic`.
-- **Mono is the instrument voice** — EXIF key/value facts, the `PLATE 004 / N`
-  numbering, raw D1 table names in settings. Mono *labels* go `uppercase
-  tracking-widest text-muted-foreground`.
+- **Mono is the instrument voice, for values — not always labels.** EXIF
+  values, byte counts, raw D1 table/column names are mono. In the lightbox
+  fact list specifically, the *label* (`CAMERA`, `LENS`, …) is sans, uppercase,
+  wide-tracked (`text-[10px] font-semibold uppercase tracking-[0.08em]
+  text-muted-foreground`) and only the *value* is mono (`font-mono
+  text-[13px]`) — don't make the label mono too. D1 table/column headers
+  (settings/database) are the exception where the label itself goes mono.
 - **Sans is everything else.** Don't reach for serif on a button or a body
   paragraph.
 - **The wordmark** is lowercase `imgthing` in `font-serif italic tracking-tight`,
@@ -111,7 +122,7 @@ lowercase-everything like a ledger app).
 ## Glass surfaces — the signature, and the most-copied pattern
 
 Glass is built from `bg-white/N` over the aurora, *not* from a token. Three
-densities, tuned per job — **do not unify them** (`docs/imgthing-ui.md`):
+densities, tuned per job — **do not unify them**:
 
 ### The floating panel — `.glass-panel`
 
@@ -253,8 +264,8 @@ glass chip). Reuse it verbatim for any sub-sectioned page — canonical:
   terminal.)
 - **The wordmark** `imgthing` is always lowercase serif italic. Don't title-case
   it or set it in sans.
-- **Instrument facts stay mono** — EXIF, plate numbers, byte counts, raw table
-  names. Don't dress them up in serif.
+- **Instrument facts stay mono** — EXIF values, byte counts, raw table names.
+  Don't dress them up in serif.
 - **Photos are the product.** User-facing copy talks about photos, folders,
   tags — not R2 keys, D1 rows, or variants (those surface only in the
   settings/usage instrument view, deliberately). Don't leak infra vocabulary
@@ -311,11 +322,9 @@ glass chip). Reuse it verbatim for any sub-sectioned page — canonical:
 | Root-plane chrome (brand, search, upload, nav) | `app/components/AppSidebar.vue` |
 | A data-readout page (cards, stats) | `app/pages/settings/usage.vue` |
 | A pill-sub-nav sectioned page | `app/pages/settings.vue` |
-| The lightbox (plate viewer, EXIF, plate number) | `app/components/PhotoViewer.vue` |
+| The lightbox (image viewer + EXIF fact drawer) | `app/components/PhotoViewer.vue` |
 | The segmented glass toggle | `app/components/ThemeToggle.vue` |
 
 Cross-references:
 
-- `docs/imgthing-ui.md` — the durable spec: two planes, split glass densities,
-  prism, aurora palette, type & color, how to extend, known gaps.
 - `CLAUDE.md` — repo operating manual (single-owner rule, hard conventions).

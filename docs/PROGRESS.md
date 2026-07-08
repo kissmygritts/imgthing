@@ -106,7 +106,8 @@ reserved for the owner** — the loop stopped there for a live-surface review.
 
 **Reserved — F8 (design polish, HUMAN):** the new surfaces (date control, duplicate hint, keyboard
 overlay `<kbd>` styling, storage readout) are functional-but-plain out of the loop. Final visual fit
-against Bright Studio Glass (`docs/imgthing-ui.md`) is the owner's review, same split as P7a/P7b.
+against Bright Studio Glass (`.claude/skills/imgthing-ui/SKILL.md`) is the owner's review, same
+split as P7a/P7b.
 
 ## Shipped: production launch (2026-07-07)
 

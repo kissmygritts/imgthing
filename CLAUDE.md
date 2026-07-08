@@ -16,7 +16,8 @@ owner. Don't add multi-tenant concepts.
 - `docs/html/architecture.html` — architecture overview + self-hosting guide (generated HTML docs
   live in `docs/html/`). `docs/plans/archive/` — spent build ledgers (history, not live plans).
 - `docs/cloudflare-setup.md` — the provisioning/deploy runbook (done; the re-provision reference).
-- `docs/imgthing-ui.md` — the "Bright Studio Glass" design language.
+- `.claude/skills/imgthing-ui/SKILL.md` — the "Bright Studio Glass" design language + build recipe
+  (fires automatically as the `imgthing-ui` skill on UI work).
 
 Keep `docs/PROGRESS.md` current as milestones land. ADRs are `NNNN-short-title.md`, append-only.
 
