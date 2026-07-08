@@ -4,6 +4,42 @@
 //   ?purge=1       permanent delete — drop the R2 object + all D1 rows. Only a
 //                  tombstoned (already-trashed) photo can be purged.
 // Both return { ok: true }; a missing row 404s.
+defineRouteMeta({
+	openAPI: {
+		tags: ["Photos"],
+		summary: "Delete photo",
+		description:
+			"Soft-delete (tombstone) a photo by default, or permanently purge R2 object + D1 rows with `?purge=1` (only allowed on an already-trashed photo).",
+		security: [{ sessionCookie: [] }],
+		parameters: [
+			{ name: "id", in: "path", required: true, schema: { type: "string" } },
+			{
+				name: "purge",
+				in: "query",
+				required: false,
+				description:
+					"Set to `1` to permanently purge an already-tombstoned photo.",
+				schema: { type: "string" },
+			},
+		],
+		responses: {
+			"200": {
+				description: "Photo deleted (or purged).",
+				content: {
+					"application/json": {
+						schema: {
+							type: "object",
+							properties: { ok: { type: "boolean" } },
+						},
+					},
+				},
+			},
+			"400": { description: "Missing id." },
+			"404": { description: "Photo not found (or not tombstoned, on purge)." },
+		},
+	},
+});
+
 export default defineEventHandler(async (event) => {
 	const id = getRouterParam(event, "id");
 	if (!id) throw createError({ statusCode: 400, statusMessage: "Missing id" });

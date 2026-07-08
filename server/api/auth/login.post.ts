@@ -1,3 +1,45 @@
+defineRouteMeta({
+	openAPI: {
+		tags: ["Auth"],
+		summary: "Log in",
+		description:
+			"Exchange the single app passphrase for an HMAC-signed session cookie. A per-IP brute-force throttle runs *before* the passphrase compare; a locked-out IP is rejected with 429 and a `retry-after` header.",
+		security: [],
+		requestBody: {
+			required: true,
+			content: {
+				"application/json": {
+					schema: {
+						type: "object",
+						required: ["passphrase"],
+						properties: {
+							passphrase: { type: "string" },
+						},
+					},
+				},
+			},
+		},
+		responses: {
+			"200": {
+				description: "Authenticated; sets the `imgthing_session` cookie.",
+				content: {
+					"application/json": {
+						schema: {
+							type: "object",
+							properties: { ok: { type: "boolean" } },
+						},
+					},
+				},
+			},
+			"401": { description: "Invalid passphrase." },
+			"429": {
+				description:
+					"IP is locked out; see the `retry-after` header (seconds).",
+			},
+		},
+	},
+});
+
 export default defineEventHandler(async (event) => {
 	const db = useDB(event);
 	const ip = clientIp(event);

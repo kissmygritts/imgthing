@@ -5,6 +5,57 @@
 // the CF DELETE-body quirk doesn't apply). Unknown ids simply drop out.
 //
 // Response: { ok: true, updated: <count>, ids: [...] } — the actually-changed ids.
+defineRouteMeta({
+	openAPI: {
+		tags: ["Photos"],
+		summary: "Batch favorite photos",
+		description:
+			"Batch set the favorite flag on many photos in one D1 write. Takes an explicit boolean `value` so the bulk action is deterministic (set-all-true or set-all-false), never a per-item flip. Unknown ids drop out.",
+		security: [{ sessionCookie: [] }],
+		requestBody: {
+			required: true,
+			content: {
+				"application/json": {
+					schema: {
+						type: "object",
+						required: ["ids"],
+						properties: {
+							ids: {
+								type: "array",
+								items: { type: "string" },
+								description: "Photo ids to update.",
+							},
+							value: {
+								type: "boolean",
+								description:
+									"Favorite state to set on every id (truthy = favorite).",
+							},
+						},
+					},
+				},
+			},
+		},
+		responses: {
+			"200": {
+				description: "The actually-changed ids and their count.",
+				content: {
+					"application/json": {
+						schema: {
+							type: "object",
+							properties: {
+								ok: { type: "boolean" },
+								updated: { type: "integer" },
+								ids: { type: "array", items: { type: "string" } },
+							},
+						},
+					},
+				},
+			},
+			"400": { description: "`ids` is required." },
+		},
+	},
+});
+
 export default defineEventHandler(async (event) => {
 	const body = await readBody<{ ids?: unknown; value?: unknown }>(event);
 	const ids = Array.isArray(body?.ids)

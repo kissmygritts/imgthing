@@ -3,6 +3,36 @@
 // original for self-healing; getOrCreateVariant streams the requested size from
 // R2 (regenerating on a miss). Session-gated via server/middleware/auth.ts.
 // Sizing/keys/generation live in server/utils/variants.ts. `raw` stays untransformed.
+defineRouteMeta({
+	openAPI: {
+		tags: ["Photos"],
+		summary: "Get WebP variant",
+		description:
+			"Serve a precomputed WebP variant of a photo straight from R2 (self-healing: regenerates from the original on a miss). Session-gated.",
+		security: [{ sessionCookie: [] }],
+		parameters: [
+			{ name: "id", in: "path", required: true, schema: { type: "string" } },
+			{
+				name: "size",
+				in: "query",
+				required: true,
+				description: "Variant size key.",
+				schema: { type: "string", enum: ["thumb", "md", "lg"] },
+			},
+		],
+		responses: {
+			"200": {
+				description: "The WebP variant bytes.",
+				content: {
+					"image/webp": { schema: { type: "string", format: "binary" } },
+				},
+			},
+			"400": { description: "Missing id, or unknown `size`." },
+			"404": { description: "Photo not found." },
+		},
+	},
+});
+
 export default defineEventHandler(async (event) => {
 	const id = getRouterParam(event, "id");
 	if (!id) throw createError({ statusCode: 400, statusMessage: "Missing id" });

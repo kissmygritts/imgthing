@@ -1,6 +1,47 @@
 // Create a tag by name. Names are unique (case-insensitive), so this is
 // idempotent: creating a tag that already exists returns the existing row
 // rather than erroring.
+defineRouteMeta({
+	openAPI: {
+		tags: ["Tags"],
+		summary: "Create tag",
+		description:
+			"Create a tag by name. Names are unique (case-insensitive), so this is idempotent: creating a tag that already exists returns the existing row rather than erroring.",
+		security: [{ sessionCookie: [] }],
+		requestBody: {
+			required: true,
+			content: {
+				"application/json": {
+					schema: {
+						type: "object",
+						required: ["name"],
+						properties: {
+							name: { type: "string", description: "Tag name (trimmed)." },
+						},
+					},
+				},
+			},
+		},
+		responses: {
+			"200": {
+				description: "The created or existing tag.",
+				content: {
+					"application/json": {
+						schema: {
+							type: "object",
+							properties: {
+								id: { type: "string" },
+								name: { type: "string" },
+							},
+						},
+					},
+				},
+			},
+			"400": { description: "`name` is required." },
+		},
+	},
+});
+
 export default defineEventHandler(async (event) => {
 	const body = await readBody<{ name?: unknown }>(event);
 	const name = typeof body?.name === "string" ? body.name.trim() : "";

@@ -1,5 +1,46 @@
 // List all folders (flat) with their direct photo counts. The client assembles
 // the tree from parent_folder_id. Ordered by name for a stable sidebar.
+defineRouteMeta({
+	openAPI: {
+		tags: ["Folders"],
+		summary: "List folders",
+		description:
+			"List all folders (flat) with their direct photo counts, ordered by name. The client assembles the tree from `parent_folder_id`.",
+		security: [{ sessionCookie: [] }],
+		responses: {
+			"200": {
+				description: "Flat list of folders.",
+				content: {
+					"application/json": {
+						schema: {
+							type: "object",
+							properties: {
+								folders: {
+									type: "array",
+									items: {
+										type: "object",
+										properties: {
+											id: { type: "string" },
+											name: { type: "string" },
+											parent_folder_id: {
+												type: "string",
+												nullable: true,
+											},
+											created_at: { type: "string" },
+											updated_at: { type: "string" },
+											photo_count: { type: "integer" },
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	},
+});
+
 export default defineEventHandler(async (event) => {
 	const { results } = await useDB(event)
 		.prepare(

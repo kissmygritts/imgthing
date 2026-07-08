@@ -3,6 +3,34 @@
 // tombstoned rows so the user can see what emptying the Trash would reclaim.
 // No r2_key, no per-photo data. Nitro routes this static `stats` segment ahead
 // of the dynamic `[id]`, so GET /api/photos/stats lands here.
+defineRouteMeta({
+	openAPI: {
+		tags: ["Photos"],
+		summary: "Library stats",
+		description:
+			"Storage-usage readout: the live library's photo count + summed bytes (trash excluded), plus separate figures for the tombstoned rows so the user can see what emptying the Trash would reclaim. No r2_key, no per-photo data.",
+		security: [{ sessionCookie: [] }],
+		responses: {
+			"200": {
+				description: "Live and trashed counts and byte totals.",
+				content: {
+					"application/json": {
+						schema: {
+							type: "object",
+							properties: {
+								count: { type: "integer" },
+								totalBytes: { type: "integer" },
+								trashedCount: { type: "integer" },
+								trashedBytes: { type: "integer" },
+							},
+						},
+					},
+				},
+			},
+		},
+	},
+});
+
 export default defineEventHandler(async (event) => {
 	const db = useDB(event);
 

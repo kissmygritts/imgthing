@@ -7,6 +7,52 @@
 // leak GPS on an implicit bulk publish). Ids ride in the JSON body.
 //
 // Response: { ok: true, published: <count>, ids: [...] } — the newly-published ids.
+defineRouteMeta({
+	openAPI: {
+		tags: ["Photos"],
+		summary: "Batch publish photos",
+		description:
+			"Mint a fresh public token for each given photo that isn't already public. Only live (non-trashed) rows are affected, already-published photos are left untouched (no token rotation on the bulk path), and `show_location` defaults to 0 so GPS never leaks on an implicit bulk publish.",
+		security: [{ sessionCookie: [] }],
+		requestBody: {
+			required: true,
+			content: {
+				"application/json": {
+					schema: {
+						type: "object",
+						required: ["ids"],
+						properties: {
+							ids: {
+								type: "array",
+								items: { type: "string" },
+								description: "Photo ids to publish.",
+							},
+						},
+					},
+				},
+			},
+		},
+		responses: {
+			"200": {
+				description: "The newly-published ids and their count.",
+				content: {
+					"application/json": {
+						schema: {
+							type: "object",
+							properties: {
+								ok: { type: "boolean" },
+								published: { type: "integer" },
+								ids: { type: "array", items: { type: "string" } },
+							},
+						},
+					},
+				},
+			},
+			"400": { description: "`ids` is required." },
+		},
+	},
+});
+
 export default defineEventHandler(async (event) => {
 	const body = await readBody<{ ids?: unknown }>(event);
 	const ids = Array.isArray(body?.ids)

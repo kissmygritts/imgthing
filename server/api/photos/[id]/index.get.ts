@@ -2,6 +2,34 @@
 // the lean list endpoint (GET /api/photos) deliberately omits. The viewer fetches
 // this lazily to render its "Full metadata" section without bloating the gallery
 // list. Session-gated via server/middleware/auth.ts. 404 if the row doesn't exist.
+defineRouteMeta({
+	openAPI: {
+		tags: ["Photos"],
+		summary: "Get photo",
+		description:
+			"Full detail for a single photo, including the raw `other_data` EXIF blob that the lean list endpoint omits. Session-gated.",
+		security: [{ sessionCookie: [] }],
+		parameters: [
+			{ name: "id", in: "path", required: true, schema: { type: "string" } },
+		],
+		responses: {
+			"200": {
+				description: "The photo, including full EXIF detail.",
+				content: {
+					"application/json": {
+						schema: {
+							type: "object",
+							properties: { photo: { type: "object" } },
+						},
+					},
+				},
+			},
+			"400": { description: "Missing id." },
+			"404": { description: "Photo not found." },
+		},
+	},
+});
+
 export default defineEventHandler(async (event) => {
 	const id = getRouterParam(event, "id");
 	if (!id) throw createError({ statusCode: 400, statusMessage: "Missing id" });

@@ -10,6 +10,52 @@
 // are the correct shape here. Unknown ids are ignored — the op is idempotent.
 //
 // Response: { ok: true, deleted: <count>, ids: [...] } (or `purged` in purge mode).
+defineRouteMeta({
+	openAPI: {
+		tags: ["Photos"],
+		summary: "Batch delete photos",
+		description:
+			"Batch soft-delete (tombstone) photos, or permanently purge already-tombstoned ones with `?purge=1`. Ids ride in the query string (`?ids=a,b,c`), never a JSON body — the nitro cloudflare_module build never pumps a request body to a DELETE handler. Unknown ids are ignored; the op is idempotent.",
+		security: [{ sessionCookie: [] }],
+		parameters: [
+			{
+				name: "ids",
+				in: "query",
+				required: true,
+				description: "Comma-separated photo ids.",
+				schema: { type: "string" },
+			},
+			{
+				name: "purge",
+				in: "query",
+				description:
+					'"1" to permanently drop R2 bytes + D1 rows (only already-tombstoned rows are purged). Otherwise soft-delete.',
+				schema: { type: "string", enum: ["1"] },
+			},
+		],
+		responses: {
+			"200": {
+				description:
+					"Affected ids and a count. In purge mode the count key is `purged`; otherwise `deleted`.",
+				content: {
+					"application/json": {
+						schema: {
+							type: "object",
+							properties: {
+								ok: { type: "boolean" },
+								deleted: { type: "integer" },
+								purged: { type: "integer" },
+								ids: { type: "array", items: { type: "string" } },
+							},
+						},
+					},
+				},
+			},
+			"400": { description: "`ids` is required." },
+		},
+	},
+});
+
 export default defineEventHandler(async (event) => {
 	const raw = getQuery(event).ids;
 	const ids = (typeof raw === "string" ? raw.split(",") : [])

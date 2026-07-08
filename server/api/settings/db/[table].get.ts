@@ -17,6 +17,75 @@ const ALLOWED_TABLES = new Set([
 	"photo_tags",
 ]);
 
+defineRouteMeta({
+	openAPI: {
+		tags: ["Settings"],
+		summary: "View a database table",
+		description:
+			"Read-only, owner-only raw D1 table viewer. Returns a paged slice of an allow-listed table (photos, exif_data, folders, tags, folder_photos, photo_tags). Any other name — including login_attempts and sqlite_master — is rejected with a bare 404. GET only, no mutations.",
+		security: [{ sessionCookie: [] }],
+		parameters: [
+			{
+				name: "table",
+				in: "path",
+				required: true,
+				description: "Allow-listed table name.",
+				schema: {
+					type: "string",
+					enum: [
+						"photos",
+						"exif_data",
+						"folders",
+						"tags",
+						"folder_photos",
+						"photo_tags",
+					],
+				},
+			},
+			{
+				name: "limit",
+				in: "query",
+				description: "Rows per page, clamped to 1..200.",
+				schema: {
+					type: "integer",
+					minimum: 1,
+					maximum: 200,
+					default: 50,
+				},
+			},
+			{
+				name: "offset",
+				in: "query",
+				description: "Row offset, clamped to >= 0.",
+				schema: { type: "integer", minimum: 0, default: 0 },
+			},
+		],
+		responses: {
+			"200": {
+				description: "A paged slice of the table.",
+				content: {
+					"application/json": {
+						schema: {
+							type: "object",
+							properties: {
+								table: { type: "string" },
+								columns: { type: "array", items: { type: "string" } },
+								rows: { type: "array", items: { type: "object" } },
+								total: { type: "integer" },
+								limit: { type: "integer" },
+								offset: { type: "integer" },
+							},
+						},
+					},
+				},
+			},
+			"404": {
+				description: "Table name is missing or not on the allow-list.",
+			},
+		},
+	},
+});
+
 export default defineEventHandler(async (event) => {
 	const table = getRouterParam(event, "table");
 	// Reject any non-allow-listed table with a uniform 404 before touching SQL.

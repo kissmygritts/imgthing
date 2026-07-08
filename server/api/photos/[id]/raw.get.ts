@@ -1,6 +1,29 @@
 // Stream a photo's original bytes from R2 — the full, untransformed original.
 // Precomputed WebP variants (thumbnail/medium/large) live in R2 at variants/{id}/{size}
 // and are served by variant.get.ts and the public /p/{token}/{size} route.
+defineRouteMeta({
+	openAPI: {
+		tags: ["Photos"],
+		summary: "Get original bytes",
+		description:
+			"Stream a photo's full, untransformed original bytes from R2 with the stored content-type. Session-gated.",
+		security: [{ sessionCookie: [] }],
+		parameters: [
+			{ name: "id", in: "path", required: true, schema: { type: "string" } },
+		],
+		responses: {
+			"200": {
+				description: "The original image bytes.",
+				content: {
+					"image/*": { schema: { type: "string", format: "binary" } },
+				},
+			},
+			"400": { description: "Missing id." },
+			"404": { description: "Photo row or R2 object missing." },
+		},
+	},
+});
+
 export default defineEventHandler(async (event) => {
 	const id = getRouterParam(event, "id");
 	if (!id) throw createError({ statusCode: 400, statusMessage: "Missing id" });

@@ -3,6 +3,52 @@
 //   tagIds  existing tag ids to attach
 //   names   tag names — reused if they already exist (case-insensitive),
 //           otherwise created on the fly (the natural "type a new tag" UX)
+defineRouteMeta({
+	openAPI: {
+		tags: ["Photos"],
+		summary: "Attach tags to photo",
+		description:
+			"Attach tags to a photo (idempotent). Accepts `tagIds` (existing tag ids) and/or `names` (reused case-insensitively if they exist, else created on the fly). Session-gated.",
+		security: [{ sessionCookie: [] }],
+		parameters: [
+			{ name: "id", in: "path", required: true, schema: { type: "string" } },
+		],
+		requestBody: {
+			required: true,
+			description: "At least one of `tagIds` or `names` must be non-empty.",
+			content: {
+				"application/json": {
+					schema: {
+						type: "object",
+						properties: {
+							tagIds: { type: "array", items: { type: "string" } },
+							names: { type: "array", items: { type: "string" } },
+						},
+					},
+				},
+			},
+		},
+		responses: {
+			"200": {
+				description: "Tags attached; `attached` is the count resolved.",
+				content: {
+					"application/json": {
+						schema: {
+							type: "object",
+							properties: {
+								ok: { type: "boolean" },
+								attached: { type: "integer" },
+							},
+						},
+					},
+				},
+			},
+			"400": { description: "`tagIds` or `names` is required." },
+			"404": { description: "Photo not found." },
+		},
+	},
+});
+
 export default defineEventHandler(async (event) => {
 	const id = getRouterParam(event, "id") as string;
 	const body = await readBody<{ tagIds?: unknown; names?: unknown }>(event);

@@ -7,6 +7,35 @@
 // gps_latitude / gps_longitude. The thumb variant is derived client-side from
 // the id (GET /api/photos/[id]/variant?size=thumb).
 
+defineRouteMeta({
+	openAPI: {
+		tags: ["Photos"],
+		summary: "List geotagged photos",
+		description:
+			"Every live photo carrying GPS coordinates, for the map view. Joined with the same EXIF summary as GET /api/photos so rows drop straight into the shared PhotoViewer. Unpaged — the geotagged subset is small and the map plots all of it at once.",
+		security: [{ sessionCookie: [] }],
+		responses: {
+			"200": {
+				description:
+					"Full photo records, each with non-null gps_latitude / gps_longitude.",
+				content: {
+					"application/json": {
+						schema: {
+							type: "object",
+							properties: {
+								photos: {
+									type: "array",
+									items: { type: "object" },
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	},
+});
+
 export default defineEventHandler(async (event) => {
 	const db = useDB(event);
 

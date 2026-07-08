@@ -11,6 +11,55 @@
 const R2_STORAGE_USD_PER_GB_MONTH = 0.015;
 const BYTES_PER_GB = 1024 ** 3;
 
+defineRouteMeta({
+	openAPI: {
+		tags: ["Settings"],
+		summary: "Get storage usage",
+		description:
+			"Storage & cloud-usage readout: live photo count + original bytes, tracked variant bytes, trash reclaimable, per-table D1 row counts, and a labeled (non-live) R2 cost estimate. `variantBytesComplete` is false when any live photo still lacks a tracked variant figure, meaning the totals are a floor.",
+		security: [{ sessionCookie: [] }],
+		responses: {
+			"200": {
+				description: "Usage and cost readout.",
+				content: {
+					"application/json": {
+						schema: {
+							type: "object",
+							properties: {
+								count: { type: "integer" },
+								originalBytes: { type: "integer" },
+								variantBytes: { type: "integer" },
+								variantBytesComplete: { type: "boolean" },
+								trashedCount: { type: "integer" },
+								trashedBytes: { type: "integer" },
+								totalBytes: { type: "integer" },
+								tables: {
+									type: "object",
+									properties: {
+										photos: { type: "integer" },
+										exif_data: { type: "integer" },
+										folders: { type: "integer" },
+										tags: { type: "integer" },
+										folder_photos: { type: "integer" },
+										photo_tags: { type: "integer" },
+									},
+								},
+								cost: {
+									type: "object",
+									properties: {
+										r2StorageUsdPerGbMonth: { type: "number" },
+										estimatedMonthlyUsd: { type: "number" },
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	},
+});
+
 export default defineEventHandler(async (event) => {
 	const db = useDB(event);
 

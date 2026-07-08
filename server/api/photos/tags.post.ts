@@ -8,6 +8,67 @@
 // Ids ride in the JSON body (POST).
 //
 // Response: { ok: true, attached: <pair-count>, tagIds: [...] }.
+defineRouteMeta({
+	openAPI: {
+		tags: ["Photos"],
+		summary: "Batch tag photos",
+		description:
+			"Attach the same tag(s) to many photos at once. Idempotent — already-present pairs are ignored, and any pair whose photo id no longer exists is dropped. Accepts existing `tagIds` and/or `names` (reused case-insensitively if present, else created).",
+		security: [{ sessionCookie: [] }],
+		requestBody: {
+			required: true,
+			content: {
+				"application/json": {
+					schema: {
+						type: "object",
+						required: ["ids"],
+						properties: {
+							ids: {
+								type: "array",
+								items: { type: "string" },
+								description: "Photo ids to tag.",
+							},
+							tagIds: {
+								type: "array",
+								items: { type: "string" },
+								description: "Existing tag ids to attach.",
+							},
+							names: {
+								type: "array",
+								items: { type: "string" },
+								description:
+									"Tag names — reused case-insensitively if present, else created.",
+							},
+						},
+					},
+				},
+			},
+		},
+		responses: {
+			"200": {
+				description:
+					"The count of (tag, photo) pairs attached and the resolved tag ids.",
+				content: {
+					"application/json": {
+						schema: {
+							type: "object",
+							properties: {
+								ok: { type: "boolean" },
+								attached: { type: "integer" },
+								tagIds: { type: "array", items: { type: "string" } },
+							},
+						},
+					},
+				},
+			},
+			"400": {
+				description:
+					"`ids` is required, or neither `tagIds` nor `names` was supplied.",
+			},
+		},
+	},
+});
+
 export default defineEventHandler(async (event) => {
 	const body = await readBody<{
 		ids?: unknown;

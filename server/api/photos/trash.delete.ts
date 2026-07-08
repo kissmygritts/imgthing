@@ -4,6 +4,32 @@
 //
 // Nitro routes the static `trash` segment ahead of the dynamic `[id]`, so this
 // resolves before DELETE /api/photos/[id] for the literal /api/photos/trash path.
+defineRouteMeta({
+	openAPI: {
+		tags: ["Photos"],
+		summary: "Empty trash",
+		description:
+			"Permanently remove every tombstoned photo — each R2 object plus a full D1 cleanup (exif_data, folder_photos, photo_tags, photos). Takes no parameters: it purges all trashed rows. Resilient to already-missing R2 bytes.",
+		security: [{ sessionCookie: [] }],
+		responses: {
+			"200": {
+				description: "The number of photos purged.",
+				content: {
+					"application/json": {
+						schema: {
+							type: "object",
+							properties: {
+								ok: { type: "boolean" },
+								purged: { type: "integer" },
+							},
+						},
+					},
+				},
+			},
+		},
+	},
+});
+
 export default defineEventHandler(async (event) => {
 	const db = useDB(event);
 

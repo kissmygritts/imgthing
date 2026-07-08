@@ -1,4 +1,51 @@
 // Create a folder, optionally nested under an existing parent.
+defineRouteMeta({
+	openAPI: {
+		tags: ["Folders"],
+		summary: "Create folder",
+		description: "Create a folder, optionally nested under an existing parent.",
+		security: [{ sessionCookie: [] }],
+		requestBody: {
+			required: true,
+			content: {
+				"application/json": {
+					schema: {
+						type: "object",
+						required: ["name"],
+						properties: {
+							name: { type: "string", description: "Folder name (trimmed)." },
+							parentFolderId: {
+								type: "string",
+								nullable: true,
+								description: "Parent folder id, or null/omitted for the root.",
+							},
+						},
+					},
+				},
+			},
+		},
+		responses: {
+			"200": {
+				description: "The created folder.",
+				content: {
+					"application/json": {
+						schema: {
+							type: "object",
+							properties: {
+								id: { type: "string" },
+								name: { type: "string" },
+								parent_folder_id: { type: "string", nullable: true },
+							},
+						},
+					},
+				},
+			},
+			"400": { description: "`name` is required." },
+			"404": { description: "`parentFolderId` does not exist." },
+		},
+	},
+});
+
 export default defineEventHandler(async (event) => {
 	const body = await readBody<{ name?: unknown; parentFolderId?: unknown }>(
 		event,

@@ -49,6 +49,57 @@ function coerceGps(raw: unknown, kind: "lat" | "lng"): number | null {
 	return Math.abs(n) <= (kind === "lat" ? 90 : 180) ? n : null;
 }
 
+defineRouteMeta({
+	openAPI: {
+		tags: ["Photos"],
+		summary: "Update photo",
+		description:
+			"Edit a photo's user-facing metadata: the editable EXIF text fields, `iso`, GPS coordinates (set/cleared together), and `original_filename`. Unknown keys are ignored. Returns the updated photo in the list shape. Session-gated.",
+		security: [{ sessionCookie: [] }],
+		parameters: [
+			{ name: "id", in: "path", required: true, schema: { type: "string" } },
+		],
+		requestBody: {
+			description:
+				"Partial patch of editable fields; all optional, unknown keys ignored.",
+			content: {
+				"application/json": {
+					schema: {
+						type: "object",
+						properties: {
+							camera_make: { type: "string", nullable: true },
+							camera_model: { type: "string", nullable: true },
+							lens_info: { type: "string", nullable: true },
+							exposure: { type: "string", nullable: true },
+							aperture: { type: "string", nullable: true },
+							focal_length: { type: "string", nullable: true },
+							iso: { type: "integer", nullable: true },
+							gps_latitude: { type: "number", nullable: true },
+							gps_longitude: { type: "number", nullable: true },
+							original_filename: { type: "string" },
+						},
+					},
+				},
+			},
+		},
+		responses: {
+			"200": {
+				description: "The updated photo in the list shape.",
+				content: {
+					"application/json": {
+						schema: {
+							type: "object",
+							properties: { photo: { type: "object" } },
+						},
+					},
+				},
+			},
+			"400": { description: "Missing id." },
+			"404": { description: "Photo is missing or soft-deleted." },
+		},
+	},
+});
+
 export default defineEventHandler(async (event) => {
 	const id = getRouterParam(event, "id");
 	if (!id) throw createError({ statusCode: 400, statusMessage: "Missing id" });

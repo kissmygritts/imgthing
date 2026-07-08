@@ -10,6 +10,88 @@ const mb = (bytes: number) => (bytes / MB).toFixed(1);
 
 // Upload one or more images: original bytes stream to R2, metadata + EXIF to D1.
 // An optional `folderId` text field assigns every uploaded photo to that folder.
+defineRouteMeta({
+	openAPI: {
+		tags: ["Photos"],
+		summary: "Upload photo",
+		description:
+			"Upload one or more images (multipart). Original bytes stream to R2, metadata + EXIF land in D1, and the three serving variants are precomputed. An optional `folderId` text field assigns every uploaded photo to that folder. Enforces per-file (25 MB), file-count (50), and total-batch (200 MB) limits; over-size files are skipped and reported in `rejected` while the rest still land.",
+		security: [{ sessionCookie: [] }],
+		requestBody: {
+			required: true,
+			content: {
+				"multipart/form-data": {
+					schema: {
+						type: "object",
+						properties: {
+							file: {
+								type: "string",
+								format: "binary",
+								description:
+									"One or more image files (any part with an image/* content type).",
+							},
+							folderId: {
+								type: "string",
+								description:
+									"Optional id of an existing folder to assign every uploaded photo to.",
+							},
+						},
+					},
+				},
+			},
+		},
+		responses: {
+			"200": {
+				description:
+					"Per-file successes and rejections. `uploaded` carries the new ids (with an optional `duplicateOf` flag); `rejected` names any over-limit files that were skipped.",
+				content: {
+					"application/json": {
+						schema: {
+							type: "object",
+							properties: {
+								ok: { type: "boolean" },
+								uploaded: {
+									type: "array",
+									items: {
+										type: "object",
+										properties: {
+											id: { type: "string" },
+											original_filename: { type: "string" },
+											duplicateOf: {
+												type: "object",
+												properties: {
+													id: { type: "string" },
+													filename: { type: "string" },
+												},
+											},
+										},
+									},
+								},
+								rejected: {
+									type: "array",
+									items: {
+										type: "object",
+										properties: {
+											filename: { type: "string" },
+											reason: { type: "string" },
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			"400": { description: "No image files in the upload." },
+			"404": { description: "The target `folderId` does not exist." },
+			"413": {
+				description:
+					"Upload too large — total batch, per-file size, or file count exceeds a limit, or no files were within the limits.",
+			},
+		},
+	},
+});
+
 export default defineEventHandler(async (event) => {
 	// Cheapest guard first: reject an oversized body by its declared length before
 	// readMultipartFormData buffers the whole thing into memory.

@@ -4,6 +4,52 @@
 // currently-trashed rows; unknown/live ids drop out. Ids ride in the JSON body.
 //
 // Response: { ok: true, restored: <count>, ids: [...] } — the actually-restored ids.
+defineRouteMeta({
+	openAPI: {
+		tags: ["Photos"],
+		summary: "Batch restore photos",
+		description:
+			"Clear deleted_at on every given tombstoned photo so they return to the live library. Never re-publishes (visibility/token stay cleared). Only touches currently-trashed rows; unknown/live ids drop out.",
+		security: [{ sessionCookie: [] }],
+		requestBody: {
+			required: true,
+			content: {
+				"application/json": {
+					schema: {
+						type: "object",
+						required: ["ids"],
+						properties: {
+							ids: {
+								type: "array",
+								items: { type: "string" },
+								description: "Photo ids to restore from trash.",
+							},
+						},
+					},
+				},
+			},
+		},
+		responses: {
+			"200": {
+				description: "The actually-restored ids and their count.",
+				content: {
+					"application/json": {
+						schema: {
+							type: "object",
+							properties: {
+								ok: { type: "boolean" },
+								restored: { type: "integer" },
+								ids: { type: "array", items: { type: "string" } },
+							},
+						},
+					},
+				},
+			},
+			"400": { description: "`ids` is required." },
+		},
+	},
+});
+
 export default defineEventHandler(async (event) => {
 	const body = await readBody<{ ids?: unknown }>(event);
 	const ids = Array.isArray(body?.ids)

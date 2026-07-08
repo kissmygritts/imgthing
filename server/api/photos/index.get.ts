@@ -109,6 +109,111 @@ function buildFilter(q: Record<string, unknown>) {
 	return { where, binds };
 }
 
+defineRouteMeta({
+	openAPI: {
+		tags: ["Photos"],
+		summary: "List photos",
+		description:
+			"List photos with their EXIF summary. Server-side search, filtering, sorting and limit/offset paging. `total` is the full match count (ignoring limit/offset) so the client can page.",
+		security: [{ sessionCookie: [] }],
+		parameters: [
+			{
+				name: "q",
+				in: "query",
+				description: "Filename substring match (case-insensitive LIKE).",
+				schema: { type: "string" },
+			},
+			{
+				name: "from",
+				in: "query",
+				description:
+					"Inclusive start of a date range over COALESCE(taken_at, uploaded_at).",
+				schema: { type: "string" },
+			},
+			{
+				name: "to",
+				in: "query",
+				description: "Inclusive end of the same date range.",
+				schema: { type: "string" },
+			},
+			{
+				name: "sort",
+				in: "query",
+				schema: {
+					type: "string",
+					enum: ["newest", "oldest", "name", "size_desc", "size_asc"],
+					default: "newest",
+				},
+			},
+			{
+				name: "folderId",
+				in: "query",
+				description: 'A folder id, or "none" for photos in no folder.',
+				schema: { type: "string" },
+			},
+			{
+				name: "favorite",
+				in: "query",
+				description: '"1" to return only favorited photos.',
+				schema: { type: "string", enum: ["1"] },
+			},
+			{
+				name: "tag",
+				in: "query",
+				description: "A tag id or (case-insensitive) tag name.",
+				schema: { type: "string" },
+			},
+			{
+				name: "camera",
+				in: "query",
+				description: "Exact EXIF camera_model.",
+				schema: { type: "string" },
+			},
+			{
+				name: "lens",
+				in: "query",
+				description: "Exact EXIF lens_info (ANDs with camera).",
+				schema: { type: "string" },
+			},
+			{
+				name: "deleted",
+				in: "query",
+				description: '"1" to return only trashed (tombstoned) photos.',
+				schema: { type: "string", enum: ["1"] },
+			},
+			{
+				name: "limit",
+				in: "query",
+				schema: { type: "integer", minimum: 1, maximum: 200, default: 50 },
+			},
+			{
+				name: "offset",
+				in: "query",
+				schema: { type: "integer", minimum: 0, default: 0 },
+			},
+		],
+		responses: {
+			"200": {
+				description: "A page of photos plus the full match count.",
+				content: {
+					"application/json": {
+						schema: {
+							type: "object",
+							required: ["photos", "total", "limit", "offset"],
+							properties: {
+								photos: { type: "array", items: { type: "object" } },
+								total: { type: "integer" },
+								limit: { type: "integer" },
+								offset: { type: "integer" },
+							},
+						},
+					},
+				},
+			},
+		},
+	},
+});
+
 export default defineEventHandler(async (event) => {
 	const q = getQuery(event);
 	const limit = Math.min(Math.max(Number(q.limit) || 50, 1), 200);

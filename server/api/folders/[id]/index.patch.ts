@@ -1,5 +1,58 @@
 // Rename and/or move a folder. Moving guards against cycles (a folder can't
 // become its own descendant). Pass parentFolderId: null to move to the root.
+defineRouteMeta({
+	openAPI: {
+		tags: ["Folders"],
+		summary: "Rename or move folder",
+		description:
+			"Rename and/or move a folder. Moving guards against cycles (a folder can't become its own descendant). Pass `parentFolderId: null` to move to the root.",
+		security: [{ sessionCookie: [] }],
+		parameters: [
+			{
+				name: "id",
+				in: "path",
+				required: true,
+				schema: { type: "string" },
+			},
+		],
+		requestBody: {
+			required: true,
+			content: {
+				"application/json": {
+					schema: {
+						type: "object",
+						properties: {
+							name: { type: "string", description: "New folder name." },
+							parentFolderId: {
+								type: "string",
+								nullable: true,
+								description: "New parent id, or null for the root.",
+							},
+						},
+					},
+				},
+			},
+		},
+		responses: {
+			"200": {
+				description: "Folder updated.",
+				content: {
+					"application/json": {
+						schema: {
+							type: "object",
+							properties: { ok: { type: "boolean" } },
+						},
+					},
+				},
+			},
+			"400": {
+				description: "Empty name, a cycle-inducing move, or nothing to update.",
+			},
+			"404": { description: "Folder or target parent not found." },
+		},
+	},
+});
+
 export default defineEventHandler(async (event) => {
 	const id = getRouterParam(event, "id") as string;
 	const body = await readBody<{ name?: unknown; parentFolderId?: unknown }>(
