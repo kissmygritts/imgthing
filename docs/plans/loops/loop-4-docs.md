@@ -1,13 +1,50 @@
-# Loop 4 — In-app API documentation
+# Loop 4 — In-app API documentation ✅ COMPLETE
 
 **Items:** #8 in-app API documentation.
-**Human input:** low–medium (one format decision, defaulted below). Single-item loop.
+**Human input:** low–medium (one format decision). Single-item loop.
 Follow the [loop protocol](./README.md#the-loop-protocol-applies-to-every-plan-here): one subagent,
 gate must pass, one commit.
 
+**Status: COMPLETE (2026-07-07).** Shipped via route annotations + Nitro's OpenAPI, not the
+hand-authored page originally planned below. See "What shipped" — the original plan is kept for
+history.
+
 ---
 
-## [ ] Item 8 — In-app API documentation page
+## What shipped (supersedes the plan below)
+
+The format decision flipped from **hand-authored** to **generated from the source of truth**, because
+Nitro exposes exactly the manifest the original plan assumed it didn't:
+
+- **`nitro.experimental.openAPI`** (dev-only) auto-generates `/_openapi.json` and serves readable docs
+  at `/_scalar` and `/_swagger`. No hand-authored `apiRoutes.ts`, no custom Vue page, nothing to keep
+  manually in sync.
+- **Every `server/api/**` handler carries a `defineRouteMeta({ openAPI: {...} })` block** — tags,
+  summary, description, parameters, requestBody, responses, security. Gated routes use
+  `security: [{ sessionCookie: [] }]`; only `auth/*` and `health` use `security: []`. The
+  `sessionCookie` scheme is defined once via `$global` in `health.get.ts`.
+- **`test/unit/openapiMeta.test.ts`** is the completeness guard: a static source scan that fails the
+  gate if any `server/api/**` handler lacks the annotation (summary, responses, gating-correct
+  security). This replaces the original "risk to watch: keeping the list in sync" — drift is now a
+  test failure, not a hope.
+- **CLAUDE.md** carries the "New/changed API endpoint ⇒ OpenAPI annotation" rule next to the
+  integration-test rule.
+
+**Surfacing (decided 2026-07-07):** kept **dev-only**. The docs routes (`/_openapi.json`, `/_scalar`,
+`/_swagger`) live outside `/api`, so shipping them would be fully public. That's acceptable for the
+authed API surface, but the raw Nitro spec also lists the `/p/{token}/*` share routes as bare stubs
+(every scanned handler gets a path entry). Exposing those path *templates* is low real risk — the
+token is the secret and isn't in the spec — but a published doc would still need filtering to
+`/api/**` for cleanliness. Not worth it right now; dev-only is enough. If we ever publish, the
+follow-up is: `nitro.openAPI.production: "prerender"` + filter the spec to `/api/**` + a stable
+`/docs` link. Left unbuilt intentionally.
+
+Commits: `70a1b8a` (annotations + config), `54722e6` (stale GPS test fix), `e351962` (completeness
+test + CLAUDE.md rule), `ba0cb2c` (config comment fix).
+
+---
+
+## [x] Item 8 — In-app API documentation page (original plan, superseded)
 
 **Label:** Feature / Docs. **Effort:** M. **Commit:** `feat: in-app API reference page`.
 

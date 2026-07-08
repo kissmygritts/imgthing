@@ -107,8 +107,8 @@ Grouped so each batch is self-contained and low enough on human input to hand to
 **Batch 3 — Gallery UX** *(low input)*
 - #5 bulk multi-select actions — extend the *existing* bulk bar (folder add/remove + soft-delete already ship) with batch favorite / publish / unpublish / tag
 
-**Batch 4 — Docs** *(low-medium input; format decision up front)*
-- #8 in-app API documentation
+**Batch 4 — Docs** ✅ *done*
+- [x] #8 in-app API documentation
 
 > Per-batch execution plans live in `docs/plans/loops/`.
 
@@ -124,3 +124,4 @@ Grouped so each batch is self-contained and low enough on human input to hand to
 
 - ~~Show photo location on the photo details panel~~ — shipped in `1bf597e` (location map in photo details view).
 - ~~Infinite scroll / pagination~~ — already implemented in `app/pages/index.vue` (`IntersectionObserver` sentinel + `loadMore`, `offset` paging); `/api/photos` already supports `limit`/`offset`. Discovered during loop planning 2026-07-07.
+- ~~#8 in-app API documentation~~ — shipped 2026-07-07 as OpenAPI route annotations (`defineRouteMeta` on every `server/api/**` handler) + Nitro's dev-only spec/Scalar UI (`/_openapi.json`, `/_scalar`), enforced by `test/unit/openapiMeta.test.ts`. Pivoted from the planned hand-authored page to generation from source; kept dev-only (not published). See `docs/plans/loops/loop-4-docs.md`.
