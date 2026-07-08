@@ -10,6 +10,7 @@ import {
 	Layers,
 	LogOut,
 	MapPin,
+	Palette,
 	Search,
 	Settings,
 	Trash2,
@@ -322,12 +323,18 @@ function closeMobile() {
 							<DropdownMenuSeparator />
 							<!-- Storage-usage readout -->
 							<div class="flex flex-col gap-0.5 px-2 py-1.5 text-xs text-muted-foreground">
-								<span class="font-medium text-foreground/80">{{ storageLabel }}</span>
-								<span v-if="stats.trashedCount > 0">
+								<span class="font-medium tabular-nums text-foreground/80">{{ storageLabel }}</span>
+								<span v-if="stats.trashedCount > 0" class="tabular-nums">
 									{{ humanBytes(stats.trashedBytes) }} in Trash
 								</span>
 							</div>
 							<DropdownMenuSeparator />
+							<DropdownMenuItem as-child>
+								<NuxtLink to="/styleguide">
+									<Palette class="size-4" />
+									Style guide
+								</NuxtLink>
+							</DropdownMenuItem>
 							<DropdownMenuItem as-child>
 								<NuxtLink to="/settings">
 									<Settings class="size-4" />

@@ -786,12 +786,12 @@ watch(
 					:key="photo.id"
 					:src="`/api/photos/${photo.id}/variant?size=lg`"
 					:alt="photo.original_filename"
-					class="pointer-events-none max-h-full max-w-full object-contain drop-shadow-[0_30px_60px_rgba(60,45,90,0.45)]"
+					class="pointer-events-none max-h-full max-w-full object-contain drop-shadow-2xl"
 				/>
 
 				<button
 					v-if="index > 0"
-					class="absolute left-4 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 dark:border-white/12 bg-white/45 dark:bg-white/10 text-white backdrop-blur transition hover:bg-white/70 dark:hover:bg-white/18 sm:left-6"
+					class="absolute left-4 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 dark:border-white/12 bg-white/40 dark:bg-white/8 text-white backdrop-blur transition hover:bg-white/60 dark:hover:bg-white/15 sm:left-6"
 					aria-label="Previous photo"
 					@click="prev"
 				>
@@ -799,7 +799,7 @@ watch(
 				</button>
 				<button
 					v-if="index < photos.length - 1"
-					class="absolute right-4 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 dark:border-white/12 bg-white/45 dark:bg-white/10 text-white backdrop-blur transition hover:bg-white/70 dark:hover:bg-white/18 sm:right-6"
+					class="absolute right-4 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 dark:border-white/12 bg-white/40 dark:bg-white/8 text-white backdrop-blur transition hover:bg-white/60 dark:hover:bg-white/15 sm:right-6"
 					aria-label="Next photo"
 					@click="next"
 				>
@@ -809,7 +809,7 @@ watch(
 				<!-- Reopen affordance when the drawer is collapsed -->
 				<button
 					v-if="!drawerOpen"
-					class="absolute right-4 top-4 flex size-9 items-center justify-center rounded-full border border-white/70 dark:border-white/12 bg-white/45 dark:bg-white/10 text-white backdrop-blur transition hover:bg-white/70 dark:hover:bg-white/18 sm:right-6 sm:top-6"
+					class="absolute right-4 top-4 flex size-9 items-center justify-center rounded-full border border-white/70 dark:border-white/12 bg-white/40 dark:bg-white/8 text-white backdrop-blur transition hover:bg-white/60 dark:hover:bg-white/15 sm:right-6 sm:top-6"
 					aria-label="Show details"
 					@click="drawerOpen = true"
 				>
@@ -832,7 +832,7 @@ watch(
 					<header class="flex items-start gap-2 p-7 pb-4">
 						<div class="min-w-0 flex-1">
 							<h2
-								class="break-words font-serif text-[22px] italic leading-tight text-foreground"
+								class="break-words font-serif text-2xl italic leading-tight text-foreground"
 							>
 								{{ photo.original_filename }}
 							</h2>
@@ -850,7 +850,7 @@ watch(
 							<!-- Back to the detail view from edit / embed screens -->
 							<button
 								v-if="mode !== 'view'"
-								class="flex size-8 items-center justify-center rounded-full border border-white/85 dark:border-white/15 bg-white/55 dark:bg-white/12 text-muted-foreground backdrop-blur transition hover:bg-white/85 dark:hover:bg-white/20 hover:text-foreground"
+								class="flex size-8 items-center justify-center rounded-full border border-white/70 dark:border-white/12 bg-white/55 dark:bg-white/12 text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur transition hover:bg-white/85 dark:hover:bg-white/20 hover:text-foreground"
 								aria-label="Back to details"
 								@click="mode = 'view'"
 							>
@@ -862,7 +862,7 @@ watch(
 							<DropdownMenu v-if="mode === 'view'">
 								<DropdownMenuTrigger as-child>
 									<button
-										class="flex size-8 items-center justify-center rounded-full border border-white/85 dark:border-white/15 bg-white/55 dark:bg-white/12 text-muted-foreground backdrop-blur transition hover:bg-white/85 dark:hover:bg-white/20 hover:text-foreground data-[state=open]:bg-white/85 dark:data-[state=open]:bg-white/20 data-[state=open]:text-foreground"
+										class="flex size-8 items-center justify-center rounded-full border border-white/70 dark:border-white/12 bg-white/55 dark:bg-white/12 text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur transition hover:bg-white/85 dark:hover:bg-white/20 hover:text-foreground data-[state=open]:bg-white/85 dark:data-[state=open]:bg-white/20 data-[state=open]:text-foreground"
 										aria-label="More actions"
 									>
 										<MoreVertical class="size-4" />
@@ -870,7 +870,7 @@ watch(
 								</DropdownMenuTrigger>
 								<DropdownMenuContent
 									align="end"
-									class="z-[120] w-48 border-white/40 dark:border-white/10 bg-white/80 dark:bg-[#1c1830]/85 backdrop-blur-xl"
+									class="z-[120] w-48"
 								>
 									<template v-if="trash">
 										<DropdownMenuItem @select="emit('restore', photo.id)">
@@ -919,14 +919,14 @@ watch(
 							</DropdownMenu>
 
 							<button
-								class="flex size-8 items-center justify-center rounded-full border border-white/85 dark:border-white/15 bg-white/55 dark:bg-white/12 text-muted-foreground backdrop-blur transition hover:bg-white/85 dark:hover:bg-white/20 hover:text-foreground"
+								class="flex size-8 items-center justify-center rounded-full border border-white/70 dark:border-white/12 bg-white/55 dark:bg-white/12 text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur transition hover:bg-white/85 dark:hover:bg-white/20 hover:text-foreground"
 								aria-label="Collapse details"
 								@click="drawerOpen = false"
 							>
 								<PanelRightClose class="size-4" />
 							</button>
 							<button
-								class="flex size-8 items-center justify-center rounded-full border border-white/85 dark:border-white/15 bg-white/55 dark:bg-white/12 text-muted-foreground backdrop-blur transition hover:bg-white/85 dark:hover:bg-white/20 hover:text-foreground"
+								class="flex size-8 items-center justify-center rounded-full border border-white/70 dark:border-white/12 bg-white/55 dark:bg-white/12 text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur transition hover:bg-white/85 dark:hover:bg-white/20 hover:text-foreground"
 								aria-label="Close photo viewer"
 								@click="emit('close')"
 							>
@@ -949,7 +949,7 @@ watch(
 									>
 										{{ label }}
 									</dt>
-									<dd class="font-mono text-[13px] text-foreground">
+									<dd class="font-mono text-[13px] tabular-nums text-foreground">
 										{{ value ?? "—" }}
 									</dd>
 								</div>
@@ -966,7 +966,7 @@ watch(
 									ref="viewMapEl"
 									class="h-40 w-full overflow-hidden rounded-lg border border-white/70 dark:border-white/12"
 								/>
-								<p class="mt-2 font-mono text-[12px] text-muted-foreground">
+								<p class="mt-2 font-mono text-xs tabular-nums text-muted-foreground">
 									{{ photo.gps_latitude }}, {{ photo.gps_longitude }}
 								</p>
 							</section>
@@ -1006,7 +1006,7 @@ watch(
 												{{ label }}
 											</dt>
 											<dd
-												class="overflow-x-auto whitespace-pre-wrap break-words font-mono text-[13px] text-foreground"
+												class="overflow-x-auto whitespace-pre-wrap break-words font-mono text-[13px] tabular-nums text-foreground"
 											>
 												{{ value }}
 											</dd>
@@ -1026,7 +1026,7 @@ watch(
 									<span
 										v-for="tag in photoTags"
 										:key="tag.id"
-										class="group/tag flex items-center gap-1 rounded-full border border-white/70 dark:border-white/12 bg-white/55 dark:bg-white/12 py-1 pl-2.5 pr-1 text-[12px] font-medium text-foreground backdrop-blur"
+										class="group/tag flex items-center gap-1 rounded-full border border-white/70 dark:border-white/12 bg-white/55 dark:bg-white/12 py-1 pl-2.5 pr-1 text-xs font-medium text-foreground backdrop-blur"
 									>
 										{{ tag.name }}
 										<button
@@ -1051,7 +1051,7 @@ watch(
 									</datalist>
 									<button
 										type="submit"
-										class="flex size-8 shrink-0 items-center justify-center rounded-full border border-white/85 dark:border-white/15 bg-white/55 dark:bg-white/12 text-muted-foreground backdrop-blur transition hover:bg-white/85 dark:hover:bg-white/20 hover:text-foreground disabled:opacity-40"
+										class="flex size-8 shrink-0 items-center justify-center rounded-full border border-white/70 dark:border-white/12 bg-white/55 dark:bg-white/12 text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur transition hover:bg-white/85 dark:hover:bg-white/20 hover:text-foreground disabled:opacity-40"
 										:disabled="!tagDraft.trim()"
 										aria-label="Add tag"
 									>
@@ -1091,7 +1091,7 @@ watch(
 									<button
 										v-if="hasGpsDraft"
 										type="button"
-										class="text-[11px] font-medium text-muted-foreground transition hover:text-destructive"
+										class="text-xs font-medium text-muted-foreground transition hover:text-destructive"
 										@click="clearGps"
 									>
 										Clear
@@ -1101,7 +1101,7 @@ watch(
 									ref="gpsMapEl"
 									class="h-44 w-full overflow-hidden rounded-lg border border-white/70 dark:border-white/12"
 								/>
-								<p class="font-mono text-[12px] text-muted-foreground">
+								<p class="font-mono text-xs tabular-nums text-muted-foreground">
 									<template v-if="hasGpsDraft">
 										{{ gpsDraft.lat }}, {{ gpsDraft.lng }}
 									</template>
@@ -1114,7 +1114,7 @@ watch(
 
 						<!-- Share & embed: publish toggle, then tokened public URLs + snippets -->
 						<div v-else class="pb-2">
-							<p class="text-[12.5px] leading-relaxed text-muted-foreground">
+							<p class="text-xs leading-relaxed text-muted-foreground">
 								Publish this photo to a public link anyone can open — no imgthing
 								account needed. Only optimized
 								<span class="font-medium text-foreground">WebP</span> renditions
@@ -1172,7 +1172,7 @@ watch(
 							<!-- Private: nothing to copy yet -->
 							<p
 								v-if="!isPublic"
-								class="mt-5 rounded-lg border border-border bg-white/40 dark:bg-white/5 px-3 py-2.5 text-[11.5px] leading-relaxed text-muted-foreground"
+								class="mt-5 rounded-lg border border-border bg-white/40 dark:bg-white/5 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground"
 							>
 								Turn on Public to generate shareable links and embed snippets.
 							</p>
@@ -1188,15 +1188,15 @@ watch(
 									<div v-for="s in sizeRows" :key="s.key" class="min-w-0">
 										<div class="mb-1 flex items-center justify-between gap-2">
 											<span class="flex items-baseline gap-2">
-												<span class="font-mono text-[12px] font-semibold text-foreground">
+												<span class="text-xs font-semibold text-foreground">
 													{{ s.name }}
 												</span>
-												<span class="text-[10.5px] text-muted-foreground">
+												<span class="font-mono text-xs tabular-nums text-muted-foreground">
 													{{ s.meta }}
 												</span>
 											</span>
 											<button
-												class="flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground transition hover:text-foreground"
+												class="flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium text-muted-foreground transition hover:text-foreground"
 												:aria-label="`Copy ${s.name} URL`"
 												@click="copy(s.url, s.key)"
 											>
@@ -1206,7 +1206,7 @@ watch(
 											</button>
 										</div>
 										<pre
-											class="overflow-x-auto rounded-lg border border-white/60 dark:border-white/10 bg-white/45 dark:bg-black/25 p-2.5 font-mono text-[11px] leading-relaxed text-foreground backdrop-blur"
+											class="overflow-x-auto rounded-lg border border-white/60 dark:border-white/10 bg-white/45 dark:bg-black/25 p-2.5 font-mono text-xs leading-relaxed text-foreground backdrop-blur"
 										><code>{{ s.url }}</code></pre>
 									</div>
 								</div>
@@ -1222,12 +1222,12 @@ watch(
 									<div v-for="snip in snippets" :key="snip.key" class="min-w-0">
 										<div class="mb-1 flex items-center justify-between">
 											<span
-												class="text-[10.5px] font-semibold uppercase tracking-[0.06em] text-muted-foreground"
+												class="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground"
 											>
 												{{ snip.label }}
 											</span>
 											<button
-												class="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground transition hover:text-foreground"
+												class="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium text-muted-foreground transition hover:text-foreground"
 												:aria-label="`Copy ${snip.label} snippet`"
 												@click="copy(snip.code, snip.key)"
 											>
@@ -1237,14 +1237,14 @@ watch(
 											</button>
 										</div>
 										<pre
-											class="overflow-x-auto rounded-lg border border-white/60 dark:border-white/10 bg-white/45 dark:bg-black/25 p-2.5 font-mono text-[11px] leading-relaxed text-foreground backdrop-blur"
+											class="overflow-x-auto rounded-lg border border-white/60 dark:border-white/10 bg-white/45 dark:bg-black/25 p-2.5 font-mono text-xs leading-relaxed text-foreground backdrop-blur"
 										><code>{{ snip.code }}</code></pre>
 									</div>
 								</div>
 							</section>
 
 							<p
-								class="mt-5 rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-2.5 text-[11.5px] leading-relaxed text-amber-700 dark:text-amber-300"
+								class="mt-5 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2.5 text-xs leading-relaxed text-warning"
 							>
 								Turning this off — or changing Show location — replaces the link,
 								so any previously shared URL stops working.
@@ -1267,7 +1267,7 @@ watch(
 						</template>
 						<template v-else-if="mode === 'share'">
 							<button
-								class="flex-1 rounded-xl border border-white/85 dark:border-white/15 bg-white/50 dark:bg-white/10 px-3 py-2.5 text-center text-xs font-semibold text-muted-foreground transition hover:bg-white/75 dark:hover:bg-white/18 hover:text-foreground"
+								class="flex-1 rounded-xl border border-white/70 dark:border-white/12 bg-white/55 dark:bg-white/12 px-3 py-2.5 text-center text-xs font-semibold text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] transition hover:bg-white/85 dark:hover:bg-white/20 hover:text-foreground"
 								@click="mode = 'view'"
 							>
 								Done
@@ -1275,7 +1275,7 @@ watch(
 						</template>
 						<template v-else>
 							<button
-								class="flex-1 rounded-xl border border-white/85 dark:border-white/15 bg-white/50 dark:bg-white/10 px-3 py-2.5 text-center text-xs font-semibold text-muted-foreground transition hover:bg-white/75 dark:hover:bg-white/18 hover:text-foreground"
+								class="flex-1 rounded-xl border border-white/70 dark:border-white/12 bg-white/55 dark:bg-white/12 px-3 py-2.5 text-center text-xs font-semibold text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] transition hover:bg-white/85 dark:hover:bg-white/20 hover:text-foreground"
 								@click="cancelEdit"
 							>
 								Cancel
@@ -1341,7 +1341,7 @@ watch(
 								<kbd
 									v-for="k in s.keys"
 									:key="k"
-									class="inline-flex min-w-[1.75rem] items-center justify-center rounded-md border border-border bg-muted px-1.5 py-1 font-mono text-[12px] font-medium leading-none text-foreground shadow-sm"
+									class="inline-flex min-w-7 items-center justify-center rounded-md border border-border bg-muted px-1.5 py-1 font-mono text-xs font-medium leading-none text-foreground shadow-sm"
 								>
 									{{ k }}
 								</kbd>

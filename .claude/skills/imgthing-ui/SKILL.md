@@ -64,6 +64,8 @@ Always-correct tokens (defined in `app/assets/css/main.css`, oklch throughout):
 | Brand / accent | `text-primary`, `bg-primary`, `bg-primary/15`, `ring-primary` | The iris accent. Selection, primary CTAs, focus. Use `<Button>` for CTAs. |
 | Accent-on-glass active | `bg-primary/15 text-accent-foreground` | The "active pill" look (selected filter, active toggle). |
 | Failure / destructive | `text-destructive`, `bg-destructive/10`, `border-destructive/40` | Delete affordances, empty-trash, errors. |
+| Success | `text-success`, `bg-success/15`, `border-success/30` | Completed states (upload done). Mint hue, echoes the aurora/prism. |
+| Warning | `text-warning`, `bg-warning/15`, `border-warning/30` | Cautions, rejected/duplicate states — not a hard failure. Peach hue, echoes the aurora/prism. |
 
 **Glass is an idiom, not a token.** The signature frosted chips are built from
 `bg-white/N` over the aurora — see "Glass surfaces" below. Keep the light/dark
@@ -103,10 +105,10 @@ lowercase-everything like a ledger app).
 
 ### Rules
 
-- **Serif is italic and editorial** — the wordmark, view titles (`h1`), and the
-  lightbox filename. It carries voice, not data. `font-serif text-3xl
-  font-normal tracking-tight text-foreground` is the page-title recipe; the
-  wordmark and filenames add `italic`.
+- **Serif is editorial voice, not data** — the wordmark, view titles (`h1`),
+  and the lightbox filename. `font-serif text-3xl font-normal tracking-tight
+  text-foreground` is the page-title recipe: serif, but upright — only the
+  wordmark and the lightbox filename add `italic`, page `h1`s don't.
 - **Mono is the instrument voice, for values — not always labels.** EXIF
   values, byte counts, raw D1 table/column names are mono. In the lightbox
   fact list specifically, the *label* (`CAMERA`, `LENS`, …) is sans, uppercase,
@@ -229,7 +231,7 @@ titled column:
 
 ```vue
 <template>
-  <div class="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6">
+  <div class="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6">
     <header class="border-b border-border pb-5">
       <h1 class="font-serif text-3xl font-normal tracking-tight text-foreground">
         Page title
@@ -241,9 +243,9 @@ titled column:
 </template>
 ```
 
-- **Container width.** `max-w-3xl` for narrow forms/settings; the gallery goes
-  full-width (no `max-w`). Pick from what pages already use; don't invent a
-  width.
+- **Container width.** `max-w-5xl` for narrow forms/settings/docs pages; the
+  gallery goes full-width (no `max-w`). Pick from what pages already use;
+  don't invent a width.
 - **Vertical rhythm.** `gap-6` on the page column is the default (`gap-4` inside
   cards). Stay consistent.
 - **Padding.** Outer page padding is set by the layout

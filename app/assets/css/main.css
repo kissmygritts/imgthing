@@ -34,6 +34,10 @@
 	--color-accent-foreground: var(--accent-foreground);
 	--color-destructive: var(--destructive);
 	--color-destructive-foreground: var(--destructive-foreground);
+	--color-success: var(--success);
+	--color-success-foreground: var(--success-foreground);
+	--color-warning: var(--warning);
+	--color-warning-foreground: var(--warning-foreground);
 	--color-border: var(--border);
 	--color-input: var(--input);
 	--color-ring: var(--ring);
@@ -80,6 +84,10 @@
 	--accent-foreground: oklch(0.46 0.18 293); /* iris-deep #5a41b8 */
 	--destructive: oklch(0.58 0.24 27);
 	--destructive-foreground: oklch(0.99 0 0);
+	--success: oklch(0.6 0.14 160); /* mint, echoes the aurora/prism hue */
+	--success-foreground: oklch(0.99 0 0);
+	--warning: oklch(0.65 0.15 60); /* peach, echoes the aurora/prism hue */
+	--warning-foreground: oklch(0.99 0 0);
 	--border: oklch(0.55 0.03 300 / 16%);
 	--input: oklch(0.55 0.03 300 / 20%);
 	--ring: oklch(0.53 0.17 293 / 55%);
@@ -124,6 +132,10 @@
 	--accent-foreground: oklch(0.82 0.11 293);
 	--destructive: oklch(0.64 0.2 25);
 	--destructive-foreground: oklch(0.98 0 0);
+	--success: oklch(0.72 0.14 160);
+	--success-foreground: oklch(0.16 0.02 160);
+	--warning: oklch(0.75 0.14 60);
+	--warning-foreground: oklch(0.18 0.02 60);
 	--border: oklch(0.86 0.02 300 / 12%); /* light glass edge */
 	--input: oklch(0.86 0.02 300 / 16%);
 	--ring: oklch(0.66 0.16 293 / 60%);

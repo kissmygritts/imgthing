@@ -219,7 +219,7 @@ async function startUpload() {
 </script>
 
 <template>
-	<div class="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6">
+	<div class="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6">
 		<header class="border-b border-border pb-5">
 			<h1 class="font-serif text-3xl font-normal tracking-tight text-foreground">
 				Upload photos
@@ -304,7 +304,7 @@ async function startUpload() {
 			<div class="flex items-center justify-between">
 				<h2 class="text-sm font-semibold text-foreground">
 					Queue
-					<span class="font-normal text-muted-foreground">
+					<span class="font-normal tabular-nums text-muted-foreground">
 						· {{ queue.length }} file{{ queue.length === 1 ? "" : "s" }}
 						<template v-if="doneCount"> · {{ doneCount }} done</template>
 						<template v-if="failedCount"> · {{ failedCount }} failed</template>
@@ -329,9 +329,9 @@ async function startUpload() {
 						class="flex size-9 shrink-0 items-center justify-center rounded-xl"
 						:class="{
 							'bg-primary/15 text-primary': item.status === 'pending' || item.status === 'uploading',
-							'bg-emerald-500/15 text-emerald-600': item.status === 'done',
+							'bg-success/15 text-success': item.status === 'done',
 							'bg-destructive/15 text-destructive': item.status === 'error',
-							'bg-amber-500/15 text-amber-600': item.status === 'rejected',
+							'bg-warning/15 text-warning': item.status === 'rejected',
 						}"
 					>
 						<Loader2 v-if="item.status === 'uploading'" class="size-4 animate-spin" />
@@ -346,7 +346,7 @@ async function startUpload() {
 							<p class="truncate text-sm font-medium text-foreground">
 								{{ item.name }}
 							</p>
-							<span class="shrink-0 text-xs text-muted-foreground">
+							<span class="shrink-0 text-xs tabular-nums text-muted-foreground">
 								{{ formatSize(item.size) }}
 							</span>
 						</div>
@@ -369,15 +369,15 @@ async function startUpload() {
 						</p>
 						<p
 							v-else-if="item.status === 'rejected'"
-							class="mt-0.5 truncate text-xs text-amber-600"
+							class="mt-0.5 truncate text-xs text-warning"
 						>
 							{{ item.error }} — won't be uploaded
 						</p>
 						<template v-else-if="item.status === 'done'">
-							<p class="mt-0.5 text-xs text-emerald-600">Uploaded</p>
+							<p class="mt-0.5 text-xs text-success">Uploaded</p>
 							<p
 								v-if="item.duplicateOf"
-								class="mt-0.5 flex items-center gap-1 truncate text-xs text-amber-600"
+								class="mt-0.5 flex items-center gap-1 truncate text-xs text-warning"
 							>
 								<CircleAlert class="size-3 shrink-0" />
 								Looks like a duplicate of {{ item.duplicateOf }}

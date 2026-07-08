@@ -41,6 +41,8 @@ const tokens = [
 	{ name: "muted", swatch: "bg-muted", text: "text-muted-foreground" },
 	{ name: "accent", swatch: "bg-accent", text: "text-accent-foreground" },
 	{ name: "destructive", swatch: "bg-destructive", text: "text-white" },
+	{ name: "success", swatch: "bg-success", text: "text-white" },
+	{ name: "warning", swatch: "bg-warning", text: "text-white" },
 	{ name: "border", swatch: "bg-border", text: "text-foreground" },
 ];
 
@@ -158,7 +160,7 @@ const overlayChip =
 						<span class="text-xs font-medium">{{ token.name }}</span>
 					</div>
 					<div class="bg-card px-2 py-1.5">
-						<code class="font-mono text-[11px] text-muted-foreground">
+						<code class="font-mono text-xs text-muted-foreground">
 							--{{ token.name }}
 						</code>
 					</div>
@@ -293,7 +295,7 @@ const overlayChip =
 						class="pointer-events-none absolute inset-0 rounded-[20px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35)]"
 					/>
 					<figcaption
-						class="absolute inset-x-3 bottom-2.5 font-mono text-[11px] text-white/90 drop-shadow"
+						class="absolute inset-x-3 bottom-2.5 font-mono text-xs text-white/90 drop-shadow"
 					>
 						Photo tile · hover me
 					</figcaption>
@@ -438,7 +440,7 @@ const overlayChip =
 				class="grid gap-6 rounded-2xl border border-border bg-card p-6 sm:grid-cols-[1fr_auto]"
 			>
 				<div>
-					<p class="font-serif text-[22px] italic leading-tight text-foreground">
+					<p class="font-serif text-2xl italic leading-tight text-foreground">
 						golden-hour-ridge.jpg
 					</p>
 					<dl class="mt-4 grid gap-3">

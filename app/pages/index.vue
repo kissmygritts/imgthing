@@ -402,7 +402,7 @@ async function onViewerPurge(id: string) {
 				<h1 class="font-serif text-3xl font-normal tracking-tight text-foreground">
 					{{ currentTitle }}
 				</h1>
-				<p class="mt-1 text-sm text-muted-foreground">
+				<p class="mt-1 text-sm tabular-nums text-muted-foreground">
 					{{ total }} photo{{ total === 1 ? "" : "s" }}
 					<span v-if="activeSearch"> · filtered</span>
 				</p>
@@ -460,7 +460,7 @@ async function onViewerPurge(id: string) {
 			<figure
 				v-for="(photo, i) in photos"
 				:key="photo.id"
-				class="group relative aspect-square overflow-hidden rounded-[20px] shadow-[0_1px_2px_rgba(51,43,73,0.06),0_14px_30px_-16px_rgba(51,43,73,0.35)] transition-transform duration-300 hover:-translate-y-1"
+				class="group relative aspect-square overflow-hidden rounded-[20px] shadow-lg transition-transform duration-300 hover:-translate-y-1"
 				:class="isSelected(photo.id) && 'ring-2 ring-primary ring-offset-2 ring-offset-background'"
 			>
 				<img
@@ -471,10 +471,10 @@ async function onViewerPurge(id: string) {
 					@click="selectMode ? toggleSelect(i, $event) : openViewer(i)"
 				/>
 
-				<!-- selection tint + inner iris ring -->
+				<!-- selection tint (the boundary indicator is the ring-2 above) -->
 				<span
 					v-if="isSelected(photo.id)"
-					class="pointer-events-none absolute inset-0 z-[5] rounded-[20px] bg-primary/15 shadow-[inset_0_0_0_2px_var(--color-primary)]"
+					class="pointer-events-none absolute inset-0 z-[5] rounded-[20px] bg-primary/15"
 				/>
 
 				<!-- selection checkbox (visible in select mode) -->
@@ -484,7 +484,7 @@ async function onViewerPurge(id: string) {
 					:class="
 						isSelected(photo.id)
 							? 'border-primary bg-primary text-primary-foreground'
-							: 'border-white/80 dark:border-white/15 bg-white/50 dark:bg-white/10 text-transparent backdrop-blur'
+							: 'border-white/70 dark:border-white/12 bg-white/40 dark:bg-white/8 text-transparent backdrop-blur'
 					"
 					:title="isSelected(photo.id) ? 'Deselect' : 'Select'"
 					@click.stop="toggleSelect(i, $event)"
@@ -652,7 +652,7 @@ async function onViewerPurge(id: string) {
 			<div
 				class="glass-panel flex max-w-[calc(100vw-1rem)] items-center gap-1 rounded-full py-2 pl-4 pr-2 text-sm sm:gap-1.5"
 			>
-				<span class="mr-1 whitespace-nowrap font-semibold text-foreground">
+				<span class="mr-1 whitespace-nowrap font-semibold tabular-nums text-foreground">
 					{{ selectedCount }} selected
 				</span>
 

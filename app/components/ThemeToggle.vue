@@ -23,7 +23,7 @@ const options = [
 
 <template>
 	<div
-		class="flex items-center gap-0.5 rounded-full border border-white/60 bg-white/35 p-0.5 dark:border-white/12 dark:bg-white/8"
+		class="flex items-center gap-0.5 rounded-full border border-white/70 bg-white/55 p-0.5 text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] dark:border-white/12 dark:bg-white/12 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]"
 		role="radiogroup"
 		aria-label="Color theme"
 	>
@@ -35,10 +35,10 @@ const options = [
 			:aria-checked="colorMode.preference === opt.value"
 			:aria-label="opt.label"
 			:title="opt.label"
-			class="flex flex-1 items-center justify-center rounded-full py-1.5 text-muted-foreground transition-colors hover:text-foreground"
+			class="flex flex-1 items-center justify-center rounded-full border border-transparent py-1.5 text-muted-foreground transition-colors hover:text-foreground"
 			:class="
 				mounted && colorMode.preference === opt.value
-					? 'bg-primary/15 text-accent-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] dark:shadow-none'
+					? 'border-primary/40 bg-primary/15 text-accent-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]'
 					: ''
 			"
 			@click="colorMode.preference = opt.value"
