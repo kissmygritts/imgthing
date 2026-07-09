@@ -144,7 +144,7 @@ function closeMobile() {
 
 		<SidebarContent class="px-1">
 			<SidebarGroup>
-				<SidebarGroupLabel>Library</SidebarGroupLabel>
+				<SidebarGroupLabel>Browse</SidebarGroupLabel>
 				<SidebarGroupContent>
 					<SidebarMenu>
 						<SidebarMenuItem>
@@ -157,6 +157,30 @@ function closeMobile() {
 								<span>All photos</span>
 							</SidebarMenuButton>
 						</SidebarMenuItem>
+						<SidebarMenuItem>
+							<SidebarMenuButton as-child tooltip="Map" :is-active="route.path === '/map'">
+								<NuxtLink to="/map" @click="closeMobile">
+									<MapPin />
+									<span>Map</span>
+								</NuxtLink>
+							</SidebarMenuButton>
+						</SidebarMenuItem>
+						<SidebarMenuItem>
+							<SidebarMenuButton as-child tooltip="Calendar" :is-active="route.path === '/calendar'">
+								<NuxtLink to="/calendar" @click="closeMobile">
+									<CalendarDays />
+									<span>Calendar</span>
+								</NuxtLink>
+							</SidebarMenuButton>
+						</SidebarMenuItem>
+					</SidebarMenu>
+				</SidebarGroupContent>
+			</SidebarGroup>
+
+			<SidebarGroup>
+				<SidebarGroupLabel>Library</SidebarGroupLabel>
+				<SidebarGroupContent>
+					<SidebarMenu>
 						<SidebarMenuItem>
 							<SidebarMenuButton
 								tooltip="Favorites"
@@ -175,22 +199,6 @@ function closeMobile() {
 							>
 								<Layers />
 								<span>Uncategorized</span>
-							</SidebarMenuButton>
-						</SidebarMenuItem>
-						<SidebarMenuItem>
-							<SidebarMenuButton as-child tooltip="Calendar" :is-active="route.path === '/calendar'">
-								<NuxtLink to="/calendar" @click="closeMobile">
-									<CalendarDays />
-									<span>Calendar</span>
-								</NuxtLink>
-							</SidebarMenuButton>
-						</SidebarMenuItem>
-						<SidebarMenuItem>
-							<SidebarMenuButton as-child tooltip="Map" :is-active="route.path === '/map'">
-								<NuxtLink to="/map" @click="closeMobile">
-									<MapPin />
-									<span>Map</span>
-								</NuxtLink>
 							</SidebarMenuButton>
 						</SidebarMenuItem>
 						<SidebarMenuItem>
