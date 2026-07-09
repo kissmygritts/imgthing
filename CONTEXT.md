@@ -36,9 +36,21 @@ over it. Names below are the canonical vocabulary — use them; don't invent syn
 - **Glass panel** — the floating, inset, rounded glass plane that rides over the aurora and holds
   everything the user works in (`SidebarInset`, class `glass-panel`, in `layouts/default.vue`). The
   main content surface.
-- **Main view** — whatever the glass panel currently holds: the **gallery view** (`index.vue`) or
-  the **map view** (`map.vue`). Use "main view" for the content region, "glass panel" for the
-  surface itself.
+- **Main view** — whatever the glass panel currently holds: the **gallery view** (`index.vue`), the
+  **map view** (`map.vue`), or the **calendar view** (`calendar.vue`). Use "main view" for the content
+  region, "glass panel" for the surface itself.
+- **Calendar view** — the `/calendar` route: a date-first *navigation* surface (not a filter). It shows
+  the **months overview** — one **month row** per month that has photos — and tapping a row enters
+  the gallery **scoped to that month**. Two levels only (Months → the existing All-photos grid); no
+  Years level and no per-day mosaic.
+- **Month row** — a dense list row standing for one month in the months overview: the month label +
+  photo count on the left, a **thumb strip** (a short run of that month's thumbnails) on the right.
+  Chosen over a photo-wall hero card for scannability at phone width. Tapping the row navigates to the
+  gallery month-scoped.
+- **Thumb strip** — the horizontal run of thumbnails inside a month row.
+- **Month scope** — the gallery's active date-range view when entered from a month card: the grid
+  constrained to one calendar month (a half-open `[month-start, next-month-start)` range over the
+  capture date). The gallery **title** reads the month (e.g. "July 2026").
 - **Sidebar** — the leftmost nav panel (`AppSidebar.vue`, on the shadcn `Sidebar` primitive):
   folders, tags, cameras/lenses, favorites, trash, search. Offcanvas on phones. Never call it a
   "drawer" — that word is reserved for the viewer (see below).

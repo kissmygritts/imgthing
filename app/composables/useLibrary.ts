@@ -1,6 +1,7 @@
 import { toast } from "vue-sonner";
 import type { FolderAction, FolderNode } from "@/components/FolderTree.vue";
 import type { Photo, Tag } from "@/components/PhotoViewer.vue";
+import { monthLabel } from "@/lib/date";
 
 // A camera model or lens aggregated from EXIF, with its live-photo count.
 export interface ExifFacet {
@@ -78,6 +79,11 @@ export function useLibrary() {
 	// lens can be active at once and AND together server-side.
 	const selectedCamera = useState<string | null>("library:camera", () => null);
 	const selectedLens = useState<string | null>("library:lens", () => null);
+	// Month scope: the calendar view enters the gallery constrained to one capture
+	// month ("YYYY-MM"). Another exclusive view like Favorites/Trash — picking any
+	// other filter clears it, and it clears the others. In-memory only (not the
+	// URL), so a hard reload of "/" falls back to All photos.
+	const monthScope = useState<string | null>("library:month", () => null);
 	const expanded = useState<Set<string>>("library:expanded", () => new Set());
 	const search = useState("library:search", () => "");
 
@@ -103,6 +109,7 @@ export function useLibrary() {
 		favoritesOnly.value = false;
 		selectedTagId.value = null;
 		trashOnly.value = false;
+		monthScope.value = null;
 		clearExif();
 		selectedFolderId.value = id;
 		goToGallery();
@@ -111,6 +118,7 @@ export function useLibrary() {
 	function selectFavorites() {
 		selectedTagId.value = null;
 		trashOnly.value = false;
+		monthScope.value = null;
 		clearExif();
 		favoritesOnly.value = true;
 		goToGallery();
@@ -121,6 +129,7 @@ export function useLibrary() {
 		favoritesOnly.value = false;
 		trashOnly.value = false;
 		selectedFolderId.value = null;
+		monthScope.value = null;
 		clearExif();
 		selectedTagId.value = id;
 		goToGallery();
@@ -131,6 +140,7 @@ export function useLibrary() {
 		favoritesOnly.value = false;
 		selectedTagId.value = null;
 		selectedFolderId.value = null;
+		monthScope.value = null;
 		clearExif();
 		trashOnly.value = true;
 		goToGallery();
@@ -143,6 +153,7 @@ export function useLibrary() {
 		trashOnly.value = false;
 		selectedTagId.value = null;
 		selectedFolderId.value = null;
+		monthScope.value = null;
 		// Toggle off if re-picking the active camera.
 		selectedCamera.value = selectedCamera.value === name ? null : name;
 		goToGallery();
@@ -154,11 +165,26 @@ export function useLibrary() {
 		trashOnly.value = false;
 		selectedTagId.value = null;
 		selectedFolderId.value = null;
+		monthScope.value = null;
 		selectedLens.value = selectedLens.value === name ? null : name;
 		goToGallery();
 	}
 
+	// Enter a month scope from the calendar. Mirrors selectFavorites: an exclusive
+	// view, so it clears every other filter before setting the month, then routes
+	// to the gallery where listQuery turns it into a from/to date range.
+	function selectMonth(monthKey: string) {
+		favoritesOnly.value = false;
+		trashOnly.value = false;
+		selectedTagId.value = null;
+		selectedFolderId.value = null;
+		clearExif();
+		monthScope.value = monthKey;
+		goToGallery();
+	}
+
 	const currentTitle = computed(() => {
+		if (monthScope.value) return monthLabel(monthScope.value);
 		if (trashOnly.value) return "Trash";
 		if (favoritesOnly.value) return "Favorites";
 		if (selectedTagId.value)
@@ -190,6 +216,7 @@ export function useLibrary() {
 			"cameras",
 			"lenses",
 			"stats",
+			"months",
 		]);
 	}
 
@@ -729,12 +756,14 @@ export function useLibrary() {
 		trashOnly,
 		selectedCamera,
 		selectedLens,
+		monthScope,
 		selectFolder,
 		selectFavorites,
 		selectTag,
 		selectTrash,
 		selectCamera,
 		selectLens,
+		selectMonth,
 		expanded,
 		search,
 		currentTitle,

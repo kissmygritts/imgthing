@@ -3,6 +3,7 @@ import {
 	Check,
 	CheckCheck,
 	ChevronDown,
+	ChevronLeft,
 	FolderMinus,
 	FolderPlus,
 	Globe,
@@ -41,6 +42,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { useSidebar } from "@/components/ui/sidebar";
+import { monthRange } from "@/lib/date";
 
 interface PhotosResponse {
 	photos: Photo[];
@@ -58,6 +60,7 @@ const {
 	trashOnly,
 	selectedCamera,
 	selectedLens,
+	monthScope,
 	search,
 	currentTitle,
 	foldersOf,
@@ -105,7 +108,13 @@ const listQuery = computed(() => {
 		sort: sortMode.value,
 		limit: String(PAGE_SIZE),
 	};
-	if (trashOnly.value) query.deleted = "1";
+	if (monthScope.value) {
+		// Month scope enters the gallery constrained to one capture month via the
+		// half-open range from monthRange (the single source of boundary truth).
+		const { from, to } = monthRange(monthScope.value);
+		query.from = from;
+		query.to = to;
+	} else if (trashOnly.value) query.deleted = "1";
 	else if (favoritesOnly.value) query.favorite = "1";
 	else if (selectedTagId.value) query.tag = selectedTagId.value;
 	else if (selectedCamera.value || selectedLens.value) {
@@ -412,7 +421,21 @@ async function onViewerPurge(id: string) {
 			class="flex items-end justify-between gap-4 border-b border-border pb-5"
 		>
 			<div class="min-w-0">
+				<!-- When scoped to a month, the title links back to the calendar. -->
+				<NuxtLink
+					v-if="monthScope"
+					to="/calendar"
+					class="group inline-flex max-w-full items-center gap-1.5 text-foreground transition-colors hover:text-primary"
+				>
+					<ChevronLeft
+						class="size-6 shrink-0 -translate-x-0.5 text-muted-foreground transition-transform group-hover:-translate-x-1.5 group-hover:text-primary"
+					/>
+					<span class="truncate font-serif text-3xl font-normal tracking-tight">
+						{{ currentTitle }}
+					</span>
+				</NuxtLink>
 				<h1
+					v-else
 					class="truncate font-serif text-3xl font-normal tracking-tight text-foreground"
 				>
 					{{ currentTitle }}

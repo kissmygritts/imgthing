@@ -30,13 +30,6 @@ per-item.
 - **Description:** A real filter surface that composes multiple facets.
 - **Implementation:** **Blocked on design.** Define the filter UX/tokens, then extend the list endpoint with composable filter params and mirror the state in `composables/useLibrary.ts`. Consider it the superset that the date view should slot into — worth one shared plan/ADR. The earlier single date filter (F2) was reverted specifically because the UI needed a redesign before rebuilding — see the F2 note in project memory / `docs/decisions`.
 
-### Feature: calendar / date view
-- **Label:** Feature — browse the library by calendar/date.
-- **Effort:** L
-- **Human input:** High *(design first — the prior date filter was reverted)*
-- **Description:** A date-oriented way to navigate photos (month/day grid or timeline).
-- **Implementation:** **Blocked on design.** Nail the interaction model at phone width first, then build. No date-picker dependency without flagging it (per CLAUDE.md). Backend can key on existing capture timestamps. Likely folds into the multi-faceted filter above.
-
 ### Feature: equipment / kit tracker (settings page)
 - **Label:** Feature — record the gear I own/use.
 - **Effort:** L

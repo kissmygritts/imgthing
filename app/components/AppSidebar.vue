@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import {
+	CalendarDays,
 	Camera,
 	ChevronsUpDown,
 	FolderPlus,
@@ -64,6 +65,7 @@ const {
 	trashOnly,
 	selectedCamera,
 	selectedLens,
+	monthScope,
 	selectFolder,
 	selectFavorites,
 	selectTag,
@@ -148,7 +150,7 @@ function closeMobile() {
 						<SidebarMenuItem>
 							<SidebarMenuButton
 								tooltip="All photos"
-								:is-active="onGallery && !favoritesOnly && !trashOnly && !selectedCamera && !selectedLens && !selectedTagId && selectedFolderId === null"
+								:is-active="onGallery && !favoritesOnly && !trashOnly && !selectedCamera && !selectedLens && !selectedTagId && !monthScope && selectedFolderId === null"
 								@click="selectFolder(null); closeMobile()"
 							>
 								<Images />
@@ -173,6 +175,14 @@ function closeMobile() {
 							>
 								<Layers />
 								<span>Uncategorized</span>
+							</SidebarMenuButton>
+						</SidebarMenuItem>
+						<SidebarMenuItem>
+							<SidebarMenuButton as-child tooltip="Calendar" :is-active="route.path === '/calendar'">
+								<NuxtLink to="/calendar" @click="closeMobile">
+									<CalendarDays />
+									<span>Calendar</span>
+								</NuxtLink>
 							</SidebarMenuButton>
 						</SidebarMenuItem>
 						<SidebarMenuItem>
