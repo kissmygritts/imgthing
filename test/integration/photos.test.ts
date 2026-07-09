@@ -262,9 +262,9 @@ describe("photos", () => {
 describe("photos: upload limits", () => {
 	it("rejects an over-size file with a 413 naming the file and limit", async () => {
 		const cookie = await login();
-		// 26 MB > the 25 MB per-file ceiling. Valid PNG bytes + padding after IEND.
+		// 61 MB > the 60 MB per-file ceiling. Valid PNG bytes + padding after IEND.
 		const png = pngBytes();
-		const big = new Uint8Array([...png, ...new Uint8Array(26 * 1024 * 1024)]);
+		const big = new Uint8Array([...png, ...new Uint8Array(61 * 1024 * 1024)]);
 		const form = new FormData();
 		form.append("files", new File([big], "huge.png", { type: "image/png" }));
 		const res = await SELF.fetch(url("/api/photos"), {
@@ -275,13 +275,13 @@ describe("photos: upload limits", () => {
 		expect(res.status).toBe(413);
 		const body = (await res.json()) as { statusMessage?: string };
 		expect(body.statusMessage).toContain("huge.png");
-		expect(body.statusMessage).toContain("25 MB");
+		expect(body.statusMessage).toContain("60 MB");
 	});
 
 	it("keeps valid files and reports over-size ones in a mixed batch", async () => {
 		const cookie = await login();
 		const png = pngBytes();
-		const big = new Uint8Array([...png, ...new Uint8Array(26 * 1024 * 1024)]);
+		const big = new Uint8Array([...png, ...new Uint8Array(61 * 1024 * 1024)]);
 		const form = new FormData();
 		form.append("files", new File([png], "ok.png", { type: "image/png" }));
 		form.append("files", new File([big], "toobig.png", { type: "image/png" }));

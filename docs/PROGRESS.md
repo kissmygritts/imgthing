@@ -23,7 +23,8 @@ landed with the gate green (`check` + `typecheck` + `test:all`; integration suit
 - **S3 — Camera & lens filters** (`1d27aeb`): `GET /api/cameras` + `/api/lenses` facets (live-only
   counts), `camera`/`lens` params in `buildFilter` (AND-combine), Cameras/Lenses sidebar groups.
 - **S4 — Upload limits** (`981cf9b`): 25 MB/file, 50 files, 200 MB batch caps; early `content-length`
-  413; partial-batch `rejected[]` reporting.
+  413; partial-batch `rejected[]` reporting. Caps later raised to **60 MB/file, 500 MB batch**
+  (2026-07-08) to fit full-size Nikon Z8 JPGs (20–50 MB); count stays 50.
 - **S5 — Test coverage audit** (`469301c`): full route audit (no bugs found); closed real gaps
   (cameras/lenses/trash auth guards, folder 404s).
 - **S6 — Mobile / responsive pass** (`44dab60`): icon-only action bar on phones, phone-friendly

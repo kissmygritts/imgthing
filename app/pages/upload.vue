@@ -67,10 +67,12 @@ interface QueueItem {
 	duplicateOf?: string;
 }
 
-// Mirror the server's per-file ceiling (server/api/photos/index.post.ts) so we can
-// flag over-size files before wasting an upload round-trip.
-const MAX_FILE_MB = 25;
+// Mirror the server's upload ceilings (server/api/photos/index.post.ts) so we can
+// flag over-size files before wasting a round-trip and show the limits up front.
+const MAX_FILE_MB = 60;
 const MAX_FILE_BYTES = MAX_FILE_MB * 1024 * 1024;
+const MAX_FILE_COUNT = 50;
+const MAX_BATCH_MB = 500;
 
 const queue = ref<QueueItem[]>([]);
 const isUploading = ref(false);
@@ -294,6 +296,10 @@ async function startUpload() {
 				</span>
 				<span class="block text-sm text-muted-foreground">
 					or click to browse — PNG, JPG, WebP, and more
+				</span>
+				<span class="block text-xs text-muted-foreground/80 tabular-nums">
+					Up to {{ MAX_FILE_MB }} MB per file · {{ MAX_FILE_COUNT }} files ·
+					{{ MAX_BATCH_MB }} MB per batch
 				</span>
 			</span>
 			<input

@@ -104,7 +104,7 @@ the three `variants/{id}/{size}` objects alongside the original.
   many widths is ever wanted.
 - **~3× original storage** in R2 for the variant objects. Cheap at personal-library scale.
 - **Upload latency** absorbs three sequential transforms (sequential, not `Promise.all`, to bound
-  Worker memory against the 25 MB/file upload cap).
+  Worker memory against the 60 MB/file upload cap).
 - **No public view analytics** beyond Worker logs — but since serving is not edge-cached, every
   public hit *does* reach the Worker (unlike ADR 0004's edge-cached model), so per-token request
   logging is actually available here if wanted later.

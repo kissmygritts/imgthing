@@ -2,9 +2,9 @@
 // can pressure memory both by one huge file and by sheer file count, so we cap
 // per-file size, file count, and the total batch bytes.
 const MB = 1024 * 1024;
-const MAX_FILE_BYTES = 25 * MB; // per-file ceiling
+const MAX_FILE_BYTES = 60 * MB; // per-file ceiling — full-size Nikon Z8 JPGs run 20–50 MB
 const MAX_FILE_COUNT = 50; // files per request
-const MAX_TOTAL_BYTES = 200 * MB; // whole-batch ceiling
+const MAX_TOTAL_BYTES = 500 * MB; // whole-batch ceiling
 
 const mb = (bytes: number) => (bytes / MB).toFixed(1);
 
@@ -15,7 +15,7 @@ defineRouteMeta({
 		tags: ["Photos"],
 		summary: "Upload photo",
 		description:
-			"Upload one or more images (multipart). Original bytes stream to R2, metadata + EXIF land in D1, and the three serving variants are precomputed. An optional `folderId` text field assigns every uploaded photo to that folder. Enforces per-file (25 MB), file-count (50), and total-batch (200 MB) limits; over-size files are skipped and reported in `rejected` while the rest still land.",
+			"Upload one or more images (multipart). Original bytes stream to R2, metadata + EXIF land in D1, and the three serving variants are precomputed. An optional `folderId` text field assigns every uploaded photo to that folder. Enforces per-file (60 MB), file-count (50), and total-batch (500 MB) limits; over-size files are skipped and reported in `rejected` while the rest still land.",
 		security: [{ sessionCookie: [] }],
 		requestBody: {
 			required: true,

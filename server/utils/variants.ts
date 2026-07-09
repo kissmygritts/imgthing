@@ -79,7 +79,7 @@ async function transformVariant(
 
 /**
  * Generate and store all fixed variants for a photo. Originals are capped at
- * 25 MB (the upload limit), so three sequential buffered transforms stay within
+ * 60 MB (the upload limit), so three sequential buffered transforms stay within
  * Worker memory — do them sequentially rather than Promise.all.
  *
  * Returns the summed byte size of the three stored variants so callers can
