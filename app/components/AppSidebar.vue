@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import {
-	Aperture,
 	Camera,
 	ChevronsUpDown,
 	FolderPlus,
@@ -17,6 +16,7 @@ import {
 	Upload,
 } from "@lucide/vue";
 import FolderTree from "@/components/FolderTree.vue";
+import LensIcon from "@/components/LensIcon.vue";
 import SidebarEntry from "@/components/SidebarEntry.vue";
 import { Button } from "@/components/ui/button";
 import {
@@ -273,7 +273,7 @@ function closeMobile() {
 						<SidebarEntry
 							v-for="lens in lenses"
 							:key="lens.name"
-							:icon="Aperture"
+							:icon="LensIcon"
 							:label="lens.name"
 							:count="lens.photo_count"
 							:active="onGallery && selectedLens === lens.name"
