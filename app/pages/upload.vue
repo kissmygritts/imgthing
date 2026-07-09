@@ -342,14 +342,9 @@ async function startUpload() {
 					</span>
 
 					<div class="min-w-0 flex-1">
-						<div class="flex items-center justify-between gap-2">
-							<p class="truncate text-sm font-medium text-foreground">
-								{{ item.name }}
-							</p>
-							<span class="shrink-0 text-xs tabular-nums text-muted-foreground">
-								{{ formatSize(item.size) }}
-							</span>
-						</div>
+						<p class="truncate text-sm font-medium text-foreground">
+							{{ item.name }}
+						</p>
 
 						<!-- progress / status line -->
 						<div
@@ -385,6 +380,10 @@ async function startUpload() {
 						</template>
 						<p v-else class="mt-0.5 text-xs text-muted-foreground">Ready</p>
 					</div>
+
+					<span class="shrink-0 text-xs tabular-nums text-muted-foreground">
+						{{ formatSize(item.size) }}
+					</span>
 
 					<button
 						v-if="item.status !== 'uploading'"
