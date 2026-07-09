@@ -36,16 +36,12 @@ Ordered by ascending effort.
 - **Description:** Add and track owned equipment. Not required to inform camera/lens filters, but nice alongside them.
 - **Implementation:** New additive migration for an `equipment` table + CRUD endpoints + settings UI (settings shell already ships). Open question the user flagged: is there a public list of cameras/lenses to seed autocomplete from? Research that before building the input UX.
 
-### Design: logo & wordplate
-- **Label:** Design — improve the logo and wordmark.
-- **Effort:** M
-- **Human input:** High *(pure taste)*
-- **Description:** Current logo/wordplate needs work.
-- **Implementation:** Design exploration, not an autonomous task. Reference/idea from the user: the **Nikon split-image (split-prism) focusing screen** — https://jerkwithacamera.com/nikon-df-split-screen-manual-focusing-screen/comment-page-1/ — as a motif for the mark. Produce concepts for human review; only the final SVG/asset swap is a code task.
-
 ---
 
 ## Done
+
+- ~~Logo & wordplate~~ — shipped: focus-screen mark (`AppLogo` component) + mono wordmark, from the
+  Nikon split-prism focusing screen. Chosen from a rendered bake-off; see ADR 0007 and `CONTEXT.md`.
 
 - ~~Show photo location on the photo details panel~~ — shipped in `1bf597e` (location map in photo details view).
 - ~~Infinite scroll / pagination~~ — already implemented in `app/pages/index.vue` (`IntersectionObserver` sentinel + `loadMore`, `offset` paging); `/api/photos` already supports `limit`/`offset`. Discovered during loop planning 2026-07-07.

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 140">
+	<defs>
+		<linearGradient id="a" x1="0" y1="140" x2="140" y2="0" gradientUnits="userSpaceOnUse">
+			<stop offset="0" stop-color="#ffcca6" />
+			<stop offset="0.34" stop-color="#d3aeff" />
+			<stop offset="0.66" stop-color="#9ccdff" />
+			<stop offset="1" stop-color="#8fe3c4" />
+		</linearGradient>
+		<style>
+			.ink { stroke: #2c2542; }
+			@media (prefers-color-scheme: dark) { .ink { stroke: #ece8f6; } }
+		</style>
+	</defs>
+	<path class="ink" fill="none" stroke-width="9" stroke-linecap="round" d="M40 70 A30 30 0 0 1 100 70" />
+	<path class="ink" fill="none" stroke-width="9" stroke-linecap="round" d="M100 70 A30 30 0 0 1 40 70" />
+	<line stroke="url(#a)" stroke-width="11" stroke-linecap="round" x1="22" y1="70" x2="118" y2="70" />
+</svg>

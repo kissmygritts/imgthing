@@ -209,12 +209,9 @@ const overlayChip =
 			<div
 				class="flex items-center gap-2.5 rounded-xl border border-border bg-card px-5 py-4"
 			>
-				<span class="brand-mark size-7 shrink-0 rounded-full" aria-hidden="true" />
-				<span class="font-serif text-xl italic tracking-tight text-foreground">
-					imgthing
-				</span>
+				<AppLogo :size="28" wordmark interactive />
 				<span class="ml-2 font-mono text-xs text-muted-foreground">
-					← wordmark + .brand-mark aperture ring
+					← focus-screen mark + mono wordmark (hover to focus)
 				</span>
 			</div>
 		</section>

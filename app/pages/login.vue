@@ -43,7 +43,9 @@ async function submit() {
 	<main class="flex min-h-svh items-center justify-center p-6">
 		<Card class="w-full max-w-sm">
 			<CardHeader>
-				<CardTitle class="text-2xl tracking-tight">imgthing</CardTitle>
+				<CardTitle>
+					<AppLogo :size="34" wordmark interactive />
+				</CardTitle>
 				<CardDescription>Enter the passphrase to open your library.</CardDescription>
 			</CardHeader>
 			<CardContent>

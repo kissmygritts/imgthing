@@ -156,3 +156,8 @@ P7a/P7b), the feature sprint (F1/F4/F6/F7 + hand F8 polish), brute-force protect
 production deploy. The "untested endpoints" gap is closed (72 integration tests, 8 files). API
 documentation (loop 4, #8) shipped as OpenAPI route annotations on every `server/api/**` handler +
 Nitro's dev-only spec/Scalar UI, enforced by `test/unit/openapiMeta.test.ts`; kept dev-only.
+
+**Brand identity** (2026-07-08) — the logo/wordplate task shipped: the placeholder aurora-iris
+`.brand-mark` + serif wordmark are replaced by the **focus-screen mark** (`app/components/AppLogo.vue`
+— split-image focusing screen, aurora split bar, rests out of focus and snaps on hover) and a **mono
+wordmark**. New `public/favicon.svg`. Chosen from a rendered bake-off; see ADR 0007 and `CONTEXT.md`.

@@ -86,8 +86,8 @@ pair together every time.
 - **Both light and dark, every time.** Dark mode is class-based (`.dark` on
   `<html>`, toggled by `@nuxtjs/color-mode`). Every glass chip pairs a
   `dark:` variant. Verify both — dark was historically the neglected mode.
-- **`.aurora`, `.glass-panel`, `.prism-edge`, and `.brand-mark` live outside
-  `@layer` in `main.css` — on purpose.** Unlayered rules beat Tailwind's
+- **`.aurora`, `.glass-panel`, and `.prism-edge` live outside `@layer` in
+  `main.css` — on purpose.** Unlayered rules beat Tailwind's
   layered utilities; that's the only reason `.glass-panel`'s background wins
   over a component's own `bg-background`. Never move them into `@layer` (or
   `@layer components`), and keep any new base-plane primitive unlayered too.
@@ -99,16 +99,17 @@ lowercase-everything like a ledger app).
 
 | Use | Class | Casing |
 |---|---|---|
-| Wordmark, page `<h1>`, view titles, lightbox filename | `font-serif ... italic` (wordmark/filename) or `font-serif text-3xl font-normal tracking-tight` (h1) | Title / sentence case; wordmark is lowercase `imgthing` |
+| Page `<h1>`, view titles, lightbox filename | `font-serif ... italic` (filename) or `font-serif text-3xl font-normal tracking-tight` (h1) | Title / sentence case |
+| Brand wordmark | the `<AppLogo>` component — `font-mono`, next to the SVG focus-screen mark | lowercase `imgthing` |
 | EXIF values, byte counts, D1 table/column names | `font-mono text-xs`/`text-[13px]` | the instrument voice |
 | Everything else — buttons, nav, body, captions | `font-sans` (default; `-apple-system` first) | sentence case |
 
 ### Rules
 
-- **Serif is editorial voice, not data** — the wordmark, view titles (`h1`),
-  and the lightbox filename. `font-serif text-3xl font-normal tracking-tight
-  text-foreground` is the page-title recipe: serif, but upright — only the
-  wordmark and the lightbox filename add `italic`, page `h1`s don't.
+- **Serif is editorial voice, not data** — view titles (`h1`) and the lightbox
+  filename. `font-serif text-3xl font-normal tracking-tight text-foreground` is
+  the page-title recipe: serif, but upright — only the lightbox filename adds
+  `italic`, page `h1`s don't.
 - **Mono is the instrument voice, for values — not always labels.** EXIF
   values, byte counts, raw D1 table/column names are mono. In the lightbox
   fact list specifically, the *label* (`CAMERA`, `LENS`, …) is sans, uppercase,
@@ -118,8 +119,11 @@ lowercase-everything like a ledger app).
   (settings/database) are the exception where the label itself goes mono.
 - **Sans is everything else.** Don't reach for serif on a button or a body
   paragraph.
-- **The wordmark** is lowercase `imgthing` in `font-serif italic tracking-tight`,
-  next to the `.brand-mark` aperture ring. Renders in the sidebar header only.
+- **The wordmark** is the `AppLogo` component — lowercase `imgthing` in
+  `font-mono` beside the SVG focus-screen mark (bracket wings flanking a circle
+  shown as top/bottom arcs, split spot + aurora split bar; the spot rests out of
+  focus and snaps in on hover). Don't hand-roll it — use `<AppLogo :size wordmark
+  interactive />`. Renders in the sidebar header and the login card. See ADR 0007.
 
 ## Glass surfaces — the signature, and the most-copied pattern
 
@@ -264,8 +268,8 @@ glass chip). Reuse it verbatim for any sub-sectioned page — canonical:
 - **Title/sentence case for headings and prose.** "All photos", "Empty trash",
   "Storage breakdown" — not lowercase. (imgthing is editorial-warm, not a
   terminal.)
-- **The wordmark** `imgthing` is always lowercase serif italic. Don't title-case
-  it or set it in sans.
+- **The wordmark** `imgthing` is always lowercase mono, via `<AppLogo>`. Don't
+  title-case it, set it in serif, or hand-roll the type.
 - **Instrument facts stay mono** — EXIF values, byte counts, raw table names.
   Don't dress them up in serif.
 - **Photos are the product.** User-facing copy talks about photos, folders,

@@ -331,20 +331,8 @@
 	opacity: 0.9;
 }
 
-/* Brand aperture mark — a small iris/aurora iris ring. */
-.brand-mark {
-	background: conic-gradient(
-		from 120deg,
-		#ffd3ae,
-		#d9c6ff,
-		#bfe3ff,
-		#bef0dd,
-		#ffd3ae
-	);
-	box-shadow:
-		inset 0 0 0 5px rgba(255, 255, 255, 0.78),
-		inset 0 0 0 6px rgba(255, 255, 255, 0.4);
-}
+/* The brand mark now lives in the AppLogo component (SVG focus-screen mark);
+ * see ADR 0007. No global .brand-mark rule anymore. */
 
 /* ============================================================================
  * Dark theme — Bright Studio Glass, after hours. The aurora goes to deep

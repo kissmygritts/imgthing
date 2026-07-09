@@ -111,11 +111,8 @@ function closeMobile() {
 	<Sidebar collapsible="offcanvas" class="border-none">
 		<SidebarHeader class="gap-3 px-3 pt-4">
 			<!-- Brand -->
-			<div class="flex items-center gap-2.5 px-1">
-				<span class="brand-mark size-7 shrink-0 rounded-full" aria-hidden="true" />
-				<span class="font-serif text-xl italic tracking-tight text-foreground">
-					imgthing
-				</span>
+			<div class="px-1">
+				<AppLogo :size="24" wordmark interactive />
 			</div>
 
 			<!-- Search (root-plane field) -->
