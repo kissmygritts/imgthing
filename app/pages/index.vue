@@ -409,10 +409,12 @@ async function onViewerPurge(id: string) {
 <template>
 	<div class="flex flex-1 flex-col gap-6">
 		<header
-			class="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-5"
+			class="flex items-end justify-between gap-4 border-b border-border pb-5"
 		>
 			<div class="min-w-0">
-				<h1 class="font-serif text-3xl font-normal tracking-tight text-foreground">
+				<h1
+					class="truncate font-serif text-3xl font-normal tracking-tight text-foreground"
+				>
 					{{ currentTitle }}
 				</h1>
 				<p class="mt-1 text-sm tabular-nums text-muted-foreground">
@@ -421,7 +423,7 @@ async function onViewerPurge(id: string) {
 				</p>
 			</div>
 
-			<div class="flex items-center gap-2">
+			<div class="flex shrink-0 items-center gap-2">
 				<button
 					v-if="trashOnly && photos.length"
 					class="flex items-center gap-2 rounded-full border border-destructive/40 bg-destructive/10 px-4 py-2 text-xs font-semibold text-destructive shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] transition-colors hover:bg-destructive/15"

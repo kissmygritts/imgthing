@@ -45,7 +45,7 @@ export default defineEventHandler(async (event) => {
 			 JOIN photos p ON p.id = e.photo_id AND p.deleted_at IS NULL
 			 WHERE e.camera_model IS NOT NULL
 			 GROUP BY e.camera_model
-			 ORDER BY photo_count DESC, e.camera_model COLLATE NOCASE ASC`,
+			 ORDER BY e.camera_model COLLATE NOCASE ASC`,
 		)
 		.all();
 
