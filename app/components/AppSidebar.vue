@@ -148,7 +148,7 @@ function closeMobile() {
 						<SidebarMenuItem>
 							<SidebarMenuButton
 								tooltip="All photos"
-								:is-active="onGallery && !favoritesOnly && !trashOnly && !selectedCamera && !selectedLens && selectedFolderId === null"
+								:is-active="onGallery && !favoritesOnly && !trashOnly && !selectedCamera && !selectedLens && !selectedTagId && selectedFolderId === null"
 								@click="selectFolder(null); closeMobile()"
 							>
 								<Images />
@@ -314,10 +314,6 @@ function closeMobile() {
 							align="start"
 							:side-offset="4"
 						>
-							<DropdownMenuLabel class="text-xs text-muted-foreground">
-								Account
-							</DropdownMenuLabel>
-							<DropdownMenuSeparator />
 							<!-- Storage-usage readout -->
 							<div class="flex flex-col gap-0.5 px-2 py-1.5 text-xs text-muted-foreground">
 								<span class="font-medium tabular-nums text-foreground/80">{{ storageLabel }}</span>

@@ -40,6 +40,7 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { useSidebar } from "@/components/ui/sidebar";
 
 interface PhotosResponse {
 	photos: Photo[];
@@ -179,6 +180,18 @@ const selectedIds = ref<Set<string>>(new Set());
 const lastIndex = ref<number | null>(null);
 const selectedCount = computed(() => selectedIds.value.size);
 const selectedPhotoIds = computed(() => [...selectedIds.value]);
+
+// The bulk bar is teleported to <body> and pinned to the viewport (see the
+// template note), so `left-1/2` centers it on the whole window, not the glass
+// panel. When the sidebar is present (desktop + expanded) the panel is inset by
+// its width, so nudge the bar right by half that width to sit centered over the
+// panel instead. Offcanvas/mobile → panel is full width → no offset.
+const { state: sidebarState, isMobile } = useSidebar();
+const bulkBarLeft = computed(() =>
+	!isMobile.value && sidebarState.value === "expanded"
+		? "calc(50% + 8rem)"
+		: "50%",
+);
 
 function isSelected(id: string) {
 	return selectedIds.value.has(id);
@@ -538,7 +551,7 @@ async function onViewerPurge(id: string) {
 				<!-- signature prism rim (direct child of .group) -->
 				<span class="prism-edge" />
 				<span
-					class="pointer-events-none absolute inset-0 rounded-[20px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35)]"
+					class="pointer-events-none absolute inset-0 rounded-[20px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35)] dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]"
 				/>
 
 				<!-- hover scrim + caption -->
@@ -647,7 +660,8 @@ async function onViewerPurge(id: string) {
 		>
 			<div
 				v-if="selectMode && selectedCount"
-				class="fixed bottom-6 left-1/2 z-[60] -translate-x-1/2"
+				class="fixed bottom-6 z-[60] -translate-x-1/2 transition-[left] duration-200 ease-linear"
+				:style="{ left: bulkBarLeft }"
 			>
 			<div
 				class="glass-panel flex max-w-[calc(100vw-1rem)] items-center gap-1 rounded-full py-2 pl-4 pr-2 text-sm sm:gap-1.5"
@@ -697,7 +711,7 @@ async function onViewerPurge(id: string) {
 								<Share2 class="size-4" /><span class="hidden sm:inline">Share</span>
 							</button>
 						</DropdownMenuTrigger>
-						<DropdownMenuContent align="center" side="top" class="min-w-44">
+						<DropdownMenuContent align="center" side="top" :side-offset="10" class="z-[70] min-w-44">
 							<DropdownMenuLabel>Public sharing</DropdownMenuLabel>
 							<DropdownMenuSeparator />
 							<DropdownMenuItem @select="bulkPublishSelected">
@@ -725,10 +739,10 @@ async function onViewerPurge(id: string) {
 								class="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-white/50 dark:hover:bg-white/10 sm:px-3"
 								title="Add to folder"
 							>
-								<FolderPlus class="size-4" /><span class="hidden sm:inline">Add to</span>
+								<FolderPlus class="size-4" /><span class="hidden sm:inline">Add</span>
 							</button>
 						</DropdownMenuTrigger>
-						<DropdownMenuContent align="center" side="top" class="min-w-44">
+						<DropdownMenuContent align="center" side="top" :side-offset="10" class="z-[70] min-w-44">
 							<DropdownMenuLabel>Add to folder</DropdownMenuLabel>
 							<template v-if="folders.length">
 								<DropdownMenuSeparator />
@@ -753,10 +767,10 @@ async function onViewerPurge(id: string) {
 								class="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-white/50 dark:hover:bg-white/10 sm:px-3"
 								title="Remove from folder"
 							>
-								<FolderMinus class="size-4" /><span class="hidden sm:inline">Remove from</span>
+								<FolderMinus class="size-4" /><span class="hidden sm:inline">Remove</span>
 							</button>
 						</DropdownMenuTrigger>
-						<DropdownMenuContent align="center" side="top" class="min-w-44">
+						<DropdownMenuContent align="center" side="top" :side-offset="10" class="z-[70] min-w-44">
 							<DropdownMenuLabel>Remove from folder</DropdownMenuLabel>
 							<template v-if="folders.length">
 								<DropdownMenuSeparator />
