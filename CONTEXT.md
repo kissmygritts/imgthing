@@ -27,3 +27,26 @@ The shared language of imgthing. Terms only — no implementation detail.
   screen frame.
 - **Aurora** — the app's ambient conic/radial gradient (peach → lilac → blue → mint) that
   the mark and the `.prism-edge` signature rim both draw their color from.
+
+## Layout & surfaces
+
+The two-plane shell: an aurora root plane behind everything, with a floating glass panel riding
+over it. Names below are the canonical vocabulary — use them; don't invent synonyms.
+
+- **Glass panel** — the floating, inset, rounded glass plane that rides over the aurora and holds
+  everything the user works in (`SidebarInset`, class `glass-panel`, in `layouts/default.vue`). The
+  main content surface.
+- **Main view** — whatever the glass panel currently holds: the **gallery view** (`index.vue`) or
+  the **map view** (`map.vue`). Use "main view" for the content region, "glass panel" for the
+  surface itself.
+- **Sidebar** — the leftmost nav panel (`AppSidebar.vue`, on the shadcn `Sidebar` primitive):
+  folders, tags, cameras/lenses, favorites, trash, search. Offcanvas on phones. Never call it a
+  "drawer" — that word is reserved for the viewer (see below).
+- **User menu** — the dropdown at the bottom of the sidebar (`SidebarFooter`): the storage readout
+  plus settings/logout.
+- **Viewer** (a.k.a. **photo viewer**) — the whole full-screen `PhotoViewer.vue` overlay opened
+  from a gallery tile. Composed of two halves:
+  - **Image stage** — the full-bleed image layer + frosted backdrop (the lightbox half).
+  - **Details drawer** — the glass `<aside>` that slides in from the right with EXIF / edit / share
+    (toggled by `drawerOpen`, the `i` key, or "Details"). It's a drawer, not a shadcn `Sheet`.
+    "Drawer" always means this — never the sidebar.
