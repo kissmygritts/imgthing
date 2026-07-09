@@ -5,6 +5,7 @@ import {
 	formatExposure,
 	formatFocalLength,
 	str,
+	toDimension,
 	toIso,
 } from "../../server/utils/exif";
 
@@ -78,12 +79,29 @@ describe("str", () => {
 	});
 });
 
+describe("toDimension", () => {
+	it("rounds a positive number to an integer", () => {
+		expect(toDimension(4032)).toBe(4032);
+		expect(toDimension(1234.6)).toBe(1235);
+	});
+	it("rejects zero, negatives and non-numbers", () => {
+		expect(toDimension(0)).toBeNull();
+		expect(toDimension(-10)).toBeNull();
+		expect(toDimension("4032")).toBeNull();
+		expect(toDimension(null)).toBeNull();
+		expect(toDimension(Number.NaN)).toBeNull();
+	});
+});
+
 describe("extractExif", () => {
 	it("returns all-null for an image without EXIF", async () => {
 		const rec = await extractExif(PNG_1X1);
 		expect(rec.camera_make).toBeNull();
 		expect(rec.taken_at).toBeNull();
 		expect(rec.gps_latitude).toBeNull();
+		// exifr still reports the raw pixel dimensions even with no camera EXIF.
+		expect(rec.width).toBe(1);
+		expect(rec.height).toBe(1);
 	});
 	it("never throws on non-image bytes", async () => {
 		const garbage = new TextEncoder().encode("not an image").buffer;

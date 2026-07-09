@@ -12,7 +12,15 @@ export interface ExifRecord {
 	taken_at: string | null; // ISO 8601
 	gps_latitude: number | null;
 	gps_longitude: number | null;
+	width: number | null; // pixels, longest EXIF source
+	height: number | null;
 	other_data: string | null; // JSON of everything parsed
+}
+
+/** Coerce an EXIF dimension to a positive integer, or null. */
+export function toDimension(v: unknown): number | null {
+	if (typeof v !== "number" || !Number.isFinite(v) || v <= 0) return null;
+	return Math.round(v);
 }
 
 export function str(v: unknown): string | null {
@@ -59,6 +67,8 @@ export async function extractExif(bytes: ArrayBuffer): Promise<ExifRecord> {
 		taken_at: null,
 		gps_latitude: null,
 		gps_longitude: null,
+		width: null,
+		height: null,
 		other_data: null,
 	};
 
@@ -89,6 +99,12 @@ export async function extractExif(bytes: ArrayBuffer): Promise<ExifRecord> {
 		gps_latitude: typeof output.latitude === "number" ? output.latitude : null,
 		gps_longitude:
 			typeof output.longitude === "number" ? output.longitude : null,
+		width: toDimension(
+			output.ExifImageWidth ?? output.ImageWidth ?? output.PixelXDimension,
+		),
+		height: toDimension(
+			output.ExifImageHeight ?? output.ImageHeight ?? output.PixelYDimension,
+		),
 		other_data: JSON.stringify(output),
 	};
 }

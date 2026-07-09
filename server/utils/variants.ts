@@ -32,6 +32,29 @@ export function variantKey(photoId: string, size: VariantSize): string {
 	return `variants/${photoId}/${size}`;
 }
 
+/**
+ * True pixel dimensions straight from the image, via the Images binding's
+ * `info()`. This is the authoritative source — EXIF's ExifImageWidth/Height is
+ * camera-declared and frequently absent, so we don't trust it for dimensions.
+ * Returns null on anything without pixel dimensions (e.g. SVG) or an info failure.
+ */
+export async function imageDimensions(
+	images: ImagesBinding,
+	original: ArrayBuffer,
+): Promise<{ width: number; height: number } | null> {
+	try {
+		const info = await images.info(
+			new Response(original).body as ReadableStream<Uint8Array>,
+		);
+		if ("width" in info && "height" in info) {
+			return { width: info.width, height: info.height };
+		}
+	} catch {
+		// fall through
+	}
+	return null;
+}
+
 // WebP output always discards EXIF metadata (see the `metadata` note in
 // worker-configuration.d.ts), so variant bytes carry no location/camera data —
 // P8 asserts this. Quality 88 is a good size/fidelity tradeoff for photos.
@@ -71,17 +94,8 @@ export async function generateVariants(
 ): Promise<number> {
 	// Read orientation once and reuse for every size. On anything without pixel
 	// dimensions (e.g. SVG) or an info failure, fall back to width-bound (landscape).
-	let portrait = false;
-	try {
-		const info = await images.info(
-			new Response(original).body as ReadableStream<Uint8Array>,
-		);
-		if ("width" in info && "height" in info) {
-			portrait = info.height > info.width;
-		}
-	} catch {
-		portrait = false;
-	}
+	const dims = await imageDimensions(images, original);
+	const portrait = dims ? dims.height > dims.width : false;
 
 	let totalBytes = 0;
 	for (const size of Object.keys(VARIANT_SIZES) as VariantSize[]) {

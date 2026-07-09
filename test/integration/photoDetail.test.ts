@@ -1,4 +1,4 @@
-import { SELF } from "cloudflare:test";
+import { env, SELF } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 import { login, pngBytes, url } from "./helpers";
 
@@ -32,12 +32,53 @@ describe("photo detail", () => {
 		});
 		expect(res.status).toBe(200);
 		const body = (await res.json()) as {
-			photo: { id: string; other_data: string | null };
+			photo: {
+				id: string;
+				other_data: string | null;
+				width: number | null;
+				height: number | null;
+			};
 		};
 		expect(body.photo.id).toBe(id);
 		// other_data is present as a field (may be null for a photo with no EXIF —
 		// the 1x1 test PNG carries none).
 		expect(body.photo).toHaveProperty("other_data");
+		// Dimensions are first-class columns captured at upload — the 1x1 test PNG
+		// reports 1x1.
+		expect(body.photo.width).toBe(1);
+		expect(body.photo.height).toBe(1);
+	});
+
+	it("self-heals null dimensions from the original on detail view", async () => {
+		const cookie = await login();
+		const id = await upload(cookie, `detail-backfill-${Date.now()}.png`);
+
+		// Simulate a pre-0010 row (or one whose EXIF declared no dimensions).
+		await env.DB.prepare(
+			"UPDATE exif_data SET width = NULL, height = NULL WHERE photo_id = ?",
+		)
+			.bind(id)
+			.run();
+
+		const res = await SELF.fetch(url(`/api/photos/${id}`), {
+			headers: { cookie },
+		});
+		expect(res.status).toBe(200);
+		const body = (await res.json()) as {
+			photo: { width: number | null; height: number | null };
+		};
+		// Measured directly from the 1x1 PNG via the Images binding.
+		expect(body.photo.width).toBe(1);
+		expect(body.photo.height).toBe(1);
+
+		// And it was persisted, not just computed for the response.
+		const persisted = await env.DB.prepare(
+			"SELECT width, height FROM exif_data WHERE photo_id = ?",
+		)
+			.bind(id)
+			.first<{ width: number | null; height: number | null }>();
+		expect(persisted?.width).toBe(1);
+		expect(persisted?.height).toBe(1);
 	});
 
 	it("404s for an unknown photo id", async () => {

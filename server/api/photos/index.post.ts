@@ -210,6 +210,12 @@ export default defineEventHandler(async (event) => {
 		const exif = await extractExif(bytes);
 		const exifId = crypto.randomUUID();
 
+		// True pixel dimensions from the image itself — EXIF's declared dimensions
+		// are unreliable (often absent), so prefer info() and only fall back to EXIF.
+		const dims = await imageDimensions(images, bytes);
+		const width = dims?.width ?? exif.width;
+		const height = dims?.height ?? exif.height;
+
 		try {
 			await db.batch([
 				db
@@ -229,8 +235,9 @@ export default defineEventHandler(async (event) => {
 					.prepare(
 						`INSERT INTO exif_data
 							(id, photo_id, camera_make, camera_model, lens_info, exposure,
-							 aperture, iso, focal_length, taken_at, gps_latitude, gps_longitude, other_data)
-						 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+							 aperture, iso, focal_length, taken_at, gps_latitude, gps_longitude,
+							 width, height, other_data)
+						 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 					)
 					.bind(
 						exifId,
@@ -245,6 +252,8 @@ export default defineEventHandler(async (event) => {
 						exif.taken_at,
 						exif.gps_latitude,
 						exif.gps_longitude,
+						width,
+						height,
 						exif.other_data,
 					),
 			]);

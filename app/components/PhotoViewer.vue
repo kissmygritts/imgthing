@@ -42,6 +42,7 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { humanBytes } from "@/lib/utils";
 
 // Mirrors the row shape returned by GET /api/photos.
 export interface Photo {
@@ -60,6 +61,8 @@ export interface Photo {
 	taken_at: string | null;
 	gps_latitude: number | null;
 	gps_longitude: number | null;
+	width: number | null;
+	height: number | null;
 	folder_ids: string | null;
 	// Comma-joined tag ids the photo carries (GROUP_CONCAT), resolved to names
 	// via the `allTags` list. Null when the photo has no tags.
@@ -223,7 +226,13 @@ const facts = computed(() => {
 		["ISO", p.iso != null ? `ISO ${p.iso}` : null],
 		["Shutter", p.exposure],
 		["Aperture", p.aperture],
-		["Date", formatDate(p.taken_at) ?? formatDate(p.uploaded_at)],
+		[
+			"Dimensions",
+			p.width != null && p.height != null ? `${p.width} × ${p.height}` : null,
+		],
+		["File size", p.file_size != null ? humanBytes(p.file_size) : null],
+		["Taken", formatDate(p.taken_at)],
+		["Uploaded", formatDate(p.uploaded_at)],
 	];
 	return rows;
 });
@@ -251,6 +260,12 @@ const SKIP_EXIF_KEYS = new Set(
 		"FocalLength",
 		"DateTimeOriginal",
 		"CreateDate",
+		"ExifImageWidth",
+		"ExifImageHeight",
+		"ImageWidth",
+		"ImageHeight",
+		"PixelXDimension",
+		"PixelYDimension",
 	].map((k) => k.toLowerCase()),
 );
 
