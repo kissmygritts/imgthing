@@ -50,7 +50,7 @@ Three layers, defense-in-depth:
    Travel for point-in-time metadata recovery + R2 object versioning for originals/variants. Chosen
    over a hand-built backup pipeline because they're free, zero-code, and cover the two stores that
    matter. Enable in the dashboard; no code change.
-3. **Export-everything escape hatch** (deferred, pairs with bulk download in `../PROGRESS.md`) — the
+3. **Export-everything escape hatch** (deferred, pairs with bulk download in `../TODO.md`) — the
    anti-lock-in path that also doubles as an offline backup. Code-side work, not yet built.
 
 ## Consequences

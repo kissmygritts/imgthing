@@ -2,7 +2,7 @@
 
 These files were **both spec and state-store** for unattended `/loop` build runs. Every task in each
 one is `done` (or a reserved human `hold` that has since landed by hand), so the ledgers are spent —
-kept here for history, not as live plans. The running status lives in [`../../PROGRESS.md`](../../PROGRESS.md);
+kept here for history, not as live plans. The remaining backlog lives in [`../../TODO.md`](../../TODO.md);
 the durable architecture decisions live in [`../../decisions/`](../../decisions/).
 
 | Plan | Drove | Outcome |

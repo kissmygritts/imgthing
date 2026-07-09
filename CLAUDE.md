@@ -9,7 +9,7 @@ owner. Don't add multi-tenant concepts.
 
 ## Where to look first
 
-- `docs/PROGRESS.md` — what's built + what's next (start here).
+- `docs/TODO.md` — the remaining backlog (start here). Built features live in git history, not a doc.
 - `docs/decisions/*.md` — the ADRs. Read the relevant one before changing auth (0003), the
   serving/variant model (0005), or deploy/ops (0006). **Reverse a decision by adding a superseding
   ADR, never by editing an old one.**
@@ -19,7 +19,7 @@ owner. Don't add multi-tenant concepts.
 - `.claude/skills/imgthing-ui/SKILL.md` — the "Bright Studio Glass" design language + build recipe
   (fires automatically as the `imgthing-ui` skill on UI work).
 
-Keep `docs/PROGRESS.md` current as milestones land. ADRs are `NNNN-short-title.md`, append-only.
+Keep `docs/TODO.md` current as work lands or new work surfaces. ADRs are `NNNN-short-title.md`, append-only.
 
 ## Commands (the gate)
 
@@ -109,4 +109,4 @@ Two Vitest layers; CI (`.github/workflows/ci.yml`) runs both on every push:
 
 - Integration suite is the slow gate (it builds first). Run `test:unit` while iterating; run
   `test:all` before finishing.
-- Backups (D1 Time Travel + R2 versioning) are the one open durability gap — see ADR 0006 / PROGRESS.
+- Backups (D1 Time Travel + R2 versioning) are the one open durability gap — see ADR 0006 / `docs/TODO.md`.
