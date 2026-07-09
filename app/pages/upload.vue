@@ -202,7 +202,14 @@ async function startUpload() {
 			if (await uploadOne(item)) ok++;
 			else failed++;
 		}
-		await refreshNuxtData(["folders", "photos", "tags"]);
+		await refreshNuxtData([
+			"folders",
+			"photos",
+			"tags",
+			"cameras",
+			"lenses",
+			"stats",
+		]);
 		if (ok > 0) {
 			const where = targetFolderName.value
 				? ` to ${targetFolderName.value}`
