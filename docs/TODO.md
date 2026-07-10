@@ -23,13 +23,6 @@ per-item.
 - **Description:** Let the owner get originals back out — a per-selection zip and a full-library export.
 - **Implementation:** Streaming-zip in a Worker — stream objects from R2, **don't buffer** (memory ceiling). New endpoint; wire a bulk-bar action + an export entry in settings. Mind Worker CPU/time limits on large batches.
 
-### Feature: multi-faceted search / filter
-- **Label:** Feature — combine filters (camera, lens, tag, date, favorite, visibility) rather than a single date filter.
-- **Effort:** L
-- **Human input:** Low *(spec'd — see [issue #3](https://github.com/kissmygritts/imgthing/issues/3))*
-- **Description:** A "Filters" sheet in the gallery toolbar composing tag (multi-select), favorite, camera, lens, visibility, and date-range facets, all AND'd together and live (no Apply). Scope (folder/Trash/month) stays untouched, navigational.
-- **Implementation:** PRD published as [GitHub issue #3](https://github.com/kissmygritts/imgthing/issues/3), `ready-for-agent`. Revives the reverted date filter (F2, `9ead034`/`b621451`) as a composable facet under new `dateFrom`/`dateTo` params (distinct from month-scope's existing `from`/`to`). `CONTEXT.md` has the canonical Scope/Filter/Filters-sheet vocabulary.
-
 ### Feature: equipment / kit tracker (settings page)
 - **Label:** Feature — record the gear I own/use.
 - **Effort:** L
@@ -54,20 +47,3 @@ per-item.
   - **R2 object versioning — the only thing to actually turn on.** Free to enable; you pay only for retained old bytes at the normal storage rate (~$0.015/GB-month, egress free). imgthing's R2 is mostly write-once (variants only rewrite on a self-heal miss), so churn is low.
 - **Implementation:** Enable R2 versioning in the dashboard, then **add a lifecycle rule to expire noncurrent versions** after ~30 days — without it, purged bytes accumulate forever. No migration, no app code. See [ADR 0006](./decisions/0006-production-deploy-and-operations.md).
 - **Caveat (changes an invariant):** with versioning on, purge / empty-trash no longer immediately reclaims R2 bytes — the delete adds a marker and keeps the prior version, so a purged original stays recoverable for the lifecycle window. That's the point (it's the account-level safety net), but it softens the current "purge frees storage" invariant for that window.
-
----
-
-## Done
-
-- ~~Logo & wordplate~~ — shipped: focus-screen mark (`AppLogo` component) + mono wordmark, from the
-  Nikon split-prism focusing screen. Chosen from a rendered bake-off; see ADR 0007 and `CONTEXT.md`.
-
-- ~~Show photo location on the photo details panel~~ — shipped in `1bf597e` (location map in photo details view).
-- ~~Infinite scroll / pagination~~ — already implemented in `app/pages/index.vue` (`IntersectionObserver` sentinel + `loadMore`, `offset` paging); `/api/photos` already supports `limit`/`offset`. Discovered during loop planning 2026-07-07.
-- ~~Mobile menu transparency (Bug)~~ — shipped `96ef4c9` (opaque glass surface for mobile nav drawer).
-- ~~Use all EXIF data, not just camera settings~~ — shipped `4511961` (full EXIF detail in photo viewer).
-- ~~Settings section (shell + user-menu entry)~~ — shipped `c0797e4` (settings route + sidebar entry).
-- ~~Storage & cloud-usage metrics (settings page)~~ — shipped `6b1b72a` (`GET /api/settings/usage` + stat cards).
-- ~~Raw database viewer (settings page)~~ — shipped `b413d1f` (read-only allow-listed table browser).
-- ~~Bulk actions on multi-select~~ — shipped `4031825` (batch favorite/publish/tag on the existing bulk bar).
-- ~~In-app API documentation~~ — shipped 2026-07-07 as OpenAPI route annotations (`defineRouteMeta` on every `server/api/**` handler) + Nitro's dev-only spec/Scalar UI (`/_openapi.json`, `/_scalar`), enforced by `test/unit/openapiMeta.test.ts`. Pivoted from the planned hand-authored page to generation from source; kept dev-only (not published).
