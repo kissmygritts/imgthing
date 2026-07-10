@@ -841,7 +841,7 @@ watch(
 			>
 				<aside
 					v-if="drawerOpen"
-					class="absolute inset-y-0 right-0 flex w-[min(380px,100%)] flex-col overflow-hidden border-l border-white/40 dark:border-white/10 bg-white/40 dark:bg-[#1c1830]/92 shadow-[0_0_80px_-10px_rgba(90,70,160,0.5)] backdrop-blur-xl"
+					class="absolute inset-y-0 right-0 flex w-[min(380px,100%)] flex-col overflow-hidden border-l border-white/40 dark:border-white/10 bg-white/40 dark:bg-[#1c1830]/82 shadow-[0_0_80px_-10px_rgba(90,70,160,0.5)] backdrop-blur-xl"
 				>
 					<!-- Header: plate + title + actions (view ⇄ edit) -->
 					<header class="flex items-start gap-2 p-7 pb-4">

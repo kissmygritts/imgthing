@@ -62,7 +62,7 @@ const fmt = (n: number) => n.toLocaleString();
 				v-for="m in months"
 				:key="m.month"
 				type="button"
-				class="group relative flex cursor-pointer items-start gap-4 rounded-2xl p-3 text-left shadow-[0_3px_12px_-9px_color-mix(in_oklab,var(--primary)_22%,transparent)] ring-1 ring-transparent transition duration-200 hover:bg-primary/[0.03] hover:shadow-[0_7px_20px_-12px_color-mix(in_oklab,var(--primary)_38%,transparent)] hover:ring-primary/20 sm:gap-5"
+				class="group relative flex cursor-pointer items-start gap-4 rounded-2xl p-3 text-left ring-1 ring-transparent transition duration-200 hover:bg-primary/[0.03] hover:shadow-[0_7px_20px_-12px_color-mix(in_oklab,var(--primary)_38%,transparent)] hover:ring-primary/20 sm:gap-5"
 				:aria-label="`Open ${monthLabel(m.month)}, ${m.count} photos`"
 				@click="selectMonth(m.month)"
 			>
