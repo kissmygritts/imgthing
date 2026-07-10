@@ -13,12 +13,14 @@ import {
 	MoreVertical,
 	RotateCcw,
 	Share2,
+	SlidersHorizontal,
 	SquareCheckBig,
 	Tag,
 	Trash2,
 	X,
 } from "@lucide/vue";
 import { refDebounced, useIntersectionObserver } from "@vueuse/core";
+import FiltersSheet from "@/components/FiltersSheet.vue";
 import PhotoViewer, { type Photo } from "@/components/PhotoViewer.vue";
 import { Button } from "@/components/ui/button";
 import {
@@ -56,10 +58,14 @@ const {
 	tags,
 	selectedFolderId,
 	favoritesOnly,
-	selectedTagId,
+	selectedTagIds,
 	trashOnly,
 	selectedCamera,
 	selectedLens,
+	visibilityFilter,
+	filterDateFrom,
+	filterDateTo,
+	activeFilterCount,
 	monthScope,
 	search,
 	currentTitle,
@@ -101,8 +107,16 @@ const PAGE_SIZE = 50;
 const debouncedSearch = refDebounced(search, 300);
 const activeSearch = computed(() => debouncedSearch.value.trim());
 
-// The reactive query for the *first* page. Changing folder/search/sort refetches
-// from offset 0; infinite scroll then appends further pages with the same query.
+// The Filters sheet's open state — a single boolean, no local draft: every
+// control inside binds straight to useLibrary() filter state, so opening/
+// closing the sheet never affects what's actually applied.
+const filtersOpen = ref(false);
+
+// The reactive query for the *first* page. Changing scope/filters/search/sort
+// refetches from offset 0; infinite scroll then appends further pages with the
+// same query. Scope (month/trash/folder) stays an exclusive if/else-if chain;
+// filters layer on top unconditionally so they AND together regardless of
+// which scope is active.
 const listQuery = computed(() => {
 	const query: Record<string, string> = {
 		sort: sortMode.value,
@@ -115,14 +129,17 @@ const listQuery = computed(() => {
 		query.from = from;
 		query.to = to;
 	} else if (trashOnly.value) query.deleted = "1";
-	else if (favoritesOnly.value) query.favorite = "1";
-	else if (selectedTagId.value) query.tag = selectedTagId.value;
-	else if (selectedCamera.value || selectedLens.value) {
-		// Camera and lens can both be set — pass both so they AND server-side.
-		if (selectedCamera.value) query.camera = selectedCamera.value;
-		if (selectedLens.value) query.lens = selectedLens.value;
-	} else if (selectedFolderId.value !== null)
+	else if (selectedFolderId.value !== null)
 		query.folderId = selectedFolderId.value;
+
+	if (favoritesOnly.value) query.favorite = "1";
+	if (selectedTagIds.value.length) query.tags = selectedTagIds.value.join(",");
+	if (selectedCamera.value) query.camera = selectedCamera.value;
+	if (selectedLens.value) query.lens = selectedLens.value;
+	if (visibilityFilter.value !== "any")
+		query.visibility = visibilityFilter.value;
+	if (filterDateFrom.value) query.dateFrom = filterDateFrom.value;
+	if (filterDateTo.value) query.dateTo = filterDateTo.value;
 	if (activeSearch.value) query.q = activeSearch.value;
 	return query;
 });
@@ -442,11 +459,30 @@ async function onViewerPurge(id: string) {
 				</h1>
 				<p class="mt-1 text-sm tabular-nums text-muted-foreground">
 					{{ total }} photo{{ total === 1 ? "" : "s" }}
-					<span v-if="activeSearch"> · filtered</span>
+					<span v-if="activeSearch || activeFilterCount"> · filtered</span>
 				</p>
 			</div>
 
 			<div class="flex shrink-0 items-center gap-2">
+				<button
+					class="relative flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] transition-colors"
+					:class="
+						activeFilterCount
+							? 'border-primary/40 bg-primary/15 text-accent-foreground'
+							: 'border-white/70 dark:border-white/12 bg-white/55 dark:bg-white/12 text-muted-foreground hover:text-foreground'
+					"
+					@click="filtersOpen = true"
+				>
+					<SlidersHorizontal class="size-3.5 opacity-80" />
+					Filters
+					<span
+						v-if="activeFilterCount"
+						class="flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold tabular-nums text-primary-foreground"
+					>
+						{{ activeFilterCount }}
+					</span>
+				</button>
+
 				<button
 					v-if="trashOnly && photos.length"
 					class="flex items-center gap-2 rounded-full border border-destructive/40 bg-destructive/10 px-4 py-2 text-xs font-semibold text-destructive shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] transition-colors hover:bg-destructive/15"
@@ -627,12 +663,18 @@ async function onViewerPurge(id: string) {
 			<ImageOff class="size-8 text-muted-foreground" />
 			<div class="space-y-1">
 				<p class="font-medium">
-					{{ activeSearch ? "No matches" : trashOnly ? "Trash is empty" : "No photos here" }}
+					{{
+						activeSearch || activeFilterCount
+							? "No matches"
+							: trashOnly
+								? "Trash is empty"
+								: "No photos here"
+					}}
 				</p>
 				<p class="text-sm text-muted-foreground">
 					{{
-						activeSearch
-							? "Try a different search."
+						activeSearch || activeFilterCount
+							? "Try a different search or adjust your filters."
 							: trashOnly
 								? "Deleted photos land here — restore them or clear them out for good."
 								: "Upload an image or add photos to this folder."
@@ -649,6 +691,9 @@ async function onViewerPurge(id: string) {
 		>
 			<Loader2 v-if="loadingMore" class="size-4 animate-spin" />
 		</div>
+
+		<!-- Filters sheet -->
+		<FiltersSheet v-model:open="filtersOpen" />
 
 		<!-- Photo viewer / lightbox -->
 		<PhotoViewer

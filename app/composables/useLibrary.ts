@@ -60,30 +60,69 @@ export function useLibrary() {
 			},
 	);
 
+	// ── Scope ────────────────────────────────────────────────────────────────
+	// Which slice of the library the gallery is anchored to: current folder,
+	// Trash, or a calendar month. Navigational and exclusive — picking one
+	// clears the others. See CONTEXT.md "Filtering & scope".
+	//
 	// null = all photos · "none" = uncategorized · otherwise a folder id
 	const selectedFolderId = useState<string | null>(
 		"library:selected",
 		() => null,
 	);
-	// Favorites is an orthogonal view: when on, the gallery filters to hearted
-	// photos regardless of folder. Picking any folder view turns it back off.
-	const favoritesOnly = useState("library:favorites", () => false);
-	// Tag filter: when set, the gallery shows only photos carrying this tag id.
-	// Exclusive with the folder / favorites views (picking one clears the others).
-	const selectedTagId = useState<string | null>("library:tag", () => null);
-	// Trash view: shows tombstoned (soft-deleted) photos. Another orthogonal,
-	// exclusive view — picking any other filter turns it back off (and vice versa).
+	// Trash view: shows tombstoned (soft-deleted) photos.
 	const trashOnly = useState("library:trash", () => false);
-	// Camera / lens filters: exact EXIF values. Orthogonal to folder/tag/favorites/
-	// trash (picking either clears those) but NOT to each other — a camera and a
-	// lens can be active at once and AND together server-side.
+	// Month scope: the calendar view enters the gallery constrained to one capture
+	// month ("YYYY-MM"). In-memory only (not the URL), so a hard reload of "/"
+	// falls back to All photos.
+	const monthScope = useState<string | null>("library:month", () => null);
+
+	// ── Filters ──────────────────────────────────────────────────────────────
+	// Facets that narrow what's shown *within* the current scope. Composable —
+	// every filter ANDs together (tags OR within themselves) and live-updates
+	// the grid. Surfaced together in the Filters sheet. See CONTEXT.md
+	// "Filtering & scope".
+	const favoritesOnly = useState("library:favorites", () => false);
+	// Multi-select: photos carrying ANY of these tag ids match (OR'd), then AND
+	// against every other active filter.
+	const selectedTagIds = useState<string[]>("library:tags", () => []);
+	// Exact EXIF values. AND with each other and with every other filter.
 	const selectedCamera = useState<string | null>("library:camera", () => null);
 	const selectedLens = useState<string | null>("library:lens", () => null);
-	// Month scope: the calendar view enters the gallery constrained to one capture
-	// month ("YYYY-MM"). Another exclusive view like Favorites/Trash — picking any
-	// other filter clears it, and it clears the others. In-memory only (not the
-	// URL), so a hard reload of "/" falls back to All photos.
-	const monthScope = useState<string | null>("library:month", () => null);
+	const visibilityFilter = useState<"any" | "public" | "private">(
+		"library:visibility",
+		() => "any",
+	);
+	const filterDateFrom = useState<string | null>(
+		"library:filterDateFrom",
+		() => null,
+	);
+	const filterDateTo = useState<string | null>(
+		"library:filterDateTo",
+		() => null,
+	);
+
+	const activeFilterCount = computed(() => {
+		let n = 0;
+		if (favoritesOnly.value) n++;
+		if (selectedTagIds.value.length) n++;
+		if (selectedCamera.value) n++;
+		if (selectedLens.value) n++;
+		if (visibilityFilter.value !== "any") n++;
+		if (filterDateFrom.value || filterDateTo.value) n++;
+		return n;
+	});
+
+	function clearFilters() {
+		favoritesOnly.value = false;
+		selectedTagIds.value = [];
+		selectedCamera.value = null;
+		selectedLens.value = null;
+		visibilityFilter.value = "any";
+		filterDateFrom.value = null;
+		filterDateTo.value = null;
+	}
+
 	const expanded = useState<Set<string>>("library:expanded", () => new Set());
 	const search = useState("library:search", () => "");
 
@@ -95,105 +134,68 @@ export function useLibrary() {
 		if (route.path !== "/") navigateTo("/");
 	}
 
-	// Pick a folder view (All / Uncategorized / a folder id) and leave the other
-	// exclusive views (Favorites / Tag).
-	// Clear the camera + lens EXIF filters. Called by every other view's select
-	// (they're exclusive with camera/lens), but selectCamera/selectLens do NOT call
-	// it — those two coexist and AND together.
-	function clearExif() {
-		selectedCamera.value = null;
-		selectedLens.value = null;
-	}
-
+	// Pick a scope (All / Uncategorized / a folder id). Scope is exclusive with
+	// Trash and month — picking one clears the others — but leaves every filter
+	// (favorites/tag/camera/lens/visibility/date) untouched: filters compose
+	// within whichever scope is active.
 	function selectFolder(id: string | null) {
-		favoritesOnly.value = false;
-		selectedTagId.value = null;
 		trashOnly.value = false;
 		monthScope.value = null;
-		clearExif();
 		selectedFolderId.value = id;
 		goToGallery();
 	}
 
-	function selectFavorites() {
-		selectedTagId.value = null;
-		trashOnly.value = false;
-		monthScope.value = null;
-		clearExif();
-		favoritesOnly.value = true;
-		goToGallery();
-	}
-
-	// Filter the gallery by a tag. Clears the folder / favorites / trash views.
-	function selectTag(id: string) {
-		favoritesOnly.value = false;
-		trashOnly.value = false;
-		selectedFolderId.value = null;
-		monthScope.value = null;
-		clearExif();
-		selectedTagId.value = id;
-		goToGallery();
-	}
-
-	// Show the Trash (tombstoned photos). Exclusive with every other view.
+	// Show the Trash (tombstoned photos). Exclusive with folder/month scope.
 	function selectTrash() {
-		favoritesOnly.value = false;
-		selectedTagId.value = null;
 		selectedFolderId.value = null;
 		monthScope.value = null;
-		clearExif();
 		trashOnly.value = true;
 		goToGallery();
 	}
 
-	// Filter by a camera model. Clears folder/tag/favorites/trash but KEEPS any
-	// selected lens — so a camera + lens combination ANDs together in the gallery.
-	function selectCamera(name: string) {
-		favoritesOnly.value = false;
-		trashOnly.value = false;
-		selectedTagId.value = null;
-		selectedFolderId.value = null;
-		monthScope.value = null;
-		// Toggle off if re-picking the active camera.
-		selectedCamera.value = selectedCamera.value === name ? null : name;
-		goToGallery();
-	}
-
-	// Filter by a lens. Same rules as selectCamera — keeps any selected camera.
-	function selectLens(name: string) {
-		favoritesOnly.value = false;
-		trashOnly.value = false;
-		selectedTagId.value = null;
-		selectedFolderId.value = null;
-		monthScope.value = null;
-		selectedLens.value = selectedLens.value === name ? null : name;
-		goToGallery();
-	}
-
-	// Enter a month scope from the calendar. Mirrors selectFavorites: an exclusive
-	// view, so it clears every other filter before setting the month, then routes
-	// to the gallery where listQuery turns it into a from/to date range.
+	// Enter a month scope from the calendar. Exclusive with folder/Trash scope.
 	function selectMonth(monthKey: string) {
-		favoritesOnly.value = false;
 		trashOnly.value = false;
-		selectedTagId.value = null;
 		selectedFolderId.value = null;
-		clearExif();
 		monthScope.value = monthKey;
 		goToGallery();
 	}
 
+	// Toggle the favorites filter on/off. Composes with every other filter and
+	// with whichever scope is active.
+	function toggleFavorites() {
+		favoritesOnly.value = !favoritesOnly.value;
+		goToGallery();
+	}
+
+	// Toggle a tag in the multi-select filter (OR'd within the tag facet).
+	function toggleTag(id: string) {
+		selectedTagIds.value = selectedTagIds.value.includes(id)
+			? selectedTagIds.value.filter((t) => t !== id)
+			: [...selectedTagIds.value, id];
+		goToGallery();
+	}
+
+	// Toggle a camera filter (re-picking the active one clears it). ANDs with
+	// any selected lens and every other filter.
+	function toggleCamera(name: string) {
+		selectedCamera.value = selectedCamera.value === name ? null : name;
+		goToGallery();
+	}
+
+	// Toggle a lens filter. Same rules as toggleCamera — ANDs with camera.
+	function toggleLens(name: string) {
+		selectedLens.value = selectedLens.value === name ? null : name;
+		goToGallery();
+	}
+
+	// Scope-only title: reflects where you're browsing (folder / Trash / month),
+	// not which filters are active. Active filters surface via activeFilterCount
+	// and the "· filtered" grid annotation instead — with composable filters,
+	// no single label could summarize an arbitrary combination.
 	const currentTitle = computed(() => {
 		if (monthScope.value) return monthLabel(monthScope.value);
 		if (trashOnly.value) return "Trash";
-		if (favoritesOnly.value) return "Favorites";
-		if (selectedTagId.value)
-			return `#${tags.value.find((t) => t.id === selectedTagId.value)?.name ?? "Tag"}`;
-		// Camera + lens can be active together — join them for a combined title.
-		if (selectedCamera.value || selectedLens.value)
-			return [selectedCamera.value, selectedLens.value]
-				.filter(Boolean)
-				.join(" · ");
 		if (selectedFolderId.value === null) return "All photos";
 		if (selectedFolderId.value === "none") return "Uncategorized";
 		return (
@@ -725,12 +727,12 @@ export function useLibrary() {
 		}
 	}
 
-	// Delete a tag entirely (its junction rows cascade). If it was the active
-	// filter, fall back to All photos.
+	// Delete a tag entirely (its junction rows cascade). Drop it from the active
+	// tag filter if it was selected.
 	async function deleteTag(tag: Tag): Promise<void> {
 		try {
 			await $fetch(`/api/tags/${tag.id}`, { method: "DELETE" });
-			if (selectedTagId.value === tag.id) selectFolder(null);
+			selectedTagIds.value = selectedTagIds.value.filter((id) => id !== tag.id);
 			await refreshAll();
 		} catch (err) {
 			toast.error(
@@ -752,17 +754,22 @@ export function useLibrary() {
 		stats,
 		selectedFolderId,
 		favoritesOnly,
-		selectedTagId,
+		selectedTagIds,
 		trashOnly,
 		selectedCamera,
 		selectedLens,
+		visibilityFilter,
+		filterDateFrom,
+		filterDateTo,
+		activeFilterCount,
+		clearFilters,
 		monthScope,
 		selectFolder,
-		selectFavorites,
-		selectTag,
+		toggleFavorites,
+		toggleTag,
 		selectTrash,
-		selectCamera,
-		selectLens,
+		toggleCamera,
+		toggleLens,
 		selectMonth,
 		expanded,
 		search,

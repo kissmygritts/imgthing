@@ -26,9 +26,9 @@ per-item.
 ### Feature: multi-faceted search / filter
 - **Label:** Feature — combine filters (camera, lens, tag, date, favorite, visibility) rather than a single date filter.
 - **Effort:** L
-- **Human input:** High *(design first — related to the reverted date filter)*
-- **Description:** A real filter surface that composes multiple facets.
-- **Implementation:** **Blocked on design.** Define the filter UX/tokens, then extend the list endpoint with composable filter params and mirror the state in `composables/useLibrary.ts`. Consider it the superset that the date view should slot into — worth one shared plan/ADR. The earlier single date filter (F2) was reverted specifically because the UI needed a redesign before rebuilding — see the F2 note in project memory / `docs/decisions`.
+- **Human input:** Low *(spec'd — see [issue #3](https://github.com/kissmygritts/imgthing/issues/3))*
+- **Description:** A "Filters" sheet in the gallery toolbar composing tag (multi-select), favorite, camera, lens, visibility, and date-range facets, all AND'd together and live (no Apply). Scope (folder/Trash/month) stays untouched, navigational.
+- **Implementation:** PRD published as [GitHub issue #3](https://github.com/kissmygritts/imgthing/issues/3), `ready-for-agent`. Revives the reverted date filter (F2, `9ead034`/`b621451`) as a composable facet under new `dateFrom`/`dateTo` params (distinct from month-scope's existing `from`/`to`). `CONTEXT.md` has the canonical Scope/Filter/Filters-sheet vocabulary.
 
 ### Feature: equipment / kit tracker (settings page)
 - **Label:** Feature — record the gear I own/use.

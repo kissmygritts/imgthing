@@ -62,3 +62,15 @@ over it. Names below are the canonical vocabulary — use them; don't invent syn
   - **Details drawer** — the glass `<aside>` that slides in from the right with EXIF / edit / share
     (toggled by `drawerOpen`, the `i` key, or "Details"). It's a drawer, not a shadcn `Sheet`.
     "Drawer" always means this — never the sidebar.
+
+## Filtering & scope
+
+- **Scope** — which slice of the library the main view is anchored to before any filter narrows it
+  further: current folder, Trash, or (via the calendar) a month scope. Navigational, set by the
+  sidebar or calendar — never by a filter. Exactly one scope is active at a time.
+- **Filter** — a facet that narrows what's shown *within* the current scope: tag, favorite,
+  camera/lens, date range, visibility. Composable and live (no Apply step) — distinct from scope,
+  which is exclusive and navigational.
+- **Filters sheet** — the shadcn `Sheet` panel holding every filter facet, opened by the **Filters
+  button** in the gallery toolbar (beside Select/Sort). Never call it "search" — the text search box
+  is a separate, older surface in the sidebar and keeps that name.

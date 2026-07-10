@@ -61,17 +61,17 @@ const {
 	stats,
 	selectedFolderId,
 	favoritesOnly,
-	selectedTagId,
+	selectedTagIds,
 	trashOnly,
 	selectedCamera,
 	selectedLens,
 	monthScope,
 	selectFolder,
-	selectFavorites,
-	selectTag,
+	toggleFavorites,
+	toggleTag,
 	selectTrash,
-	selectCamera,
-	selectLens,
+	toggleCamera,
+	toggleLens,
 	deleteTag,
 	expanded,
 	search,
@@ -150,7 +150,7 @@ function closeMobile() {
 						<SidebarMenuItem>
 							<SidebarMenuButton
 								tooltip="All photos"
-								:is-active="onGallery && !favoritesOnly && !trashOnly && !selectedCamera && !selectedLens && !selectedTagId && !monthScope && selectedFolderId === null"
+								:is-active="onGallery && !trashOnly && !monthScope && selectedFolderId === null"
 								@click="selectFolder(null); closeMobile()"
 							>
 								<Images />
@@ -185,7 +185,7 @@ function closeMobile() {
 							<SidebarMenuButton
 								tooltip="Favorites"
 								:is-active="onGallery && favoritesOnly"
-								@click="selectFavorites(); closeMobile()"
+								@click="toggleFavorites(); closeMobile()"
 							>
 								<Heart />
 								<span>Favorites</span>
@@ -226,7 +226,7 @@ function closeMobile() {
 						:folders="folders"
 						:parent-id="null"
 						:depth="0"
-						:selected-id="!onGallery || favoritesOnly || selectedTagId || selectedCamera || selectedLens ? null : selectedFolderId"
+						:selected-id="onGallery ? selectedFolderId : null"
 						:expanded="expanded"
 						@select="selectFolder($event); closeMobile()"
 						@action="onTreeAction"
@@ -248,8 +248,8 @@ function closeMobile() {
 							:icon="Hash"
 							:label="tag.name"
 							:count="tag.photo_count"
-							:active="onGallery && selectedTagId === tag.id"
-							@select="selectTag(tag.id); closeMobile()"
+							:active="onGallery && selectedTagIds.includes(tag.id)"
+							@select="toggleTag(tag.id); closeMobile()"
 						>
 							<template #menu>
 								<DropdownMenuItem
@@ -278,7 +278,7 @@ function closeMobile() {
 							:label="camera.name"
 							:count="camera.photo_count"
 							:active="onGallery && selectedCamera === camera.name"
-							@select="selectCamera(camera.name); closeMobile()"
+							@select="toggleCamera(camera.name); closeMobile()"
 						/>
 					</SidebarMenu>
 				</SidebarGroupContent>
@@ -295,7 +295,7 @@ function closeMobile() {
 							:label="lens.name"
 							:count="lens.photo_count"
 							:active="onGallery && selectedLens === lens.name"
-							@select="selectLens(lens.name); closeMobile()"
+							@select="toggleLens(lens.name); closeMobile()"
 						/>
 					</SidebarMenu>
 				</SidebarGroupContent>

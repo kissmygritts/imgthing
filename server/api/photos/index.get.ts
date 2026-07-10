@@ -3,15 +3,24 @@
 //
 // Query params:
 //   q         filename substring match (case-insensitive LIKE)
-//   from/to   inclusive date range over COALESCE(taken_at, uploaded_at)
+//   from/to   inclusive date range over COALESCE(taken_at, uploaded_at) — drives
+//             the calendar's month scope, not the dateFrom/dateTo filter below
+//   dateFrom/dateTo  composable date-range filter over EXIF taken_at only
+//             (undated photos, taken_at IS NULL, fall out of any bounded range).
+//             Distinct from from/to so scope and filter can coexist.
 //   sort      newest | oldest | name | size_desc | size_asc  (default newest)
 //   folderId  a folder id, or "none" for photos in no folder
 //   favorite  "1" to return only favorited photos
 //   tag       a tag id or (case-insensitive) tag name — only photos carrying it
+//   tags      comma-separated tag ids — photos carrying ANY of them (OR'd)
 //   camera    exact EXIF camera_model — only photos shot on it
 //   lens      exact EXIF lens_info — only photos shot with it (ANDs with camera)
+//   visibility "public" or "private" — only photos with that visibility
 //   deleted   "1" to return only trashed (tombstoned) photos; default excludes them
 //   limit     1..200 (default 50)   offset  >= 0 (default 0)
+//
+// Every filter param ANDs together — the client composes them freely (the
+// Filters sheet, plus folder/trash/month scope).
 //
 // Response: { photos, total, limit, offset } — `total` is the full match count
 // (ignoring limit/offset) so the client can page.
@@ -81,6 +90,7 @@ function buildFilter(q: Record<string, unknown>) {
 
 	// ?tag accepts either a tag id or a tag name (case-insensitive), so the
 	// sidebar can filter by id while a URL/search can filter by a human name.
+	// Kept for back-compat; the Filters sheet's multi-select uses ?tags instead.
 	const tag = typeof q.tag === "string" ? q.tag.trim() : "";
 	if (tag) {
 		conditions.push(
@@ -88,6 +98,24 @@ function buildFilter(q: Record<string, unknown>) {
 			         WHERE pt.photo_id = p.id AND (t.id = ? OR t.name = ? COLLATE NOCASE))`,
 		);
 		binds.push(tag, tag);
+	}
+
+	// ?tags — comma-separated tag ids, OR'd together (a photo carrying ANY of
+	// them matches), then AND'd against every other condition as usual.
+	const tagIds =
+		typeof q.tags === "string"
+			? q.tags
+					.split(",")
+					.map((s) => s.trim())
+					.filter(Boolean)
+			: [];
+	if (tagIds.length) {
+		const placeholders = tagIds.map(() => "?").join(", ");
+		conditions.push(
+			`EXISTS (SELECT 1 FROM photo_tags pt
+			         WHERE pt.photo_id = p.id AND pt.tag_id IN (${placeholders}))`,
+		);
+		binds.push(...tagIds);
 	}
 
 	// ?camera and ?lens filter by exact EXIF value (the sidebar sends the model /
@@ -103,6 +131,34 @@ function buildFilter(q: Record<string, unknown>) {
 	if (lens) {
 		conditions.push("e.lens_info = ?");
 		binds.push(lens);
+	}
+
+	// ?visibility — "public" or "private" only; any other value (including
+	// absent) leaves visibility unconstrained.
+	const visibility =
+		typeof q.visibility === "string" ? q.visibility.trim() : "";
+	if (visibility === "public" || visibility === "private") {
+		conditions.push("p.visibility = ?");
+		binds.push(visibility);
+	}
+
+	// ?dateFrom / ?dateTo filter by EXIF taken_at (when the photo was shot), NOT
+	// upload time, and NOT the from/to pair above (which drives month-scope over
+	// COALESCE(taken_at, uploaded_at)). taken_at is ISO-ish TEXT so a lexical >=
+	// lower bound is chronological; the upper bound uses date(taken_at) <=
+	// date(?) so an end date includes that whole day. Photos with taken_at IS
+	// NULL yield NULL on both comparisons and fall out of any bounded range —
+	// undated photos aren't "in" a date range, which is correct.
+	const dateFrom = typeof q.dateFrom === "string" ? q.dateFrom.trim() : "";
+	if (dateFrom) {
+		conditions.push("e.taken_at >= ?");
+		binds.push(dateFrom);
+	}
+
+	const dateTo = typeof q.dateTo === "string" ? q.dateTo.trim() : "";
+	if (dateTo) {
+		conditions.push("date(e.taken_at) <= date(?)");
+		binds.push(dateTo);
 	}
 
 	const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
@@ -127,13 +183,26 @@ defineRouteMeta({
 				name: "from",
 				in: "query",
 				description:
-					"Inclusive start of a date range over COALESCE(taken_at, uploaded_at).",
+					"Inclusive start of a date range over COALESCE(taken_at, uploaded_at). Drives the calendar's month scope.",
 				schema: { type: "string" },
 			},
 			{
 				name: "to",
 				in: "query",
 				description: "Inclusive end of the same date range.",
+				schema: { type: "string" },
+			},
+			{
+				name: "dateFrom",
+				in: "query",
+				description:
+					"Inclusive start of a composable date-range filter over EXIF taken_at only (distinct from from/to). Undated photos are excluded from a bounded range.",
+				schema: { type: "string" },
+			},
+			{
+				name: "dateTo",
+				in: "query",
+				description: "Inclusive end (whole-day) of the same taken_at filter.",
 				schema: { type: "string" },
 			},
 			{
@@ -160,7 +229,15 @@ defineRouteMeta({
 			{
 				name: "tag",
 				in: "query",
-				description: "A tag id or (case-insensitive) tag name.",
+				description:
+					"A tag id or (case-insensitive) tag name. Kept for back-compat — prefer tags.",
+				schema: { type: "string" },
+			},
+			{
+				name: "tags",
+				in: "query",
+				description:
+					"Comma-separated tag ids — photos carrying any of them (OR'd).",
 				schema: { type: "string" },
 			},
 			{
@@ -174,6 +251,12 @@ defineRouteMeta({
 				in: "query",
 				description: "Exact EXIF lens_info (ANDs with camera).",
 				schema: { type: "string" },
+			},
+			{
+				name: "visibility",
+				in: "query",
+				description: '"public" or "private" — unconstrained if omitted.',
+				schema: { type: "string", enum: ["public", "private"] },
 			},
 			{
 				name: "deleted",
