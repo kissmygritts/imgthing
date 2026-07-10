@@ -66,6 +66,7 @@ const {
 	filterDateFrom,
 	filterDateTo,
 	activeFilterCount,
+	clearFilters,
 	monthScope,
 	search,
 	currentTitle,
@@ -465,25 +466,6 @@ async function onViewerPurge(id: string) {
 
 			<div class="flex shrink-0 items-center gap-2">
 				<button
-					class="relative flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] transition-colors"
-					:class="
-						activeFilterCount
-							? 'border-primary/40 bg-primary/15 text-accent-foreground'
-							: 'border-white/70 dark:border-white/12 bg-white/55 dark:bg-white/12 text-muted-foreground hover:text-foreground'
-					"
-					@click="filtersOpen = true"
-				>
-					<SlidersHorizontal class="size-3.5 opacity-80" />
-					Filters
-					<span
-						v-if="activeFilterCount"
-						class="flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold tabular-nums text-primary-foreground"
-					>
-						{{ activeFilterCount }}
-					</span>
-				</button>
-
-				<button
 					v-if="trashOnly && photos.length"
 					class="flex items-center gap-2 rounded-full border border-destructive/40 bg-destructive/10 px-4 py-2 text-xs font-semibold text-destructive shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] transition-colors hover:bg-destructive/15"
 					@click="confirmEmptyTrash = true"
@@ -504,6 +486,36 @@ async function onViewerPurge(id: string) {
 					<SquareCheckBig class="size-3.5 opacity-80" />
 					{{ selectMode ? "Done" : "Select" }}
 				</button>
+
+				<div class="relative">
+					<button
+						class="relative flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] transition-colors"
+						:class="
+							activeFilterCount
+								? 'border-primary/40 bg-primary/15 text-accent-foreground'
+								: 'border-white/70 dark:border-white/12 bg-white/55 dark:bg-white/12 text-muted-foreground hover:text-foreground'
+						"
+						@click="filtersOpen = true"
+					>
+						<SlidersHorizontal class="size-3.5 opacity-80" />
+						Filters
+						<span
+							v-if="activeFilterCount"
+							class="flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold tabular-nums text-primary-foreground"
+						>
+							{{ activeFilterCount }}
+						</span>
+					</button>
+					<button
+						v-if="activeFilterCount"
+						title="Clear filters"
+						aria-label="Clear filters"
+						class="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full border border-white/70 bg-background text-muted-foreground shadow-sm transition-colors hover:bg-destructive hover:text-destructive-foreground dark:border-white/12"
+						@click.stop="clearFilters"
+					>
+						<X class="size-3" />
+					</button>
+				</div>
 
 				<DropdownMenu>
 					<DropdownMenuTrigger as-child>
