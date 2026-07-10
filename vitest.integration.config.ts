@@ -24,5 +24,8 @@ export default defineConfig({
 		name: "integration",
 		include: ["test/integration/**/*.test.ts"],
 		setupFiles: ["./test/integration/setup.ts"],
+		// Default 5s is too tight on CI's slower/shared runners for tests doing
+		// large uploads or several sequential image-variant generations.
+		testTimeout: 20000,
 	},
 });
