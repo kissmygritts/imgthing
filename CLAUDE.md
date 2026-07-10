@@ -9,7 +9,8 @@ owner. Don't add multi-tenant concepts.
 
 ## Where to look first
 
-- `docs/TODO.md` — the remaining backlog (start here). Built features live in git history, not a doc.
+- **GitHub Issues** — the backlog (start here: `gh issue list`). Built features live in git history,
+  not a doc; open work lives as issues, not a checked-in TODO.
 - `docs/decisions/*.md` — the ADRs. Read the relevant one before changing auth (0003), the
   serving/variant model (0005), or deploy/ops (0006). **Reverse a decision by adding a superseding
   ADR, never by editing an old one.**
@@ -19,7 +20,21 @@ owner. Don't add multi-tenant concepts.
 - `.claude/skills/imgthing-ui/SKILL.md` — the "Bright Studio Glass" design language + build recipe
   (fires automatically as the `imgthing-ui` skill on UI work).
 
-Keep `docs/TODO.md` current as work lands or new work surfaces. ADRs are `NNNN-short-title.md`, append-only.
+New work surfaces as a **GitHub issue** (use `/to-issue`), not a checked-in doc. ADRs are
+`NNNN-short-title.md`, append-only.
+
+### Issue template (for `/to-issue`)
+
+Keep each issue two-section and concise — a human-readable **Feature** section (what/why, no
+implementation detail) and an **Implementation notes (for the implementing agent)** section (terse,
+actionable). Tag each with:
+
+- **Label** — `Feature`, `Bug`, `Design`, `Docs`, `Chore`.
+- **Effort** — `S` (a session), `M` (a day-ish, one plan), `L` (multi-plan, needs its own doc/ADR).
+- **Human input** — how much taste/decision-making a human must supply first. Low = spec is
+  unambiguous, safe to hand to an autonomous agent. High = needs design taste, a product call, or
+  external research first; when High, add a clearly-marked **⚠️ Needs human input first** note saying
+  what's required.
 
 ## Commands (the gate)
 
@@ -109,4 +124,4 @@ Two Vitest layers; CI (`.github/workflows/ci.yml`) runs both on every push:
 
 - Integration suite is the slow gate (it builds first). Run `test:unit` while iterating; run
   `test:all` before finishing.
-- Backups (D1 Time Travel + R2 versioning) are the one open durability gap — see ADR 0006 / `docs/TODO.md`.
+- Backups (D1 Time Travel + R2 versioning) are the one open durability gap — see ADR 0006 / [issue #6](https://github.com/kissmygritts/imgthing/issues/6).
