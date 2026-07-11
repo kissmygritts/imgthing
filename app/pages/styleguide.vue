@@ -79,8 +79,8 @@ const settingsTabs = [
 const activeSettingsTab = ref("Usage");
 
 const antiPatterns = [
-	"A second .glass-panel, or an opaque sidebar — breaks the two-plane illusion.",
-	"Unifying the glass densities (/55 chrome · /40 on-photo · panel) — each is tuned per job.",
+	"A third glass plane inside content, or the two shell planes (sidebar + panel) drifting apart — they're identical .glass-panel peers with even aurora gaps.",
+	"Collapsing the chip densities into a plane (/55 chrome · /40 on-photo) — the shell planes share one glass, but the chips are tuned apart on purpose.",
 	"A flat white card standing in for glass — pull the opacity down so backdrop-blur has work to do.",
 	"A loud aurora or a second accent hue — the aurora is ambient; --primary is the only brand color.",
 	"Serif on buttons/body, or lowercasing prose — serif italic is for the wordmark, titles, filenames.",
@@ -123,8 +123,8 @@ const overlayChip =
 				<div
 					v-for="anchor in [
 						{
-							t: 'Two planes, always',
-							d: 'Aurora root plane (z0); a translucent sidebar sits on it; content floats above in one rounded glass panel.',
+							t: 'Two glass planes on the aurora',
+							d: 'Aurora root plane (z0); the sidebar and content panel float on it as two peer .glass-panel cards with even gaps. Overlays (sheets, dialogs) float above.',
 						},
 						{
 							t: 'Photos are the subject',
@@ -218,7 +218,7 @@ const overlayChip =
 
 		<!-- 04 · Glass surfaces -->
 		<section class="flex flex-col gap-5">
-			<p :class="eyebrow">04 · Glass surfaces — three densities</p>
+			<p :class="eyebrow">04 · Glass surfaces — the density system</p>
 			<div class="grid gap-4 sm:grid-cols-2">
 				<!-- Root-plane chip -->
 				<div class="rounded-2xl border border-border bg-card p-5">
@@ -269,10 +269,42 @@ const overlayChip =
 							<Trash2 class="size-4" />
 						</button>
 					</div>
+					<!-- Layer-2 overlay glass (sheets + viewer drawer), over a photo -->
+					<div
+						class="relative overflow-hidden rounded-2xl border border-border p-5"
+						:style="{ background: demoPhoto }"
+					>
+						<p class="font-serif text-lg italic text-white drop-shadow">
+							Overlay glass — sheets
+						</p>
+						<p class="mb-4 text-xs text-white/80 drop-shadow">
+							.glass-overlay · /58 · blur-xl · violet glow. Filters sheet +
+							viewer drawer, behind a .glass-scrim.
+						</p>
+						<div class="glass-overlay rounded-xl border p-4 text-sm text-foreground">
+							Sheet body text stays legible on the frosted plane.
+						</div>
+					</div>
+					<!-- Layer-3 popout glass (dialogs + menus), over a photo -->
+					<div
+						class="relative overflow-hidden rounded-2xl border border-border p-5"
+						:style="{ background: demoPhoto }"
+					>
+						<p class="font-serif text-lg italic text-white drop-shadow">
+							Popout glass — dialogs & menus
+						</p>
+						<p class="mb-4 text-xs text-white/80 drop-shadow">
+							.glass-popout · /60 · more transparent, to read as glass over the
+							blurred sidebar. Dialogs + dropdown menus.
+						</p>
+						<div class="glass-popout rounded-xl border p-4 text-sm text-foreground">
+							Menu item · dialog body text
+						</div>
+					</div>
 				</div>
 			</div>
 			<p class="text-xs text-muted-foreground">
-				The third density — <code class="font-mono">.glass-panel</code>, the
+				The shell-plane density — <code class="font-mono">.glass-panel</code>, the
 				floating panel this whole page rides in — is supplied by the layout. Its
 				always-on prism rim is the frosted edge around the content area. Light
 				and dark share one recipe —
@@ -283,7 +315,11 @@ const overlayChip =
 				<code class="font-mono">saturate()</code> (light
 				<code class="font-mono tabular-nums">1.4</code> to punch through the bright
 				aurora, dark <code class="font-mono tabular-nums">0.85</code> to keep it
-				calm).
+				calm). The two swatches above are the layer-2
+				(<code class="font-mono">.glass-overlay</code>) and layer-3
+				(<code class="font-mono">.glass-popout</code>) overlay densities, both
+				dimmed by <code class="font-mono">.glass-scrim</code>; see the imgthing-ui
+				skill for the full layer map.
 			</p>
 		</section>
 

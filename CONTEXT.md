@@ -45,11 +45,17 @@ The shell reads as three stacked layers — use these when talking about depth:
   layout (width/rounding), never material. *(Decided 2026-07-10. Supersedes the earlier model where
   the sidebar was a translucent base tint "part of the base" rather than a floating card.)*
 - **Overlays** — everything that sits *above the whole shell* (both shell planes), each behind a
-  dimming scrim: the **filters sheet**, the mobile sidebar sheet, the **viewer**, and the folder
-  **dialogs**. The sheet/drawer overlays (filters sheet + viewer details drawer) share one **overlay
-  glass** material (`.glass-overlay` in `main.css` — its own density, airier + blurrier than the
-  shell planes, with a violet glow) and one **scrim** (`.glass-scrim` — a soft violet blur, not a
-  black curtain), so they feel identical and can't drift. *(Layer-2 unified 2026-07-10.)*
+  dimming scrim. Two sub-families, each with its own shared glass density (both in `main.css`, both
+  dimmed by the one **scrim** `.glass-scrim` — a soft violet blur, not a black curtain):
+  - **Sheets** (layer 2) — large edge-anchored panels: the **filters sheet** + the **viewer** details
+    drawer. Material: `.glass-overlay` (airier + blurrier than the shell planes, with a violet glow).
+  - **Popouts** (layer 3) — small, transient, trigger-anchored surfaces: **dialogs** and **dropdown
+    menus**. Material: `.glass-popout` (more transparent than it looks, so it reads as glass over the
+    already-blurred sidebar; dialogs stay legible over photos where the blur bites). Tooltips stay
+    inverted high-contrast chips (not glass); the tag autocomplete is a native `<datalist>` (unstylable).
+
+  Each material is applied to *every* member of its family, so they feel identical and can't drift.
+  *(Layer 2 unified + layer 3 glassified 2026-07-10.)*
 
 - **Glass panel** — the floating, inset, rounded glass plane that rides over the aurora and holds
   everything the user works in (`SidebarInset`, class `glass-panel`, in `layouts/default.vue`). The

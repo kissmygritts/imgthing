@@ -133,8 +133,22 @@ lowercase-everything like a ledger app).
 
 ## Glass surfaces — the signature, and the most-copied pattern
 
-Glass is built from `bg-white/N` over the aurora, *not* from a token. Three
-densities, tuned per job — **do not unify them**:
+Glass here is a small *system* of densities, each tuned to its job — **do not
+unify them**. The named `.glass-*` classes live unlayered in `main.css` (so they
+beat `bg-*` utilities) and are the single source for each surface; the chips are
+inline recipes. The full map, by layer (see `CONTEXT.md` → the layer stack):
+
+| Layer | Surface | Class / recipe | Scrim |
+|---|---|---|---|
+| base | aurora | `.aurora` | — |
+| 1 · shell planes | sidebar **+** content panel (peers) | `.glass-panel` | — |
+| 2 · sheets | filters sheet, viewer drawer | `.glass-overlay` | `.glass-scrim` |
+| 3 · popouts | dialogs, dropdown menus | `.glass-popout` | `.glass-scrim` |
+| controls | toolbar / filter / toggle chips | root-plane chip (`/55 · /12`) | — |
+| controls | on-photo controls | on-photo chip (`/40 · /8`) | — |
+
+Each `.glass-*` class is applied to *every* instance of its surface, so they
+can't drift — retune the class and all instances move together. Details below.
 
 ### The floating panel — `.glass-panel`
 
@@ -206,10 +220,26 @@ black curtain), shared by `SheetOverlay` and the viewer backdrop. Reach for a ne
 sheet via the shadcn `Sheet` (it already carries both), and if you hand-roll an
 overlay, use `.glass-overlay` + `.glass-scrim` — never re-derive the values.
 
-**Glass rule of thumb:** if it sits on chrome, use the root-plane chip
-(`/55 · /12`, inset highlight). If it sits on a photo, use the overlay chip
-(`/40 · /8`, `backdrop-blur`, no inset). If it's a layer-2 overlay (sheet /
-drawer), use `.glass-overlay` (+ `.glass-scrim` behind it).
+### Layer-3 popout glass — `.glass-popout` (dialogs & menus)
+
+The material for **layer-3 popouts** — small, transient, trigger-anchored
+surfaces above everything: dialogs and every dropdown-menu variant
+(`DialogContent`, `DialogScrollContent`, `DropdownMenuContent`,
+`DropdownMenuSubContent`, all carry it). One shared class in `main.css`. It's
+**more transparent than you'd expect** (`0.60` light / `0.64` dark) *on purpose*:
+menus open over the *sidebar* — itself an already-blurred glass plane — so a
+stacked `backdrop-blur` has nothing sharp left to bite on. There, **transparency**
+(revealing the aurora-tinted substrate), not blur, is what reads as glass; dialogs
+sit over opaque photos where the blur *does* bite, so they stay legible at the same
+fill. Dialog scrims use `.glass-scrim` too. **Deliberately not glass:** tooltips
+(intentional inverted high-contrast micro-labels — glass would cost legibility)
+and the tag autocomplete (a native `<datalist>`, browser-rendered and unstylable
+— slated for a real combobox later).
+
+**Glass rule of thumb:** on chrome → root-plane chip (`/55 · /12`, inset
+highlight); on a photo → on-photo chip (`/40 · /8`, `backdrop-blur`, no inset); a
+layer-2 sheet/drawer → `.glass-overlay`; a layer-3 dialog/menu → `.glass-popout`;
+any scrim behind an overlay/popout → `.glass-scrim`.
 
 ## The prism edge — the signature rim
 
