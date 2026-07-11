@@ -46,7 +46,10 @@ The shell reads as three stacked layers — use these when talking about depth:
   the sidebar was a translucent base tint "part of the base" rather than a floating card.)*
 - **Overlays** — everything that sits *above the whole shell* (both shell planes), each behind a
   dimming scrim: the **filters sheet**, the mobile sidebar sheet, the **viewer**, and the folder
-  **dialogs**.
+  **dialogs**. The sheet/drawer overlays (filters sheet + viewer details drawer) share one **overlay
+  glass** material (`.glass-overlay` in `main.css` — its own density, airier + blurrier than the
+  shell planes, with a violet glow) and one **scrim** (`.glass-scrim` — a soft violet blur, not a
+  black curtain), so they feel identical and can't drift. *(Layer-2 unified 2026-07-10.)*
 
 - **Glass panel** — the floating, inset, rounded glass plane that rides over the aurora and holds
   everything the user works in (`SidebarInset`, class `glass-panel`, in `layouts/default.vue`). The

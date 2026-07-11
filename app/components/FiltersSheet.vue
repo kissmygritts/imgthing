@@ -73,7 +73,7 @@ const sectionLabel =
 	<Sheet :open="open" @update:open="emit('update:open', $event)">
 		<SheetContent
 			side="right"
-			class="w-3/4 gap-0 border-white/60 bg-white/80 backdrop-blur-2xl dark:border-white/12 dark:bg-[#1c1830]/80 sm:max-w-sm"
+			class="glass-overlay w-3/4 gap-0 sm:max-w-sm"
 		>
 			<SheetHeader>
 				<SheetTitle class="font-serif text-xl font-normal tracking-tight">

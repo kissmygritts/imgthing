@@ -193,9 +193,23 @@ class="rounded-full border border-white/70 dark:border-white/12
 Hover-reveal ones add `opacity-0 group-hover:opacity-100`. Canonical: the
 favorite / add-to-folder / restore buttons on gallery tiles.
 
+### Layer-2 overlay glass — `.glass-overlay` (sheets & the viewer drawer)
+
+The material for **layer-2 overlays** — anything that floats *above the whole
+shell* behind a scrim: the filters sheet, the `PhotoViewer` details drawer, any
+future sheet. It's its **own density** — airier and blurrier than the shell
+panel (`/40` fill, `blur-xl`, a violet glow, no inset highlight). It's a shared
+class in `main.css`, applied to *both* the drawer and `SheetContent`, so the
+overlays are literally the same glass and can't drift. Its companion is
+**`.glass-scrim`** — the soft violet-blurred dim behind every overlay (*not* a
+black curtain), shared by `SheetOverlay` and the viewer backdrop. Reach for a new
+sheet via the shadcn `Sheet` (it already carries both), and if you hand-roll an
+overlay, use `.glass-overlay` + `.glass-scrim` — never re-derive the values.
+
 **Glass rule of thumb:** if it sits on chrome, use the root-plane chip
 (`/55 · /12`, inset highlight). If it sits on a photo, use the overlay chip
-(`/40 · /8`, `backdrop-blur`, no inset).
+(`/40 · /8`, `backdrop-blur`, no inset). If it's a layer-2 overlay (sheet /
+drawer), use `.glass-overlay` (+ `.glass-scrim` behind it).
 
 ## The prism edge — the signature rim
 

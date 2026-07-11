@@ -317,6 +317,29 @@
 	pointer-events: none;
 }
 
+/* Layer-2 overlay glass — the material for sheets & the viewer's details drawer
+ * (filters sheet, PhotoViewer drawer, any future sheet). Its OWN density, airier
+ * and blurrier than the shell panel, with a violet glow (bg /40, blur-xl, no
+ * inset highlight). One source so the layer-2 overlays never drift apart —
+ * applied as the `.glass-overlay` class to both the drawer and SheetContent. */
+.glass-overlay {
+	border-color: rgba(255, 255, 255, 0.4);
+	background: rgba(255, 255, 255, 0.4);
+	backdrop-filter: blur(24px);
+	-webkit-backdrop-filter: blur(24px);
+	box-shadow: 0 0 80px -10px rgba(90, 70, 160, 0.5);
+}
+
+/* Layer-2 scrim — the soft violet-blurred dim behind any overlay (sheets + the
+ * viewer). Not a black curtain: a faint iris tint + light blur, on-brand with
+ * the aurora. One source (`.glass-scrim`) shared by SheetOverlay and the viewer
+ * backdrop so the two never drift. */
+.glass-scrim {
+	background: rgba(60, 45, 80, 0.28);
+	backdrop-filter: blur(4px);
+	-webkit-backdrop-filter: blur(4px);
+}
+
 /* Prism edge — the signature: a conic rim that catches aurora light and
  * brightens on hover/focus of its parent .group (tiles, glass surfaces). */
 .prism-edge {
@@ -409,6 +432,10 @@
 	[data-slot="sidebar"][data-variant="floating"]
 	[data-sidebar="sidebar"]::before {
 	opacity: 0.22;
+}
+.dark .glass-overlay {
+	border-color: rgba(255, 255, 255, 0.1);
+	background: rgba(28, 24, 48, 0.82); /* #1c1830 / 82% */
 }
 .dark .prism-edge {
 	opacity: 0;
