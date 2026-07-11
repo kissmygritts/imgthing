@@ -323,8 +323,11 @@
  * inset highlight). One source so the layer-2 overlays never drift apart —
  * applied as the `.glass-overlay` class to both the drawer and SheetContent. */
 .glass-overlay {
-	border-color: rgba(255, 255, 255, 0.4);
-	background: rgba(255, 255, 255, 0.4);
+	border-color: rgba(255, 255, 255, 0.5);
+	/* Fill sits high (0.58) — this is a text-dense reading surface, so legibility
+	 * wins over see-through; the blur + violet-white tint keep it glass, not
+	 * paper. (Dark overlay stays 0.82 below; light was 0.40 and read poorly.) */
+	background: rgba(250, 248, 255, 0.58);
 	backdrop-filter: blur(24px);
 	-webkit-backdrop-filter: blur(24px);
 	box-shadow: 0 0 80px -10px rgba(90, 70, 160, 0.5);
