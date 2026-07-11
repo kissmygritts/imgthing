@@ -66,8 +66,10 @@
 	color-scheme: light;
 
 	/* Bright Studio Glass — aurora canvas, iris accent, ink text.
-	 * The sidebar is a translucent "root plane" tint so the aurora shows
-	 * through it; the floating panel gets its glass fill from .glass-panel. */
+	 * The sidebar and content panel are two floating glass peers that both draw
+	 * their fill from .glass-panel (the sidebar's fill is aliased onto those rules
+	 * below). The --sidebar-* tokens here now drive only the sidebar's text /
+	 * hover / accent states, not its card fill. */
 	--background: oklch(0.972 0.008 300); /* canvas #f6f5fb */
 	--foreground: oklch(0.31 0.045 300); /* ink #332b49 */
 	--card: oklch(1 0 0 / 82%);
@@ -264,7 +266,12 @@
 }
 
 /* Floating panel: the elevated, more-opaque frosted card riding above root. */
-.glass-panel {
+/* The floating sidebar shares the panel's material *exactly* — it's aliased onto
+ * every .glass-panel rule (fill, prism ::before, and the .dark variants) so the
+ * two shell planes are literally the same glass and stay in sync forever. Only
+ * their layout (rounding, size, spacing) differs, set in the Vue layer. */
+.glass-panel,
+[data-slot="sidebar"][data-variant="floating"] [data-sidebar="sidebar"] {
 	position: relative;
 	/* Shared glass recipe with dark mode: same 165deg angle, same 0.50→0.40 alpha
 	 * transition, single tint color varying only in alpha. Only the tint HUE and
@@ -285,7 +292,9 @@
 		0 44px 90px -32px rgba(90, 70, 160, 0.4),
 		0 20px 46px -22px rgba(255, 170, 120, 0.22);
 }
-.glass-panel::before {
+.glass-panel::before,
+[data-slot="sidebar"][data-variant="floating"]
+	[data-sidebar="sidebar"]::before {
 	content: "";
 	position: absolute;
 	inset: 0;
@@ -375,7 +384,8 @@
 
 /* Floating panel: dark frosted glass instead of white; deeper drop shadow,
  * softened highlight, and a dimmer prism rim so the edge glows subtly. */
-.dark .glass-panel {
+.dark .glass-panel,
+.dark [data-slot="sidebar"][data-variant="floating"] [data-sidebar="sidebar"] {
 	/* Shared glass recipe with light mode: same 165deg angle, same 0.50→0.40 alpha
 	 * transition, single tint color varying only in alpha. Only the tint HUE and
 	 * the saturate() differ per mode — here a deep iris (dark base, not the light
@@ -394,7 +404,10 @@
 		0 44px 90px -32px rgba(0, 0, 0, 0.75),
 		0 20px 46px -22px rgba(50, 30, 90, 0.55);
 }
-.dark .glass-panel::before {
+.dark .glass-panel::before,
+.dark
+	[data-slot="sidebar"][data-variant="floating"]
+	[data-sidebar="sidebar"]::before {
 	opacity: 0.22;
 }
 .dark .prism-edge {

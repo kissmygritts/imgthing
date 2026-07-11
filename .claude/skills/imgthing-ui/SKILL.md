@@ -36,12 +36,18 @@ before building.
 
 ## The three anchors (don't violate these)
 
-1. **Two planes, always.** The aurora is a fixed root plane (z0). The sidebar
-   is *not a card* — it's a ~14% white tint (`--sidebar`) so the aurora shows
-   *through* it; it reads as part of the base. Content floats *above* in one
-   rounded `.glass-panel` (on `SidebarInset`), inset with margins so the aurora
-   peeks around it. Never make the sidebar opaque or turn the panel into a flat
-   white card.
+1. **Two floating glass planes on the aurora.** The aurora is a fixed root plane
+   (z0). Riding on it are **two peer glass planes** — the **sidebar** and the
+   **content panel** — both using the *exact same* `.glass-panel` material
+   (aliased in `main.css`, §"The floating panel"), floating as inset rounded
+   cards with **even aurora gaps** around and between them (the root sets one
+   consistent padding; sidebar wrapper padding == panel margin). They differ only
+   in *layout* (the sidebar's width/rounding vs. the panel's), never in material.
+   The aurora peeks around and between both cards. Never break the even spacing,
+   never let the two planes' glass drift apart, and never turn a panel into a flat
+   white card. *(This supersedes the old "sidebar is a translucent base tint, not
+   a card" model — the sidebar is now a full floating glass peer. Decided
+   2026-07-10; see `CONTEXT.md` → Shell planes.)*
 2. **Photos are the subject; chrome recedes.** Glass, aurora, and accent stay
    quiet so images carry the color. The aurora is *ambient light, not
    wallpaper* — keep it subtle. Don't let a new surface out-shout the photos.
@@ -132,9 +138,14 @@ densities, tuned per job — **do not unify them**:
 
 ### The floating panel — `.glass-panel`
 
-The one rounded, elevated frosted card the whole app content rides in. Already
-applied to `SidebarInset` in `app/layouts/default.vue` — you inherit it. Don't
-add a second `.glass-panel`; new pages render *inside* it.
+The rounded, elevated frosted card the app content rides in. Applied to
+`SidebarInset` in `app/layouts/default.vue` — you inherit it. **The floating
+sidebar uses this same material**: its inner container is aliased onto every
+`.glass-panel` rule in `main.css` (fill, prism `::before`, both `.dark`
+variants), so the sidebar and content panel are literally the same glass and stay
+in sync — retune one, both move. The two are peers (see anchor #1); the only
+difference is layout. Don't add a *third* `.glass-panel` inside content — new
+pages render *inside* the inherited panel.
 
 **Both modes share one glass recipe** (source of truth: `main.css`) — the
 transparency and gradient transition are deliberately identical, so light and
@@ -317,11 +328,15 @@ glass chip). Reuse it verbatim for any sub-sectioned page — canonical:
 
 ## Anti-patterns (each fights the language)
 
-- **A second `.glass-panel` or an opaque sidebar.** Breaks the two-plane
-  illusion. Content rides the *one* inherited panel; the sidebar stays
-  translucent.
-- **Unifying the glass densities.** The `/55` chrome chip, `/40` on-photo chip,
-  and `.glass-panel` are tuned separately on purpose. Don't collapse them.
+- **A *third* glass plane, or letting the two drift apart.** The sidebar and the
+  content panel are the two sanctioned `.glass-panel` planes — identical material,
+  even gaps. Don't add a third glass plane *inside* content (new pages render on
+  the inherited panel), don't give the sidebar and panel different glass, and
+  don't break their even spacing.
+- **Unifying the glass densities.** The two shell planes share one density
+  (`.glass-panel`), but the chips are separate: the `/55` chrome chip and `/40`
+  on-photo chip are tuned apart from the panel on purpose. Don't collapse the
+  chips into the panel density.
 - **A flat white card in place of glass.** If transparency is low enough that
   `backdrop-blur` has nothing to do, it's not glass — pull the opacity down.
 - **Loud aurora / a second accent hue.** The aurora is ambient; `--primary` is

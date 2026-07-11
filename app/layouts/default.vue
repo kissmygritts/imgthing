@@ -20,7 +20,7 @@ import {
 		<AppSidebar />
 		<!-- Floating glass panel: rides above the root, inset so aurora peeks around. -->
 		<SidebarInset
-			class="glass-panel relative m-2 overflow-hidden rounded-[26px] md:m-3"
+			class="glass-panel relative m-2 overflow-hidden rounded-[26px] md:m-3 md:ml-0 md:peer-data-[state=collapsed]:ml-3"
 		>
 			<div class="h-full overflow-y-auto px-4 py-5 sm:px-7 sm:py-7">
 				<SidebarTrigger class="mb-3 md:hidden" />

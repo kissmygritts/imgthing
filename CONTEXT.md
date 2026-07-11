@@ -33,6 +33,21 @@ The shared language of imgthing. Terms only — no implementation detail.
 The two-plane shell: an aurora root plane behind everything, with a floating glass panel riding
 over it. Names below are the canonical vocabulary — use them; don't invent synonyms.
 
+The shell reads as three stacked layers — use these when talking about depth:
+
+- **Base plane** — the lowest level: the **aurora** gradient behind everything (see Brand &
+  identity). Also called the root/base.
+- **Shell planes** — the two peers that ride *directly* on the base plane, at the same level as
+  each other (not stacked): the **sidebar** and the **glass panel**. Both are **floating glass
+  cards using the identical `.glass-panel` material** (the sidebar's fill is aliased onto the panel's
+  glass rules in `main.css`, so they never drift), inset with **even aurora gaps** around and between
+  them — one consistent root padding, sidebar wrapper padding == panel margin. They differ only in
+  layout (width/rounding), never material. *(Decided 2026-07-10. Supersedes the earlier model where
+  the sidebar was a translucent base tint "part of the base" rather than a floating card.)*
+- **Overlays** — everything that sits *above the whole shell* (both shell planes), each behind a
+  dimming scrim: the **filters sheet**, the mobile sidebar sheet, the **viewer**, and the folder
+  **dialogs**.
+
 - **Glass panel** — the floating, inset, rounded glass plane that rides over the aurora and holds
   everything the user works in (`SidebarInset`, class `glass-panel`, in `layouts/default.vue`). The
   main content surface.

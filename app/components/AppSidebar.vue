@@ -110,7 +110,7 @@ function closeMobile() {
 </script>
 
 <template>
-	<Sidebar collapsible="offcanvas" class="border-none">
+	<Sidebar collapsible="offcanvas" variant="floating" class="border-none">
 		<SidebarHeader class="gap-3 px-3 pt-4">
 			<!-- Brand -->
 			<div class="px-1">
