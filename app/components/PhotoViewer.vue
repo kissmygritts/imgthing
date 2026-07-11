@@ -786,7 +786,7 @@ watch(
 		>
 			<!-- Frosted backdrop (owned by the image layer; the drawer floats over it) -->
 			<button
-				class="absolute inset-0 cursor-default bg-[rgba(60,45,80,0.28)] backdrop-blur-sm"
+				class="glass-scrim absolute inset-0 cursor-default"
 				aria-label="Close photo viewer"
 				@click="emit('close')"
 			/>
@@ -796,12 +796,13 @@ watch(
 			<div
 				class="absolute inset-y-0 left-0 right-0 flex items-center justify-center p-4 transition-[right] duration-300 ease-out sm:p-8"
 				:class="drawerOpen ? 'md:right-[380px]' : ''"
+				@click.self="emit('close')"
 			>
 				<img
 					:key="photo.id"
 					:src="`/api/photos/${photo.id}/variant?size=lg`"
 					:alt="photo.original_filename"
-					class="pointer-events-none max-h-full max-w-full object-contain drop-shadow-2xl"
+					class="max-h-full max-w-full object-contain drop-shadow-2xl"
 				/>
 
 				<button
@@ -841,7 +842,7 @@ watch(
 			>
 				<aside
 					v-if="drawerOpen"
-					class="absolute inset-y-0 right-0 flex w-[min(380px,100%)] flex-col overflow-hidden border-l border-white/40 dark:border-white/10 bg-white/40 dark:bg-[#1c1830]/82 shadow-[0_0_80px_-10px_rgba(90,70,160,0.5)] backdrop-blur-xl"
+					class="glass-overlay absolute inset-y-0 right-0 flex w-[min(380px,100%)] flex-col overflow-hidden border-l"
 				>
 					<!-- Header: plate + title + actions (view ⇄ edit) -->
 					<header class="flex items-start gap-2 p-7 pb-4">
