@@ -136,6 +136,23 @@ The one rounded, elevated frosted card the whole app content rides in. Already
 applied to `SidebarInset` in `app/layouts/default.vue` — you inherit it. Don't
 add a second `.glass-panel`; new pages render *inside* it.
 
+**Both modes share one glass recipe** (source of truth: `main.css`) — the
+transparency and gradient transition are deliberately identical, so light and
+dark read as the *same* surface at different times of day:
+
+| | Angle | Alpha stops | Blur | Tint hue | Saturate |
+|---|---|---|---|---|---|
+| Light | `165deg` | `0.50 → 0.40` | `40px` | violet-tinted white (`rgb(250,248,255)`) | **`1.4`** |
+| Dark | `165deg` | `0.50 → 0.40` | `40px` | deep iris (`oklch(0.32 0.085 300)`) | **`0.85`** |
+
+Only two things differ per mode — the **tint hue** and the **`saturate()`**.
+Light *boosts* saturation (`1.4`) so the bright aurora punches through the
+near-white fill instead of washing to milk; dark *cuts* it (`0.85`) so the
+jewel-tone aurora reads calm, not electric. Never let the alpha stops, angle, or
+blur drift apart between the two modes — if you retune transparency, retune both
+together. The single tint color varies only in alpha across the gradient (no
+cross-stop lightness/chroma drift).
+
 ### Root-plane glass chip — toolbar buttons, filter pills, fields
 
 The workhorse. A frosted pill sitting on the sidebar/panel:

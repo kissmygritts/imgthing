@@ -274,7 +274,16 @@ const overlayChip =
 			<p class="text-xs text-muted-foreground">
 				The third density — <code class="font-mono">.glass-panel</code>, the
 				floating panel this whole page rides in — is supplied by the layout. Its
-				always-on prism rim is the frosted edge around the content area.
+				always-on prism rim is the frosted edge around the content area. Light
+				and dark share one recipe —
+				<code class="font-mono">165deg</code> gradient,
+				<code class="font-mono tabular-nums">0.50 → 0.40</code> alpha,
+				<code class="font-mono">blur(40px)</code> — and differ only in tint hue
+				(violet-white vs. deep iris) and
+				<code class="font-mono">saturate()</code> (light
+				<code class="font-mono tabular-nums">1.4</code> to punch through the bright
+				aurora, dark <code class="font-mono tabular-nums">0.85</code> to keep it
+				calm).
 			</p>
 		</section>
 
