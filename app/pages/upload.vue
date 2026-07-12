@@ -6,6 +6,7 @@ import {
 	CloudUpload,
 	Folder,
 	ImagePlus,
+	Images,
 	Loader2,
 	Trash2,
 	Upload,
@@ -87,6 +88,11 @@ const doneCount = computed(
 );
 const failedCount = computed(
 	() => queue.value.filter((q) => q.status === "error").length,
+);
+// The whole queue has been worked through: nothing left to upload, at least one
+// success, and we're not mid-run. Drives the "all done" banner + View library CTA.
+const allDone = computed(
+	() => !isUploading.value && pending.value.length === 0 && doneCount.value > 0,
 );
 
 function formatSize(bytes: number): string {
@@ -411,7 +417,18 @@ async function startUpload() {
 		</section>
 
 		<!-- Actions -->
-		<div class="flex items-center justify-end gap-3 pb-2">
+		<div class="flex flex-wrap items-center justify-end gap-3 pb-2">
+			<!-- Persistent "you're done" cue once the queue is worked through, so it's
+			     clear the run finished even after the toast fades. -->
+			<p
+				v-if="allDone"
+				class="mr-auto flex items-center gap-2 text-sm font-medium text-success"
+			>
+				<CircleCheck class="size-4 shrink-0" />
+				<span>
+					All {{ doneCount }} photo{{ doneCount === 1 ? "" : "s" }} uploaded
+				</span>
+			</p>
 			<button
 				type="button"
 				:disabled="isUploading || pending.length === 0"
@@ -428,6 +445,15 @@ async function startUpload() {
 							: "Upload"
 				}}
 			</button>
+			<!-- Once everything's uploaded, the primary action becomes "go look at them". -->
+			<NuxtLink
+				v-if="allDone"
+				to="/"
+				class="flex items-center gap-2 rounded-2xl bg-gradient-to-b from-primary to-[#5a41b8] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary/40 transition-transform hover:-translate-y-px active:translate-y-0"
+			>
+				<Images class="size-4" />
+				View library
+			</NuxtLink>
 		</div>
 	</div>
 </template>
