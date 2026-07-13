@@ -1,0 +1,45 @@
+name: deploy
+
+# Runs only after the `ci` workflow completes on `main`. Decoupled from
+# ci.yml so test runs on branches/PRs stay free of a skipped deploy job.
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # Gate on the triggering CI run having passed. This is the equivalent of
+    # `needs: ci` — a red gate never deploys.
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          # Deploy the exact commit CI validated, not just the branch tip.
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Install node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply D1 migrations (remote)
+        run: npm run db:migrate:remote
+
+      - name: Deploy to Cloudflare
+        run: npm run deploy

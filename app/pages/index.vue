@@ -436,9 +436,9 @@ async function onViewerPurge(id: string) {
 <template>
 	<div class="flex flex-1 flex-col gap-6">
 		<header
-			class="flex items-end justify-between gap-4 border-b border-border pb-5"
+			class="flex flex-wrap items-end justify-between gap-x-4 gap-y-3 border-b border-border pb-5"
 		>
-			<div class="min-w-0">
+			<div class="min-w-0 flex-1">
 				<!-- When scoped to a month, the title links back to the calendar. -->
 				<NuxtLink
 					v-if="monthScope"
@@ -464,7 +464,7 @@ async function onViewerPurge(id: string) {
 				</p>
 			</div>
 
-			<div class="flex shrink-0 items-center gap-2">
+			<div class="flex shrink-0 flex-wrap items-center justify-end gap-2">
 				<button
 					v-if="trashOnly && photos.length"
 					class="flex items-center gap-2 rounded-full border border-destructive/40 bg-destructive/10 px-4 py-2 text-xs font-semibold text-destructive shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] transition-colors hover:bg-destructive/15"
@@ -746,7 +746,7 @@ async function onViewerPurge(id: string) {
 				:style="{ left: bulkBarLeft }"
 			>
 			<div
-				class="glass-panel flex max-w-[calc(100vw-1rem)] items-center gap-1 rounded-full py-2 pl-4 pr-2 text-sm sm:gap-1.5"
+				class="glass-panel flex max-w-[calc(100vw-1rem)] items-center gap-1 overflow-x-auto rounded-full py-2 pl-4 pr-2 text-sm sm:gap-1.5 [&>*]:shrink-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
 			>
 				<span class="mr-1 whitespace-nowrap font-semibold tabular-nums text-foreground">
 					{{ selectedCount }} selected
@@ -765,7 +765,7 @@ async function onViewerPurge(id: string) {
 				<!-- Trash view: the only bulk action is restore -->
 				<button
 					v-if="trashOnly"
-					class="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-white/50 dark:hover:bg-white/10 sm:px-3"
+					class="flex items-center gap-1.5 rounded-full px-3 py-2.5 text-xs font-semibold text-foreground transition-colors hover:bg-white/50 dark:hover:bg-white/10 sm:px-3"
 					title="Restore"
 					@click="bulkRestoreSelected"
 				>
@@ -775,7 +775,7 @@ async function onViewerPurge(id: string) {
 				<template v-else>
 					<!-- Favorite the whole selection (toggles set-all-true / set-all-false) -->
 					<button
-						class="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-semibold transition-colors hover:bg-white/50 dark:hover:bg-white/10 sm:px-3"
+						class="flex items-center gap-1.5 rounded-full px-3 py-2.5 text-xs font-semibold transition-colors hover:bg-white/50 dark:hover:bg-white/10 sm:px-3"
 						:class="bulkFavorited ? 'text-rose-500' : 'text-foreground'"
 						:title="bulkFavorited ? 'Remove from favorites' : 'Add to favorites'"
 						@click="bulkFavoriteSelected"
@@ -787,7 +787,7 @@ async function onViewerPurge(id: string) {
 					<DropdownMenu>
 						<DropdownMenuTrigger as-child>
 							<button
-								class="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-white/50 dark:hover:bg-white/10 sm:px-3"
+								class="flex items-center gap-1.5 rounded-full px-3 py-2.5 text-xs font-semibold text-foreground transition-colors hover:bg-white/50 dark:hover:bg-white/10 sm:px-3"
 								title="Public sharing"
 							>
 								<Share2 class="size-4" /><span class="hidden sm:inline">Share</span>
@@ -807,7 +807,7 @@ async function onViewerPurge(id: string) {
 
 					<!-- Tag the selection -->
 					<button
-						class="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-white/50 dark:hover:bg-white/10 sm:px-3"
+						class="flex items-center gap-1.5 rounded-full px-3 py-2.5 text-xs font-semibold text-foreground transition-colors hover:bg-white/50 dark:hover:bg-white/10 sm:px-3"
 						title="Add tag"
 						@click="openBulkTag"
 					>
@@ -818,7 +818,7 @@ async function onViewerPurge(id: string) {
 					<DropdownMenu>
 						<DropdownMenuTrigger as-child>
 							<button
-								class="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-white/50 dark:hover:bg-white/10 sm:px-3"
+								class="flex items-center gap-1.5 rounded-full px-3 py-2.5 text-xs font-semibold text-foreground transition-colors hover:bg-white/50 dark:hover:bg-white/10 sm:px-3"
 								title="Add to folder"
 							>
 								<FolderPlus class="size-4" /><span class="hidden sm:inline">Add</span>
@@ -846,7 +846,7 @@ async function onViewerPurge(id: string) {
 					<DropdownMenu>
 						<DropdownMenuTrigger as-child>
 							<button
-								class="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-white/50 dark:hover:bg-white/10 sm:px-3"
+								class="flex items-center gap-1.5 rounded-full px-3 py-2.5 text-xs font-semibold text-foreground transition-colors hover:bg-white/50 dark:hover:bg-white/10 sm:px-3"
 								title="Remove from folder"
 							>
 								<FolderMinus class="size-4" /><span class="hidden sm:inline">Remove</span>
@@ -871,7 +871,7 @@ async function onViewerPurge(id: string) {
 					</DropdownMenu>
 
 					<button
-						class="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10 sm:px-3"
+						class="flex items-center gap-1.5 rounded-full px-3 py-2.5 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10 sm:px-3"
 						title="Move to Trash"
 						@click="confirmBulkDelete = true"
 					>

@@ -40,6 +40,7 @@ const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
       :style="{
         '--sidebar-width': SIDEBAR_WIDTH_MOBILE,
       }"
+      @open-auto-focus="(e: Event) => e.preventDefault()"
     >
       <SheetHeader class="sr-only">
         <SheetTitle>Sidebar</SheetTitle>

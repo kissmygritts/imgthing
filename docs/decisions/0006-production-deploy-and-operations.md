@@ -64,3 +64,25 @@ Three layers, defense-in-depth:
   a usage alert is the guardrail. Everything else (R2/D1 reads at personal scale) is effectively free.
 - Portability is unchanged from [ADR 0001](./0001-cloudflare-native-stack.md) — tied to Cloudflare
   primitives by design; the custom domain adds no new lock-in beyond DNS.
+
+## Amendment · 2026-07-13 — automated deploys via CI
+
+The original decision deployed by running `npm run deploy` (`nuxt build && wrangler deploy`) and
+`npm run db:migrate:remote` **manually** from a workstation. Deploys are now **automated in GitHub
+Actions**: a dedicated `deploy` workflow (`.github/workflows/deploy.yml`) triggers on `workflow_run`
+when the `ci` workflow completes on `main`, gated on `conclusion == 'success'`. It checks out the
+exact validated commit, applies remote D1 migrations, then runs the same `wrangler deploy`. A
+`deploy-production` concurrency group serializes deploys.
+
+- **The gate is now a deploy precondition.** A push to `main` ships only after lint + unit +
+  integration + typecheck pass — the same gate the CLAUDE.md "definition of done" describes, now
+  enforced by the pipeline rather than by discipline.
+- **No topology change.** Same Worker, same bindings, same `wrangler deploy`, same additive-only
+  migration flow — only the trigger moved from a human to CI. The manual commands still work as the
+  break-glass path.
+- **New CI-side secrets:** a scoped Cloudflare API token (`CLOUDFLARE_API_TOKEN`, Account-scoped —
+  Workers Scripts Write + D1 Write) and `CLOUDFLARE_ACCOUNT_ID`, stored as GitHub repo secrets. The
+  two **Worker** secrets (`APP_PASSPHRASE`, `SESSION_SECRET`) still live on the Worker and are
+  untouched by CI.
+- **`../cloudflare-setup.md`** remains the provisioning reference; the deploy step there is now the
+  fallback rather than the default path.
