@@ -34,6 +34,7 @@ export default defineNuxtConfig({
 	// Disable Tailwind's optimize pass and force esbuild as Vite's CSS
 	// minifier instead, sidestepping lightningcss entirely.
 	// https://github.com/parcel-bundler/lightningcss/issues/695
+	// Revert both once that issue ships a fix upstream.
 	vite: {
 		plugins: [tailwindcss({ optimize: false })],
 		build: {
