@@ -35,6 +35,10 @@ actionable). Tag each with:
   unambiguous, safe to hand to an autonomous agent. High = needs design taste, a product call, or
   external research first; when High, add a clearly-marked **⚠️ Needs human input first** note saying
   what's required.
+- **Model** — the recommended Claude model to hand the issue to (e.g. `Sonnet 5`, `Opus 4.8`,
+  `Haiku 4.5`). Pick based on how much judgment the implementation needs, not just size.
+- **Model effort** — the recommended reasoning effort (`low`, `medium`, `high`, `xhigh`, `max`) to
+  run that model at.
 
 ## Commands (the gate)
 
