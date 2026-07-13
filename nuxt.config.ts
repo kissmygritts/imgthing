@@ -27,8 +27,18 @@ export default defineNuxtConfig({
 		storageKey: "imgthing-color-mode",
 	},
 
+	// `@tailwindcss/vite`'s own optimize step and Vite's default prod CSS
+	// minifier both run on lightningcss, which has a bug that drops the
+	// unprefixed `backdrop-filter` when a `-webkit-backdrop-filter` pair is
+	// also present — silently killing the glass blur in Chrome, prod-only.
+	// Disable Tailwind's optimize pass and force esbuild as Vite's CSS
+	// minifier instead, sidestepping lightningcss entirely.
+	// https://github.com/parcel-bundler/lightningcss/issues/695
 	vite: {
-		plugins: [tailwindcss()],
+		plugins: [tailwindcss({ optimize: false })],
+		build: {
+			cssMinify: "esbuild",
+		},
 		optimizeDeps: {
 			include: [
 				"reka-ui",
