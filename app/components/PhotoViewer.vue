@@ -14,7 +14,6 @@ import {
 	PanelRightClose,
 	PanelRightOpen,
 	Pencil,
-	Plus,
 	RotateCcw,
 	Share2,
 	Trash2,
@@ -42,6 +41,7 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { TagsInput } from "@/components/ui/tags-input";
 import { humanBytes } from "@/lib/utils";
 
 // Mirrors the row shape returned by GET /api/photos.
@@ -734,26 +734,21 @@ const photoTags = computed(() => {
 		.sort((a, b) => a.name.localeCompare(b.name));
 });
 
-// Autocomplete options: every existing tag not already on this photo.
-const tagDraft = ref("");
-const tagSuggestions = computed(() => {
-	const attached = new Set(photoTags.value.map((t) => t.id));
-	return props.allTags.filter((t) => !attached.has(t.id)).map((t) => t.name);
-});
-
-function addTag() {
+// Called by TagsInput's `add` emit — name is either freshly typed or picked
+// from autocomplete (every existing tag not already on this photo).
+function onAddTag(name: string) {
 	const p = photo.value;
-	const name = tagDraft.value.trim();
 	if (!p || !name) return;
 	// Ignore a no-op re-add of a tag already on the photo.
 	if (!photoTags.value.some((t) => t.name.toLowerCase() === name.toLowerCase()))
 		emit("attach-tag", p.id, name);
-	tagDraft.value = "";
 }
 
-function removeTag(tagId: string) {
+// Called by TagsInput's `remove` emit — resolve the name back to an id.
+function onRemoveTagByName(name: string) {
 	const p = photo.value;
-	if (p) emit("detach-tag", p.id, tagId);
+	const tag = photoTags.value.find((t) => t.name === name);
+	if (p && tag) emit("detach-tag", p.id, tag.id);
 }
 
 // Re-entering a photo while editing would show a stale draft, so drop back to
@@ -764,7 +759,6 @@ watch(
 		mode.value = "view";
 		confirmDeleteOpen.value = false;
 		shareShowLocation.value = photo.value?.show_location === 1;
-		tagDraft.value = "";
 		copiedKey.value = null;
 		// Lazily pull the raw EXIF for the newly-visible photo (does not block
 		// the curated facts, which come from the already-loaded list row).
@@ -1038,42 +1032,13 @@ watch(
 								>
 									Tags
 								</p>
-								<div v-if="photoTags.length" class="mb-2.5 flex flex-wrap gap-1.5">
-									<span
-										v-for="tag in photoTags"
-										:key="tag.id"
-										class="group/tag flex items-center gap-1 rounded-full border border-white/70 dark:border-white/12 bg-white/55 dark:bg-white/12 py-1 pl-2.5 pr-1 text-xs font-medium text-foreground backdrop-blur"
-									>
-										{{ tag.name }}
-										<button
-											class="flex size-4 items-center justify-center rounded-full text-muted-foreground transition hover:bg-destructive/15 hover:text-destructive"
-											:aria-label="`Remove tag ${tag.name}`"
-											@click="removeTag(tag.id)"
-										>
-											<X class="size-3" />
-										</button>
-									</span>
-								</div>
-								<form class="flex items-center gap-1.5" @submit.prevent="addTag">
-									<Input
-										v-model="tagDraft"
-										list="tag-suggestions"
-										placeholder="Add a tag"
-										aria-label="Add a tag"
-										class="h-8 flex-1 border-white/70 dark:border-white/12 bg-white/50 dark:bg-white/10 text-[13px] backdrop-blur"
-									/>
-									<datalist id="tag-suggestions">
-										<option v-for="s in tagSuggestions" :key="s" :value="s" />
-									</datalist>
-									<button
-										type="submit"
-										class="flex size-8 shrink-0 items-center justify-center rounded-full border border-white/70 dark:border-white/12 bg-white/55 dark:bg-white/12 text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur transition hover:bg-white/85 dark:hover:bg-white/20 hover:text-foreground disabled:opacity-40"
-										:disabled="!tagDraft.trim()"
-										aria-label="Add tag"
-									>
-										<Plus class="size-4" />
-									</button>
-								</form>
+								<TagsInput
+									:model-value="photoTags.map((t) => t.name)"
+									:suggestions="allTags.map((t) => t.name)"
+									placeholder="Add a tag"
+									@add="onAddTag"
+									@remove="onRemoveTagByName"
+								/>
 							</section>
 						</template>
 
