@@ -37,6 +37,7 @@ const props = defineProps<{
 	placeholder?: string;
 	disabled?: boolean;
 	max?: number;
+	autoFocus?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -145,6 +146,7 @@ function onRemoveTag(value: unknown) {
           <TagsInputInput
             :placeholder="placeholder"
             :disabled="disabled"
+            :auto-focus="autoFocus"
             :value="inputValue"
             class="w-full min-w-0 flex-none"
             @input="inputValue = ($event.target as HTMLInputElement).value"
