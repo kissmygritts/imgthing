@@ -42,8 +42,8 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import { useSidebar } from "@/components/ui/sidebar";
+import { TagsInput } from "@/components/ui/tags-input";
 import { monthRange } from "@/lib/date";
 
 interface PhotosResponse {
@@ -308,24 +308,30 @@ async function bulkRestoreSelected() {
 	if (await bulkRestore(selectedPhotoIds.value)) exitSelect();
 }
 
-// Batch tag entry — reuse the single-photo pattern (free-form Input, comma
-// splits multiple tags). Lives in a small dialog so the bulk bar stays compact.
+// Batch tag entry — same TagsInput used on a single photo, but selected
+// photos can carry different tags already, so there's no sensible starting
+// chip set: it always opens empty, and whatever's added here gets attached to
+// every selected photo on submit. Lives in a small dialog so the bulk bar
+// stays compact.
 const tagDialogOpen = ref(false);
-const bulkTagDraft = ref("");
+const bulkTagNames = ref<string[]>([]);
 const bulkTagging = ref(false);
 function openBulkTag() {
-	bulkTagDraft.value = "";
+	bulkTagNames.value = [];
 	tagDialogOpen.value = true;
 }
+function onBulkAddTag(name: string) {
+	if (!bulkTagNames.value.some((t) => t.toLowerCase() === name.toLowerCase()))
+		bulkTagNames.value.push(name);
+}
+function onBulkRemoveTag(name: string) {
+	bulkTagNames.value = bulkTagNames.value.filter((t) => t !== name);
+}
 async function runBulkTag() {
-	const names = bulkTagDraft.value
-		.split(",")
-		.map((s) => s.trim())
-		.filter(Boolean);
-	if (names.length === 0) return;
+	if (bulkTagNames.value.length === 0) return;
 	bulkTagging.value = true;
 	try {
-		const ok = await bulkAttachTag(selectedPhotoIds.value, names);
+		const ok = await bulkAttachTag(selectedPhotoIds.value, bulkTagNames.value);
 		if (ok) {
 			tagDialogOpen.value = false;
 			exitSelect();
@@ -932,21 +938,19 @@ async function onViewerPurge(id: string) {
 						Tag {{ selectedCount }} photo{{ selectedCount === 1 ? "" : "s" }}
 					</DialogTitle>
 					<DialogDescription>
-						Add one or more tags to every selected photo. Separate multiple tags
-						with commas — new tags are created automatically.
+						Add one or more tags to every selected photo. Press Enter after each
+						one — new tags are created automatically.
 					</DialogDescription>
 				</DialogHeader>
 				<form class="flex flex-col gap-2" @submit.prevent="runBulkTag">
-					<Input
-						v-model="bulkTagDraft"
-						list="bulk-tag-suggestions"
-						placeholder="e.g. sunset, beach"
-						aria-label="Add tags"
-						autofocus
+					<TagsInput
+						:model-value="bulkTagNames"
+						:suggestions="tags.map((t) => t.name)"
+						placeholder="Add a tag"
+						auto-focus
+						@add="onBulkAddTag"
+						@remove="onBulkRemoveTag"
 					/>
-					<datalist id="bulk-tag-suggestions">
-						<option v-for="t in tags" :key="t.id" :value="t.name" />
-					</datalist>
 					<DialogFooter>
 						<Button
 							type="button"
@@ -955,7 +959,7 @@ async function onViewerPurge(id: string) {
 						>
 							Cancel
 						</Button>
-						<Button type="submit" :disabled="bulkTagging || !bulkTagDraft.trim()">
+						<Button type="submit" :disabled="bulkTagging || bulkTagNames.length === 0">
 							<Loader2 v-if="bulkTagging" class="size-4 animate-spin" />
 							Add tags
 						</Button>
