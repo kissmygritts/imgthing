@@ -404,6 +404,19 @@ export function useLibrary() {
 		}
 	}
 
+	// Copy a published folder's public link straight from the tree dropdown — the
+	// quick path that skips opening the share dialog.
+	async function copyFolderLink(folder: FolderNode): Promise<void> {
+		const link = folderShareUrl(folder);
+		if (!link) return;
+		try {
+			await navigator.clipboard.writeText(link);
+			toast.success("Public link copied");
+		} catch {
+			toast.error("Couldn't copy link");
+		}
+	}
+
 	function onTreeAction({
 		type,
 		folder,
@@ -415,6 +428,7 @@ export function useLibrary() {
 		else if (type === "delete") deleteTarget.value = folder;
 		else if (type === "new-sub") openCreate(folder.id);
 		else if (type === "share") openShare(folder);
+		else if (type === "copy-link") copyFolderLink(folder);
 	}
 
 	// ── Photo ↔ folder membership ──────────────────────────────────────────────

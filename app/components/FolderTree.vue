@@ -19,7 +19,12 @@ export interface FolderNode {
 	published_at?: string | null;
 }
 
-export type FolderAction = "rename" | "delete" | "new-sub" | "share";
+export type FolderAction =
+	| "rename"
+	| "delete"
+	| "new-sub"
+	| "share"
+	| "copy-link";
 
 const props = defineProps<{
 	folders: FolderNode[];
@@ -80,6 +85,12 @@ function iconFor(folder: FolderNode) {
 				</DropdownMenuItem>
 				<DropdownMenuItem @click="emit('action', { type: 'share', folder })">
 					Share…
+				</DropdownMenuItem>
+				<DropdownMenuItem
+					v-if="folder.visibility === 'public'"
+					@click="emit('action', { type: 'copy-link', folder })"
+				>
+					Copy public link
 				</DropdownMenuItem>
 				<DropdownMenuSeparator />
 				<DropdownMenuItem

@@ -195,13 +195,6 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown));
 						<ChevronRight class="size-5" />
 					</button>
 				</template>
-
-				<!-- Filename plate -->
-				<div
-					class="absolute bottom-6 left-1/2 -translate-x-1/2 rounded-full border border-white/70 bg-white/40 px-4 py-1.5 text-white backdrop-blur dark:border-white/12 dark:bg-white/8"
-				>
-					<span class="font-serif italic">{{ activePhoto.filename }}</span>
-				</div>
 			</div>
 		</Teleport>
 	</div>
