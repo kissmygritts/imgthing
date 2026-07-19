@@ -87,6 +87,16 @@ The shell reads as three stacked layers — use these when talking about depth:
     (toggled by `drawerOpen`, the `i` key, or "Details"). It's a drawer, not a shadcn `Sheet`.
     "Drawer" always means this — never the sidebar.
 
+## Publishing & sharing
+
+- **Publishing a folder** / **published folder** — the owner-side act and state of making a whole
+  folder shareable under a single token, and a folder in that state. Mirrors publishing a photo.
+  The token is the folder's own credential (independent of each member photo's own public/private
+  state).
+- **Public gallery** — the visitor-facing page a published folder's token resolves to: a stripped,
+  unauthenticated twin of the **gallery view** (a grid of the folder's photos), with no sidebar,
+  folder tree, or edit surfaces. _Avoid_: album, public folder.
+
 ## Filtering & scope
 
 - **Scope** — which slice of the library the main view is anchored to before any filter narrows it
