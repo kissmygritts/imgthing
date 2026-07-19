@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Folder, FolderDot, FolderOpenDot } from "@lucide/vue";
+import { Folder, FolderDot, FolderOpenDot, Globe } from "@lucide/vue";
 import SidebarEntry from "@/components/SidebarEntry.vue";
 import {
 	DropdownMenuItem,
@@ -12,9 +12,14 @@ export interface FolderNode {
 	name: string;
 	parent_folder_id: string | null;
 	photo_count: number;
+	// Public-gallery publishing (ADR 0008). visibility flips to 'public' on
+	// publish, minting public_token; the gallery lives at /f/{slug}?token=.
+	visibility?: string;
+	public_token?: string | null;
+	published_at?: string | null;
 }
 
-export type FolderAction = "rename" | "delete" | "new-sub";
+export type FolderAction = "rename" | "delete" | "new-sub" | "share";
 
 const props = defineProps<{
 	folders: FolderNode[];
@@ -60,12 +65,21 @@ function iconFor(folder: FolderNode) {
 			@select="emit('select', folder.id)"
 			@icon-click="emit('toggle', folder.id)"
 		>
+			<!-- Published folders carry a globe glyph so the shared state reads at a
+			     glance in the tree. -->
+			<template v-if="folder.visibility === 'public'" #badge>
+				<Globe class="size-3 shrink-0 text-primary" aria-label="Published" />
+			</template>
+
 			<template #menu>
 				<DropdownMenuItem @click="emit('action', { type: 'new-sub', folder })">
 					New subfolder
 				</DropdownMenuItem>
 				<DropdownMenuItem @click="emit('action', { type: 'rename', folder })">
 					Rename
+				</DropdownMenuItem>
+				<DropdownMenuItem @click="emit('action', { type: 'share', folder })">
+					Share…
 				</DropdownMenuItem>
 				<DropdownMenuSeparator />
 				<DropdownMenuItem

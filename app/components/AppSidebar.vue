@@ -2,8 +2,11 @@
 import {
 	CalendarDays,
 	Camera,
+	Check,
 	ChevronsUpDown,
+	Copy,
 	FolderPlus,
+	Globe,
 	Hash,
 	Heart,
 	Images,
@@ -14,6 +17,7 @@ import {
 	Search,
 	Settings,
 	Trash2,
+	TriangleAlert,
 	Upload,
 } from "@lucide/vue";
 import FolderTree from "@/components/FolderTree.vue";
@@ -85,8 +89,36 @@ const {
 	submitDialog,
 	deleteTarget,
 	confirmDelete,
+	shareTarget,
+	shareBusy,
+	folderShareUrl,
+	publishFolder,
+	unpublishFolder,
 	logout,
 } = useLibrary();
+
+// The published state + share link for the folder in the share dialog.
+const shareIsPublic = computed(
+	() => shareTarget.value?.visibility === "public",
+);
+const shareUrl = computed(() => folderShareUrl(shareTarget.value));
+
+// Copy the share link to the clipboard, with a transient check state.
+const shareCopied = ref(false);
+let shareCopyTimer: ReturnType<typeof setTimeout> | undefined;
+async function copyShareUrl() {
+	if (!shareUrl.value) return;
+	try {
+		await navigator.clipboard.writeText(shareUrl.value);
+		shareCopied.value = true;
+		clearTimeout(shareCopyTimer);
+		shareCopyTimer = setTimeout(() => {
+			shareCopied.value = false;
+		}, 1500);
+	} catch {
+		// Clipboard denied (insecure context / permissions) — no-op.
+	}
+}
 
 // Gallery filters only read as "active" on the gallery route; on /map or
 // /upload the nav should highlight that page instead.
@@ -406,6 +438,82 @@ function closeMobile() {
 			<DialogFooter>
 				<Button variant="outline" @click="deleteTarget = null">Cancel</Button>
 				<Button variant="destructive" @click="confirmDelete">Delete</Button>
+			</DialogFooter>
+		</DialogContent>
+	</Dialog>
+
+	<!-- Share (publish as a public gallery) dialog -->
+	<Dialog :open="!!shareTarget" @update:open="(v) => !v && (shareTarget = null)">
+		<DialogContent>
+			<DialogHeader>
+				<DialogTitle class="flex items-center gap-2">
+					<Globe class="size-4 text-primary" />
+					Share “{{ shareTarget?.name }}”
+				</DialogTitle>
+				<DialogDescription>
+					Publish this folder as a public gallery — one link, no sign-in
+					required.
+				</DialogDescription>
+			</DialogHeader>
+
+			<!-- Exposure warning: prominent, non-negotiable (ADR 0008). -->
+			<div
+				class="flex gap-3 rounded-xl border border-warning/30 bg-warning/15 px-3.5 py-3 text-sm"
+			>
+				<TriangleAlert class="mt-0.5 size-4 shrink-0 text-warning" />
+				<p class="text-foreground/90">
+					Publishing shares <strong>every photo</strong> in this folder through
+					one public link — including photos marked private. Any photo you add
+					later becomes public immediately.
+				</p>
+			</div>
+
+			<!-- Published: the copyable link. -->
+			<div v-if="shareIsPublic" class="flex flex-col gap-2">
+				<label
+					class="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground"
+				>
+					Public link
+				</label>
+				<div class="flex items-center gap-2">
+					<input
+						:value="shareUrl"
+						readonly
+						class="min-w-0 flex-1 rounded-lg border border-white/70 bg-white/55 px-3 py-2 font-mono text-xs text-foreground outline-none dark:border-white/12 dark:bg-white/12"
+						@focus="(e) => (e.target as HTMLInputElement).select()"
+					/>
+					<Button
+						variant="outline"
+						size="icon"
+						:aria-label="shareCopied ? 'Copied' : 'Copy link'"
+						@click="copyShareUrl"
+					>
+						<Check v-if="shareCopied" class="size-4 text-success" />
+						<Copy v-else class="size-4" />
+					</Button>
+				</div>
+			</div>
+
+			<DialogFooter>
+				<template v-if="shareIsPublic">
+					<Button
+						variant="outline"
+						:disabled="shareBusy"
+						@click="shareTarget && unpublishFolder(shareTarget)"
+					>
+						Unpublish
+					</Button>
+					<Button @click="shareTarget = null">Done</Button>
+				</template>
+				<template v-else>
+					<Button variant="outline" @click="shareTarget = null">Cancel</Button>
+					<Button
+						:disabled="shareBusy"
+						@click="shareTarget && publishFolder(shareTarget)"
+					>
+						Publish gallery
+					</Button>
+				</template>
 			</DialogFooter>
 		</DialogContent>
 	</Dialog>

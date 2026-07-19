@@ -63,6 +63,7 @@ defineEmits<{ select: []; iconClick: [] }>();
 				<component :is="icon" v-else />
 
 				<span class="truncate">{{ label }}</span>
+				<slot name="badge" />
 				<span
 					v-if="count !== undefined"
 					class="ml-auto shrink-0 text-xs text-muted-foreground tabular-nums"

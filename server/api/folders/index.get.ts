@@ -29,6 +29,15 @@ defineRouteMeta({
 											created_at: { type: "string" },
 											updated_at: { type: "string" },
 											photo_count: { type: "integer" },
+											visibility: { type: "string" },
+											public_token: {
+												type: "string",
+												nullable: true,
+											},
+											published_at: {
+												type: "string",
+												nullable: true,
+											},
 										},
 									},
 								},
@@ -46,6 +55,7 @@ export default defineEventHandler(async (event) => {
 		.prepare(
 			`SELECT
 				f.id, f.name, f.parent_folder_id, f.created_at, f.updated_at,
+				f.visibility, f.public_token, f.published_at,
 				COUNT(fp.photo_id) AS photo_count
 			 FROM folders f
 			 LEFT JOIN folder_photos fp ON fp.folder_id = f.id

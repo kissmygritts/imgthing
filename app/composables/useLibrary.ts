@@ -332,6 +332,78 @@ export function useLibrary() {
 		}
 	}
 
+	// ── Folder publishing (public galleries) ───────────────────────────────────
+	// The share dialog target (a folder to publish/unpublish). Mirrors the
+	// create/rename/delete dialog states.
+	const shareTarget = useState<FolderNode | null>(
+		"library:shareTarget",
+		() => null,
+	);
+	const shareBusy = useState("library:shareBusy", () => false);
+
+	function openShare(folder: FolderNode) {
+		shareTarget.value = folder;
+	}
+
+	// Build the /f/{slug}?token= public link for a published folder (origin from
+	// the browser; "" during SSR). The slug is cosmetic — resolution is by token
+	// (ADR 0008) — so a stale slug after a rename still resolves.
+	function folderShareUrl(folder: FolderNode | null): string {
+		if (!folder?.public_token) return "";
+		const origin = import.meta.client ? window.location.origin : "";
+		const slug =
+			folder.name
+				.toLowerCase()
+				.replace(/[^a-z0-9]+/g, "-")
+				.replace(/^-+|-+$/g, "") || "gallery";
+		return `${origin}/f/${slug}?token=${folder.public_token}`;
+	}
+
+	// Publish a folder as a public gallery. IDEMPOTENT server-side (no token
+	// rotation), so a stable link survives re-publish. Optimistically mirror the
+	// public state onto the row (like publishPhoto), then refresh so the tree glyph
+	// + server truth stay in sync.
+	async function publishFolder(folder: FolderNode): Promise<boolean> {
+		shareBusy.value = true;
+		try {
+			const res = await $fetch<{ token: string; url: string }>(
+				`/api/folders/${folder.id}/publish`,
+				{ method: "POST" },
+			);
+			folder.visibility = "public";
+			folder.public_token = res.token;
+			await refreshNuxtData("folders");
+			return true;
+		} catch (err) {
+			toast.error(
+				(err as { statusMessage?: string })?.statusMessage ?? "Publish failed",
+			);
+			return false;
+		} finally {
+			shareBusy.value = false;
+		}
+	}
+
+	// Revoke a folder's public gallery — drops the token so any shared link 404s.
+	async function unpublishFolder(folder: FolderNode): Promise<boolean> {
+		shareBusy.value = true;
+		try {
+			await $fetch(`/api/folders/${folder.id}/unpublish`, { method: "POST" });
+			folder.visibility = "private";
+			folder.public_token = null;
+			await refreshNuxtData("folders");
+			return true;
+		} catch (err) {
+			toast.error(
+				(err as { statusMessage?: string })?.statusMessage ??
+					"Unpublish failed",
+			);
+			return false;
+		} finally {
+			shareBusy.value = false;
+		}
+	}
+
 	function onTreeAction({
 		type,
 		folder,
@@ -342,6 +414,7 @@ export function useLibrary() {
 		if (type === "rename") openRename(folder);
 		else if (type === "delete") deleteTarget.value = folder;
 		else if (type === "new-sub") openCreate(folder.id);
+		else if (type === "share") openShare(folder);
 	}
 
 	// ── Photo ↔ folder membership ──────────────────────────────────────────────
@@ -787,6 +860,13 @@ export function useLibrary() {
 		deleteTarget,
 		confirmDelete,
 		onTreeAction,
+		// folder sharing
+		shareTarget,
+		shareBusy,
+		openShare,
+		folderShareUrl,
+		publishFolder,
+		unpublishFolder,
 		// membership
 		foldersOf,
 		toggleMembership,
