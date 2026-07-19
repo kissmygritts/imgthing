@@ -719,6 +719,7 @@ async function onViewerPurge(id: string) {
 			:photos="photos"
 			:index="viewerIndex"
 			:all-tags="tags"
+			:all-folders="folders"
 			:trash="trashOnly"
 			@update:index="viewerIndex = $event"
 			@close="viewerIndex = null"

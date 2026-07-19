@@ -88,6 +88,12 @@ const props = defineProps<{
 	index: number;
 	// The full tag list, for rendering chips + autocompleting the add field.
 	allTags: Tag[];
+	// The full folder list (id/name/visibility), used to surface which *published*
+	// folders currently expose this photo publicly — a live, derived read (ADR
+	// 0008): a folder token bypasses the photo's own visibility, so a private
+	// photo can still be reachable through a published folder. We show that here
+	// rather than writing it onto the photo row.
+	allFolders?: { id: string; name: string; visibility?: string }[];
 	// Trash mode: the visible photos are tombstoned, so the actions swap from
 	// "move to Trash" to Restore + Delete forever (permanent purge).
 	trash?: boolean;
@@ -699,6 +705,20 @@ function confirmDelete() {
 const shareShowLocation = ref(false);
 
 const isPublic = computed(() => photo.value?.visibility === "public");
+
+// Published folders that currently expose this photo publicly (live, derived —
+// nothing is written to the photo row). This is why a photo can be reachable
+// through a folder gallery even while its own Public toggle is off: the folder
+// token bypasses per-photo visibility (ADR 0008).
+const publicFolders = computed(() => {
+	const p = photo.value;
+	if (!p?.folder_ids || !props.allFolders) return [];
+	const memberIds = new Set(p.folder_ids.split(","));
+	return props.allFolders.filter(
+		(f) => f.visibility === "public" && memberIds.has(f.id),
+	);
+});
+
 const hasGps = computed(
 	() => photo.value?.gps_latitude != null && photo.value?.gps_longitude != null,
 );
@@ -1124,6 +1144,29 @@ watch(
 										:class="isPublic ? 'translate-x-6' : 'translate-x-1'"
 									/>
 								</button>
+							</div>
+
+							<!-- Reachable via a published folder: a live, derived note. The
+							     folder token exposes this photo independently of its own Public
+							     toggle above, so surface it here to avoid the "why is my private
+							     photo public?" confusion (ADR 0008). -->
+							<div
+								v-if="publicFolders.length"
+								class="mt-4 flex gap-2.5 rounded-lg border border-primary/30 bg-primary/10 px-3 py-2.5"
+							>
+								<Globe class="mt-0.5 size-3.5 shrink-0 text-primary" />
+								<p class="text-xs leading-relaxed text-foreground/90">
+									Also public through the published
+									{{ publicFolders.length === 1 ? "folder" : "folders" }}
+									<span
+										v-for="(f, i) in publicFolders"
+										:key="f.id"
+										class="font-medium text-foreground"
+										>{{ f.name
+										}}<span v-if="i < publicFolders.length - 1">, </span></span>. Anyone
+									with that gallery link can view it, regardless of the toggle
+									above.
+								</p>
 							</div>
 
 							<!-- Show location toggle — only for geotagged photos -->
