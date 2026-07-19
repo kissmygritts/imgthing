@@ -1146,29 +1146,6 @@ watch(
 								</button>
 							</div>
 
-							<!-- Reachable via a published folder: a live, derived note. The
-							     folder token exposes this photo independently of its own Public
-							     toggle above, so surface it here to avoid the "why is my private
-							     photo public?" confusion (ADR 0008). -->
-							<div
-								v-if="publicFolders.length"
-								class="mt-4 flex gap-2.5 rounded-lg border border-primary/30 bg-primary/10 px-3 py-2.5"
-							>
-								<Globe class="mt-0.5 size-3.5 shrink-0 text-primary" />
-								<p class="text-xs leading-relaxed text-foreground/90">
-									Also public through the published
-									{{ publicFolders.length === 1 ? "folder" : "folders" }}
-									<span
-										v-for="(f, i) in publicFolders"
-										:key="f.id"
-										class="font-medium text-foreground"
-										>{{ f.name
-										}}<span v-if="i < publicFolders.length - 1">, </span></span>. Anyone
-									with that gallery link can view it, regardless of the toggle
-									above.
-								</p>
-							</div>
-
 							<!-- Show location toggle — only for geotagged photos -->
 							<div v-if="hasGps" class="mt-4 flex items-center justify-between gap-4">
 								<div class="min-w-0">
@@ -1200,6 +1177,30 @@ watch(
 							>
 								Turn on Public to generate shareable links and embed snippets.
 							</p>
+
+							<!-- Reachable via a published folder: a live, derived note. The
+							     folder token exposes this photo independently of its own Public
+							     toggle above, so surface it here to avoid the "why is my private
+							     photo public?" confusion (ADR 0008). Sits below the Public
+							     description so that explanation reads first. -->
+							<div
+								v-if="publicFolders.length"
+								class="mt-4 flex gap-2.5 rounded-lg border border-primary/30 bg-primary/10 px-3 py-2.5"
+							>
+								<Globe class="mt-0.5 size-3.5 shrink-0 text-primary" />
+								<p class="text-xs leading-relaxed text-foreground/90">
+									Also public through the published
+									{{ publicFolders.length === 1 ? "folder" : "folders" }}
+									<span
+										v-for="(f, i) in publicFolders"
+										:key="f.id"
+										class="font-medium text-foreground"
+										>{{ f.name
+										}}<span v-if="i < publicFolders.length - 1">, </span></span>. Anyone
+									with that gallery link can view it, regardless of the toggle
+									above.
+								</p>
+							</div>
 
 							<template v-else>
 							<section class="mt-6">
